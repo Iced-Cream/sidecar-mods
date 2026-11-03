@@ -16,8 +16,8 @@ status  = "built"
 
 summary = """
 Off at boot: stock (AUDIO IN L/R on Overbridge channels 10/11). The USB host
-sends F0 7D 52 54 26 01 F7 (on) / 26 00 (off) / 26 7F (ask), through 0022's
-router (fxin=1); the Rytm answers F0 7D 52 54 27 <0|1> F7, and sends a 27
+sends F0 7D 52 54 26 01 F7 (on) / 26 00 (off) / 26 7F (ask), through the
+companion's router (0032); the Rytm answers F0 7D 52 54 27 <0|1> F7, and sends a 27
 unasked each time its USB port comes up. On, channels 10/11 carry the delay +
 reverb return, stereo, at the MIX page's return levels (gd * delay + 2 gr *
 reverb per side, 0024-ob-mix's measured mix), from the CPU's own effect
@@ -39,5 +39,12 @@ subscribe = [{ event = "ev_tick", fn = "fxin_tick", order = 75 }]
 [requires]
 shared = false
 symbols = ["fx_return_gain_pre", "fx_return_gain_post", "fx_delay_out", "fx_reverb_out", "ob_in_write", "lfo_track_array"]
-# its switch is written by 0022's router (fxin=1) on a host 26; elekloader's `requires` (with what build.py finds in the bytes; tools/build.py cross_refs)
-mods = ["0022-looper"]
+# the host's 26 reaches it only through the companion's router (0032, until the companion phase 0022's, fxin=1);
+# elekloader's `requires` (with what build.py finds in the bytes; tools/build.py cross_refs)
+mods = ["0032-sidecar"]
+
+# The host command this mod takes, in the companion's table (mods/0032-sidecar, tools/build.py): FX IN (26).
+[[sidecar.cmds]]
+first   = 0x26
+last    = 0x26
+handler = "fxin_host"       # called for every 26 (SC_DIRECT)

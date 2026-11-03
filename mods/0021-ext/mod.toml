@@ -77,6 +77,24 @@ slots = 0
 [requires]
 shared = false
 symbols = []
-# the Sidecar's messages (user slots, names) reach it only through 0022's SysEx router; elekloader's `requires` (with what build.py finds in the bytes; tools/build.py cross_refs)
+# the Sidecar's messages (user slots, names) reach it only through the companion's SysEx router (0032, until the
+# companion phase 0022's); elekloader's `requires` (with what build.py finds in the bytes; tools/build.py cross_refs)
 # 0029: its ev_tick runs us_live, so md_tick (MD's set-ups, its page) and the live slot refresh (build.py refuses slots=1 without it)
-mods = ["0022-looper", "0029-sendfx-ui"]
+mods = ["0032-sidecar", "0029-sendfx-ui"]
+
+# The host commands this mod takes, in the companion's table (mods/0032-sidecar, tools/build.py): JUNO's patch sliders
+# (15), JUNO and 6-OP FM list names (16, 17) and, with the user slots (slots=1), their 18..1D, to the mailbox at its
+# fixed address 0x40027a04 ('JUNO' + the handler, written by 0021 at run time). The ranges 0022's router passed.
+[[sidecar.cmds]]
+first = 0x15
+last  = 0x1d
+magic = "JUNO"
+box   = 0x40027a04
+gate  = "slots"
+
+[[sidecar.cmds]]
+first  = 0x15
+last   = 0x17
+magic  = "JUNO"
+box    = 0x40027a04
+gate   = "!slots"

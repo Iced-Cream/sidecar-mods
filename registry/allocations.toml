@@ -4246,23 +4246,6 @@ from_symbol = "looper_sel"
 gate        = "keys"
 note        = "the LED selector callback pointer: looper_sel, which holds back the pads' groups (18..20) in looper mode and calls the stock sender otherwise"
 
-[[patch]]
-owner       = "0022-looper"
-addr        = 0x40083dd8
-size        = 2
-expect_len  = 2
-expect_sha256 = "5e5be2db18c49bd9863ac94af1ee2a6b6fbe6df2a2033e188c545979a0148880"
-replace     = "4ef9"
-note        = "the SysEx router's entry (lea %sp@(-16),%sp): jmp.l looper_router (address below)"
-
-[[patch]]
-owner       = "0022-looper"
-addr        = 0x40083dda
-size        = 4
-expect_len  = 4
-expect_sha256 = "fff6f049fe88a259746dd396a65f00be240348cbad38803f7d811db0c06dcdd7"
-from_symbol = "looper_router"
-note        = "looper_router: takes F0 7D 52 54 (slot states from the host), else redoes lea/moveml and goes on at 0x40083de0"
 
 [[patch]]
 owner       = "0021-ext"
@@ -6554,26 +6537,15 @@ rejoin = 0x40007f92
 # and from_symbol patch below is a site elekloader resolves. Addresses verified in the 1.73 image
 # (disassembly of stock MAIN OS, 2026-10-16).
 #
-# The mailbox for 0022's router (sfx=1): magic 'SFXU' + sfu_sysex, written at run time (first ev_tick).
-[[cave]]
-owner   = "0029-sendfx-ui"
-addr    = 0x401ba0f8
-size    = 8
-section = ".sfum"
-note    = "cave23's free tail: the 8 B mailbox 0022's router (sfx=1) calls with SENDFX NAMES/STATE (21/22); written at run time, nothing at build"
+# Its mailbox for the companion's router (magic 'SFXU' + sfu_sysex) is sfu_mbox in its own area memory since the companion
+# phase (2026-11-03; mods/0032-sidecar), no longer cave23's tail.
 
 # ---------------------------------------------------------------- 0026-remote-ui
 # The remote UI (mods/0026-remote-ui/design.md). Code in elekloader's area on core-ar2's events only (ev_tick,
 # ev_draw, ev_key, ev_enc); until 1025 no detour or patch of its own (1026: the panel writer's, below). The render sites
 # 0x400a2c5a / 0x400a2cc2 and the key/encoder dispatch calls 0x400a4838 / 0x400a4882 are core-ar2's (0027's
-# foreign claims); 0026 subscribes to them. Host messages 0x30..0x3F reach it through 0022's router (rui=1).
-# The mailbox for 0022's router (rui=1): magic 'RUIP' + rui_sysex, written at run time (first ev_tick).
-[[cave]]
-owner   = "0026-remote-ui"
-addr    = 0x401ba100
-size    = 8
-section = ".ruim"
-note    = "cave23's free tail after 0029's mailbox: the 8 B mailbox 0022's router (rui=1) calls with the remote UI's 0x30..0x3F; written at run time, nothing at build. 0x401ba108..0x401ba10e (6 B): 0030-fx-in's switch."
+# foreign claims); 0026 subscribes to them. Host messages reach it through the companion's router (mods/0032-sidecar), its
+# mailbox (magic 'RUIP' + rui_sysex) rui_mbox in its own area memory since the companion phase (2026-11-03).
 
 # 1026: the trig keys' LEDs (34). The UART8 (panel) writer's entry, `lea %sp@(-12),%sp; movem.l %d2-%d4,%sp@`: every
 # byte for the panel MCU passes it (tiles and selectors a byte or a few at a time [code]). rui_uart_det follows the
@@ -7257,14 +7229,9 @@ note    = "records 14..27 become the AMPLITUDE 2 / SEND FX 1 / SEND FX 2 knobs (
 
 # ---------------------------------------------------------------- 0030-fx-in
 # The delay + reverb return on Overbridge IN L/R, switched by the host (mods/0030-fx-in/design.md). Code in
-# elekloader's area; the two jsr operands point at fxin_ob there. The switch is cave23's last 6 B, written by
-# 0022's router (fxin=1) and read by fxin_ob / fxin_tick; nothing at build (stock's bytes there read as off).
-[[cave]]
-owner   = "0030-fx-in"
-addr    = 0x401ba108
-size    = 6
-section = ".fxim"
-note    = "cave23's tail after 0026's mailbox: u32 'FXI1' on / else off at +0, u16 request count at +4 (0022's router, fxin=1, writes both on a host 26); written at run time, nothing at build"
+# elekloader's area; the two jsr operands point at fxin_ob there. The switch (fxin_word, fxin_req) is in its own area
+# memory since the companion phase (2026-11-03), written by its handler fxin_host, which the companion's router calls on
+# a host 26 (mods/0032-sidecar); zero at boot reads as off.
 
 [[patch]]
 owner       = "0030-fx-in"
@@ -7466,3 +7433,25 @@ expect_len  = 4
 expect_sha256 = "c33f738955a3c82ae9d8c709df2f39412cd226a3dc454866007a5e349541b404"
 from_symbol = "cu_mi_name"
 note        = "machine 50 short name: MIDI"
+
+# ---- 0032-sidecar ----
+# The companion (mods/0032-sidecar/design.md): the host link's SysEx router, 0022's until the companion phase
+# (2026-11-03). Code in elekloader's area only.
+
+[[patch]]
+owner       = "0032-sidecar"
+addr        = 0x40083dd8
+size        = 2
+expect_len  = 2
+expect_sha256 = "5e5be2db18c49bd9863ac94af1ee2a6b6fbe6df2a2033e188c545979a0148880"
+replace     = "4ef9"
+note        = "the SysEx router's entry (lea %sp@(-16),%sp): jmp.l sc_router (address below)"
+
+[[patch]]
+owner       = "0032-sidecar"
+addr        = 0x40083dda
+size        = 4
+expect_len  = 4
+expect_sha256 = "fff6f049fe88a259746dd396a65f00be240348cbad38803f7d811db0c06dcdd7"
+from_symbol = "sc_router"
+note        = "sc_router: takes F0 7D 52 54 (the companion's table sc_cmds), else redoes lea/moveml and goes on at 0x40083de0"

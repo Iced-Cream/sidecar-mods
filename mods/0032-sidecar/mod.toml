@@ -1,0 +1,30 @@
+[mod]
+id      = "0032-sidecar"
+title   = "Sidecar companion: the host link's SysEx router; mods register their commands in its table sc_cmds"
+
+enabled = false
+
+# code in elekloader's DDR area (needs 0027-elekloader); its own elemod, `sidecar`, in release builds
+area    = "elek"
+
+# re-only | built | hardware-verified | retracted
+status  = "built"
+
+summary = """
+The companion every Sidecar client mod goes through. It takes each host SysEx message
+F0 7D 52 54 <cmd> ... F7 at the router's entry, before stock routes it, and calls the mod that
+registered <cmd> in the table sc_cmds (mod.toml [[sidecar.cmds]], built by the linker); the
+mailbox form keeps 0022's rule that a mod hears its commands only once its mailbox holds its
+magic. Replaces 0022's router (companion phase, 2026-11-03); host traffic is unchanged. design.md.
+"""
+
+[sources]
+stub = "stub.s"      # generated from sidecar.c by build.sh
+
+[elek]
+collections = { sc_cmds = 12 }
+
+[requires]
+shared = false
+symbols = []
+mods = []

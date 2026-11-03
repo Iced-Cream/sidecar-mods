@@ -104,6 +104,8 @@ def load_mods(only):
         # mods it needs that no address shows (a mailbox it waits on, data another keeps):
         # the elemods' `requires` (elek_build), next to the references found in the bytes
         mod["_needs_mods"] = list(m.get("requires", {}).get("mods", []))
+        # the host commands it takes through the companion's router (SC_MOD's table SC_TABLE)
+        mod["_sc_cmds"] = list(m.get("sidecar", {}).get("cmds", []))
         if only is not None:
             mod["enabled"] = mod["id"] in only
         mods[mod["id"]] = mod
@@ -264,6 +266,16 @@ ELEK_ID = "rytm-"          # elemod id = this + the mod's id, e.g. rytm-0021-ext
 # --elek-bundle: one elemod for the whole set, the file we publish for the elekloader web page
 # (docs/ELEKLOADER.md). Its version is the release's, from VERSION (the one version source).
 BUNDLE_ID = "rytm-sidecar"
+# The companion (mods/0032-sidecar/design.md): its own elemod in a bundle build, which the rest requires.
+SC_MOD = "0032-sidecar"
+SC_ID = "sidecar"
+SC_META = {
+    "title": "Sidecar companion for the Analog Rytm MKII",
+    "category": "Sidecar", "author": "trigcondition", "license": "GPL-2.0-or-later",
+}
+SC_TABLE = "sc_cmds"
+SC_ENTRY = 12             # {first, last, flags, pad, magic, box}: sidecar.c struct sc_cmd
+SC_DIRECT = 1
 BUNDLE_META = {
     "title": "Sidecar for the Analog Rytm MKII",
     "category": "Sidecar", "author": "trigcondition", "license": "GPL-2.0-or-later",
@@ -410,8 +422,63 @@ def defined_labels(mid):
     return {f[2] for f in (l.split() for l in out.splitlines()) if len(f) == 3 and f[1] not in "aAU"}
 
 
+def sc_cmds_of(mod):
+    """A mod's [[sidecar.cmds]] that its params select (`gate`, as the registry's)."""
+    return [c for c in mod.get("_sc_cmds", [])
+            if not layout.gated_out(c.get("gate"), mod["_params"], mod["id"])]
+
+
+def check_sc_cmds(mods, enabled):
+    """Refuse a build in which a mod registers host commands but the companion is missing (its
+    messages would never arrive), an entry is malformed, or two entries' ranges overlap (the
+    router would only ever call the first)."""
+    seen = []
+    for mid in sorted(enabled):
+        for c in sc_cmds_of(mods[mid]):
+            if SC_MOD not in enabled:
+                raise SystemExit(f"{mid} takes host commands through {SC_MOD}'s router: add {SC_MOD}")
+            a, b = c.get("first"), c.get("last")
+            if not (isinstance(a, int) and isinstance(b, int) and 0 <= a <= b <= 0x7f):
+                raise SystemExit(f"{mid}: [[sidecar.cmds]] first / last must be 0..0x7f, first <= last: {c}")
+            direct = "handler" in c
+            if direct == ("box" in c) or (direct and "magic" in c) or (not direct and "magic" not in c):
+                raise SystemExit(f"{mid}: [[sidecar.cmds]] takes handler = SYMBOL, or box (SYMBOL or address) "
+                                 f"and magic: {c}")
+            if "magic" in c and len(str(c["magic"]).encode("ascii")) != 4:
+                raise SystemExit(f"{mid}: [[sidecar.cmds]] magic must be 4 ASCII characters: {c}")
+            for oa, ob, om in seen:
+                if a <= ob and oa <= b:
+                    raise SystemExit(f"{mid}'s host commands 0x{a:02x}..0x{b:02x} overlap {om}'s "
+                                     f"0x{oa:02x}..0x{ob:02x}")
+            seen.append((a, b, mid))
+
+
+def sc_contributions(mod, stub_syms):
+    """A mod's entries for the companion's table, as elekloader contributions. A symbol is a
+    relocation when the mod is in the area, its linked address when it sits in caves; a number is
+    a fixed address (a mailbox in a cave)."""
+    out = []
+    for c in sc_cmds_of(mod):
+        ref = c.get("handler", c.get("box"))
+        flags = SC_DIRECT if "handler" in c else 0
+        magic = str(c.get("magic", "\0\0\0\0")).encode("ascii")
+        relocs, addr = [], 0
+        if isinstance(ref, int):
+            addr = ref
+        elif mod.get("area") == "elek":
+            relocs = [[8, "abs32", "sym:" + ref, 0]]
+        elif ref in stub_syms:
+            addr = stub_syms[ref]
+        else:
+            raise SystemExit(f"{mod['id']}: [[sidecar.cmds]] names {ref!r}, which its stub does not define")
+        data = bytes([c["first"], c["last"], flags, 0]) + magic + addr.to_bytes(4, "big")
+        assert len(data) == SC_ENTRY
+        out.append({"to": SC_TABLE, "order": int(c.get("order", 50)), "data": data.hex(), "relocs": relocs})
+    return out
+
+
 def elek_build(img, stock_img, mods, enabled, elek_detours, tag, meta, syx_out, reg_claims,
-               elek_patches, cave_spans, bundle):
+               elek_patches, cave_spans, bundle, stub_symbols):
     """Hand the patched image to elekloader: every byte build.py changed becomes a site
     (its stock bytes pinned by sha256 again), the area = "elek" mods' sources code, their
     elek detours `jmp` sites; elekloader links that code into its DDR area with its core
@@ -491,6 +558,8 @@ def elek_build(img, stock_img, mods, enabled, elek_detours, tag, meta, syx_out, 
             blobs += area_code(mid)
         found[mid] = cross_refs(blobs, mid, cave_spans)
         needs[mid] = set(found[mid]) | set(mods[mid]["_needs_mods"])
+        if sc_cmds_of(mods[mid]) and mid != SC_MOD:
+            needs[mid].add(SC_MOD)
         if mods[mid].get("_needs_shared"):
             needs[mid] |= {p for p in enabled if mods[p].get("_provides") and p != mid}
     for mid in members:
@@ -514,7 +583,10 @@ def elek_build(img, stock_img, mods, enabled, elek_detours, tag, meta, syx_out, 
                 dup = [o for o in elek_mods if o != mid and n in labels[o]]
                 if dup:
                     raise SystemExit(f"--elek-bundle: {mid}'s {n} is also defined by {dup}")
-        units = [(BUNDLE_ID, version, members)]
+        # the companion is its own elemod (mods/0032-sidecar/design.md), the rest one more that requires it
+        rest = [m for m in members if m != SC_MOD]
+        units = ([(SC_ID, version, [SC_MOD])] if SC_MOD in members else []) + \
+            ([(BUNDLE_ID, version, rest)] if rest else [])
     else:
         units = [(ELEK_ID + mid, tag, [mid]) for mid in members]
     unit_of = {mid: eid for eid, _v, ms in units for mid in ms}
@@ -524,8 +596,11 @@ def elek_build(img, stock_img, mods, enabled, elek_detours, tag, meta, syx_out, 
         mdir = work / "mods" / eid
         mdir.mkdir(parents=True)
         sites, sources, subscribe, defsym = [], [], [], {}
+        collections, contribute = {}, []
         for mid in ms:
             sites += sites_of(mid)
+            contribute += sc_contributions(mods[mid], stub_symbols.get(mid, {}))
+            collections.update(mods[mid].get("_elek", {}).get("collections", {}))
             if mid not in elek_mods:
                 continue
             subscribe += mods[mid].get("_elek", {}).get("subscribe", [])
@@ -552,7 +627,15 @@ def elek_build(img, stock_img, mods, enabled, elek_detours, tag, meta, syx_out, 
             sorted({unit_of[o] for mid in ms for o in needs[mid] if o in unit_of} - {eid})
         conflicts = sorted({ELEK_ID + x for mid in ms for x in mods[mid].get("excludes", [])
                             if x not in ms})
-        if bundle:
+        if bundle and eid == SC_ID:
+            modjson = {"id": eid, "version": version, **SC_META,
+                       "description": (
+                           "The Sidecar companion for the Analog Rytm MKII on OS 1.74: it owns the host link's "
+                           "SysEx, and mods register the host commands they take in its table sc_cmds. "
+                           f"Use it with core-ar2 0.1 for OS 1.74 and {BUNDLE_ID}-{version}, published beside "
+                           f"it. Source, licence (GPL-2.0-or-later) and the install guide: {HOMEPAGE} "
+                           f"(tag v{version}, docs/ELEKLOADER.md).")}
+        elif bundle:
             modjson = {"id": eid, "version": version, **BUNDLE_META,
                        "description": (
                            f"The Sidecar's mods for the Analog Rytm MKII on OS 1.74: "
@@ -573,6 +656,10 @@ def elek_build(img, stock_img, mods, enabled, elek_detours, tag, meta, syx_out, 
                         "resources": {"core": ELEK_CORE_VERSION} if sources else {},
                         "sources": sources, "subscribe": subscribe, "sites": sites,
                         "defsym": defsym})
+        if collections:
+            modjson["collections"] = collections
+        if contribute:
+            modjson["contribute"] = contribute
         (mdir / "mod.json").write_text(json.dumps(modjson, indent=1) + "\n")
         elek("elekloader.sdk.build", mdir, "--stock", STOCK_SYX, "--out", mdir / "out")
         built.append(next((mdir / "out").glob("*.elemod")))
@@ -618,10 +705,14 @@ def elek_build(img, stock_img, mods, enabled, elek_detours, tag, meta, syx_out, 
             from elekloader.sdk import elf
         finally:
             sys.path.pop(0)
-        wdir = work / "mods" / BUNDLE_ID / "out" / f"{BUNDLE_ID}.work"
-        at = {sec: lay["sections"][f"{BUNDLE_ID} {sec}"] for sec in (".run", ".bss")
-              if f"{BUNDLE_ID} {sec}" in lay["sections"]}
+        ats = {}
         for mid in elek_mods:
+            eid = unit_of[mid]
+            if eid not in ats:
+                ats[eid] = {sec: lay["sections"][f"{eid} {sec}"] for sec in (".run", ".bss")
+                            if f"{eid} {sec}" in lay["sections"]}
+            at = ats[eid]
+            wdir = work / "mods" / eid / "out" / f"{eid}.work"
             e = elf.Elf.load(str(wdir / f"{mid}.s.o"))
             base_of = {}
             for x in e.sections:
@@ -641,7 +732,7 @@ def elek_build(img, stock_img, mods, enabled, elek_detours, tag, meta, syx_out, 
                 if x.idx in base_of:
                     at[x.name] += x.size
         for k, v in list(smap.items()):    # the computed names must agree with the linker's
-            if k.startswith(BUNDLE_ID + ":"):
+            if k.split(":", 1)[0] in (BUNDLE_ID, SC_ID):
                 n = k.split(":", 1)[1]
                 own = [smap[f"{ELEK_ID}{m}:{n}"] for m in elek_mods if f"{ELEK_ID}{m}:{n}" in smap]
                 if len(own) == 1 and own[0] != v:
@@ -650,7 +741,7 @@ def elek_build(img, stock_img, mods, enabled, elek_detours, tag, meta, syx_out, 
     # its symbols (also the file-local ones) and disassemble it at the run addresses, as they do a cave mod's ELF
     for mid in elek_mods:
         if bundle:
-            obj, at_run = work / "mods" / BUNDLE_ID / "out" / f"{BUNDLE_ID}.work" / f"{mid}.s.o", run_base.get(mid)
+            obj, at_run = work / "mods" / unit_of[mid] / "out" / f"{unit_of[mid]}.work" / f"{mid}.s.o", run_base.get(mid)
         else:
             eid = ELEK_ID + mid
             obj, at_run = work / "mods" / eid / "out" / f"{eid}.work" / "stub.s.o", lay["sections"].get(f"{eid} .run")
@@ -672,7 +763,7 @@ def elek_build(img, stock_img, mods, enabled, elek_detours, tag, meta, syx_out, 
             "version": version, "layout": lay, "area": list(ddr),
             "mods": elek_mods, "detours": detours, "patches": patches,
             "symbols": {k: v for k, v in smap.items()
-                        if k.startswith((ELEK_ID, "core:"))},
+                        if k.startswith((ELEK_ID, "core:", SC_ID + ":"))},
             "output": {k: man["output"][k] for k in ("flash_end", "flash_headroom")
                        if k in man["output"]},
             "inplace_min_gap": man["output"].get("main", {}).get("inplace_min_gap"),
@@ -769,6 +860,9 @@ def main():
     check_excludes(enabled, excludes)
     check_param_excludes(mods, enabled)
     check_linked_params(mods, enabled)
+    check_sc_cmds(mods, enabled)
+    if SC_MOD in enabled and mods[SC_MOD].get("area") != "elek":
+        raise SystemExit(f"{SC_MOD} lives in elekloader's area: it needs {ELEK_MOD}")
     for mid in sorted(enabled):   # a mod's known limitation in this tree ([mod] warning), shown with every build of it
         if mods[mid].get("warning"):
             print(f"WARNING: {mid}: {mods[mid]['warning']}")
@@ -988,7 +1082,7 @@ def main():
                       if c["owner"] in enabled and
                       not layout.gated_out(c.get("gate"), mods[c["owner"]]["_params"], c["owner"])]
         elek = elek_build(img, stock_img, mods, enabled, elek_detours, tag, meta, syx_out, claims,
-                          elek_patches, cave_spans, args.elek_bundle)
+                          elek_patches, cave_spans, args.elek_bundle, stub_symbols)
         detours_applied += elek["detours"]
         img = bytearray(elek.pop("_mainos"))   # stock length + the appended .boot and blob
     else:

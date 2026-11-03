@@ -535,6 +535,10 @@ static void take_labels(const uint8_t *d, int32_t len) {
 
 /* 21 NAMES / 22 STATE from the host (0022's router, through the mailbox) */
 static int32_t sysex_body(const uint8_t *d, int32_t len);
+/* The mailbox the companion's router calls with SENDFX NAMES, STATE and LABELS (mods/0032-sidecar, the table entries in
+   mod.toml): 'SFXU', sfu_sysex, written at the first sfu_tick. Until the companion phase (2026-11-03) at 0x401ba0f8. */
+volatile uint32_t sfu_mbox[2] __attribute__((section(".bss"), aligned(4)));
+
 int32_t sfu_sysex(const uint8_t *d, int32_t len) {
   uint32_t t0 = TIMER;
   int32_t r = sysex_body(d, len);
@@ -773,8 +777,8 @@ static void tick_body(void *ctrl) {
     set_look(3, 3, 2);    /* P1 ROUTE: PRE / POST */
     set_look(9, 3, 2);
     relabel();
-    ((volatile uint32_t *)0x401ba0f8u)[1] = (uint32_t)sfu_sysex;
-    ((volatile uint32_t *)0x401ba0f8u)[0] = 0x53465855u;   /* 'SFXU' */
+    sfu_mbox[1] = (uint32_t)sfu_sysex;
+    sfu_mbox[0] = 0x53465855u;   /* 'SFXU' */
     st.init = 1;
   }
   /* the 21 list: a copy for the UI task when the MIDI task is not writing it (ogen even) and it is new */

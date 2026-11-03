@@ -35,5 +35,21 @@ subscribe = [{ event = "ev_tick", fn = "sfu_tick", order = 60 }]
 
 [requires]
 shared = false
-# 0025 keeps FX words 38..41 in the kit; the names come through 0022's router (sfx=1); elekloader's `requires` (with what build.py finds in the bytes; tools/build.py cross_refs)
-mods = ["0021-ext", "0022-looper", "0025-sendfx-report"]   # 0021: ext_stepbox at its fixed address
+# 0025 keeps FX words 38..41 in the kit; the names come through the companion's router (0032, until the companion phase
+# 0022's, sfx=1); elekloader's `requires` (with what build.py finds in the bytes; tools/build.py cross_refs)
+mods = ["0021-ext", "0032-sidecar", "0025-sendfx-report"]   # 0021: ext_stepbox at its fixed address
+
+# The host commands this mod takes, in the companion's table (mods/0032-sidecar, tools/build.py): SENDFX NAMES (21),
+# STATE (22) and LABELS (24) to its mailbox sfu_mbox ('SFXU' + sfu_sysex, written at its first tick); 23 ASK only goes
+# to the host. The ranges 0022's router passed (sfx=1).
+[[sidecar.cmds]]
+first = 0x21
+last  = 0x22
+magic = "SFXU"
+box   = "sfu_mbox"
+
+[[sidecar.cmds]]
+first = 0x24
+last  = 0x24
+magic = "SFXU"
+box   = "sfu_mbox"

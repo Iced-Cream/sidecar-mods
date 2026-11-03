@@ -89,7 +89,8 @@ class ParamExcludes(unittest.TestCase):
 
 
 class LinkedParams(unittest.TestCase):
-    """0021's, 0022's and 0023's `slots` go together (0021 calls 0023's td_pool_tab, 0022 routes 1A..1D)."""
+    """0021's and 0023's `slots` go together (0021 calls 0023's td_pool_tab). Until the companion phase (2026-11-03)
+    0022 listed it too, for its router; the router is 0032-sidecar's now and each client registers its own commands."""
     ALL = {"0014-hidden-machines", "0021-ext", "0022-looper", "0023-teensy-drive"}
 
     def mods(self, **slots):
@@ -101,40 +102,78 @@ class LinkedParams(unittest.TestCase):
     def test_defaults_agree(self):
         # every slots defaults to 0: the hardware builds stay the pre-slot image
         mods, en = self.mods()
-        self.assertEqual({mods[m]["_params"]["slots"] for m in ("0021-ext", "0022-looper", "0023-teensy-drive")}, {0})
+        self.assertEqual({mods[m]["_params"]["slots"] for m in ("0021-ext", "0023-teensy-drive")}, {0})
+        self.assertNotIn("slots", mods["0022-looper"]["_params"])
         build.check_linked_params(mods, en)
 
     def test_all_on_passes(self):
-        build.check_linked_params(*self.mods(**{"0021_ext": 1, "0022_looper": 1, "0023_teensy_drive": 1}))
+        build.check_linked_params(*self.mods(**{"0021_ext": 1, "0023_teensy_drive": 1}))
 
     def test_0021_without_0023_refused(self):
         # 0021 slots=1 reads td_pool_tab from the third mailbox word; 0023 slots=0 has 8 B there
         with self.assertRaises(SystemExit) as cm:
-            build.check_linked_params(*self.mods(**{"0021_ext": 1, "0022_looper": 1}))
+            build.check_linked_params(*self.mods(**{"0021_ext": 1}))
         self.assertIn("linked param slots", str(cm.exception))
 
-    def test_0022_alone_refused(self):
-        with self.assertRaises(SystemExit):
-            build.check_linked_params(*self.mods(**{"0022_looper": 1}))
-
     def test_a_disabled_mod_is_not_checked(self):
-        # 0023 (not in the image) has slots=1; 0021 and 0022 agree on 0
+        # 0023 (not in the image) has slots=1; 0021 has 0
         mods = build.load_mods({"0021-ext", "0022-looper"})
         mods["0023-teensy-drive"]["_params"]["slots"] = 1
         build.check_linked_params(mods, {"0021-ext", "0022-looper"})
 
-    def test_0021_slots_without_0022_0023_refused(self):
+    def test_0021_slots_without_0023_refused(self):
         # review 2026-10-11: slots=1 needs every mod that lists slots in the image
-        for only in ({"0021-ext"}, {"0021-ext", "0022-looper"}, {"0021-ext", "0023-teensy-drive"}):
+        for only in ({"0021-ext"}, {"0021-ext", "0022-looper"}):
             mods = build.load_mods(only)
-            for m in only:
-                mods[m]["_params"]["slots"] = 1
+            mods["0021-ext"]["_params"]["slots"] = 1
             with self.assertRaises(SystemExit) as cm:
                 build.check_linked_params(mods, only)
             self.assertIn("needs", str(cm.exception))
 
     def test_0021_alone_slots_0_passes(self):
         build.check_linked_params(build.load_mods({"0021-ext"}), {"0021-ext"})
+
+
+class SidecarCmds(unittest.TestCase):
+    """The companion's table (mods/0032-sidecar): a client needs the companion, and ranges never overlap."""
+    RUI = {"0021-ext", "0022-looper", "0023-teensy-drive", "0026-remote-ui", "0029-sendfx-ui", "0030-fx-in",
+           "0032-sidecar"}
+
+    def test_rui_set_passes(self):
+        mods = build.load_mods(self.RUI)
+        mods["0021-ext"]["_params"]["slots"] = 1
+        build.check_sc_cmds(mods, self.RUI)
+
+    def test_client_without_companion_refused(self):
+        only = {"0022-looper"}
+        with self.assertRaises(SystemExit) as cm:
+            build.check_sc_cmds(build.load_mods(only), only)
+        self.assertIn("0032-sidecar", str(cm.exception))
+
+    def test_overlap_refused(self):
+        mods = build.load_mods(self.RUI)
+        mods["0030-fx-in"]["_sc_cmds"].append({"first": 0x30, "last": 0x30, "handler": "fxin_host"})
+        with self.assertRaises(SystemExit) as cm:
+            build.check_sc_cmds(mods, self.RUI)
+        self.assertIn("overlap", str(cm.exception))
+
+    def test_slots_picks_0021_range(self):
+        mods = build.load_mods({"0021-ext"})
+        self.assertEqual([(c["first"], c["last"]) for c in build.sc_cmds_of(mods["0021-ext"])], [(0x15, 0x17)])
+        mods["0021-ext"]["_params"]["slots"] = 1
+        self.assertEqual([(c["first"], c["last"]) for c in build.sc_cmds_of(mods["0021-ext"])], [(0x15, 0x1d)])
+
+    def test_entry_bytes(self):
+        mods = build.load_mods(self.RUI)
+        mods["0026-remote-ui"]["area"] = "elek"
+        e = build.sc_contributions(mods["0026-remote-ui"], {})[2]
+        self.assertEqual(e["data"], "303f0000" + b"RUIP".hex() + "00000000")
+        self.assertEqual(e["relocs"], [[8, "abs32", "sym:rui_mbox", 0]])
+        e = build.sc_contributions(mods["0023-teensy-drive"], {})[0]
+        self.assertEqual(e["data"], "0e0e0000" + b"TDRV".hex() + "401b9d18")
+        mods["0022-looper"]["area"] = None
+        e = build.sc_contributions(mods["0022-looper"], {"looper_host": 0x400a75ea})[0]
+        self.assertEqual(e["data"], "07080100" + "00000000" + "400a75ea")
 
 
 if __name__ == "__main__":

@@ -3,20 +3,20 @@
 
     .venv/bin/python tools/release_check.py --dir build/release/0.3.0 --expect build/mainos_rel-0.3.0.bin
 
-Takes ONLY what we publish (the folder's core-*.elemod and rytm-sidecar-*.elemod, checked against its
-SHA256SUMS) and the user's stock .syx, and builds them the two ways a user would, with upstream's own code
+Takes ONLY what we publish (the folder's core-*.elemod, sidecar-*.elemod (the companion, mods/0032-sidecar)
+and rytm-sidecar-*.elemod, checked against its SHA256SUMS) and the user's stock .syx, and builds them the two ways a user would, with upstream's own code
 at the pinned vendor/elekloader:
 
 - the command line: `elekloader.lint`, `elekloader.patch --check`, `elekloader.patch --out`;
 - the web page: web/bridge.py, the module the page's worker runs under Pyodide (gui.LoaderModel,
   gui.with_requirements, patch.build / patch.save), run here in CPython on a scratch folder in place of
   its in-memory /work. The files are added as the page adds a user's own files (add_mod: the page lists
-  no Rytm core for OS 1.74), the bundle is ticked (its requirements tick the core), checked and built,
+  no Rytm core for OS 1.74), the bundle is ticked (its requirements tick the companion and the core), checked and built,
   once with version 1.74 (what the docs say to type) and once with the page's default version.
 
 Each image must have our build's MAIN OS byte for byte (--expect), and sections 1, 2 (the bootstrap,
 also by its pinned sha256, docs/HAZARDS.md), 5 and 8 as stock. Then the refusals: the bundle without a
-core, and with core-ar2 0.2 (built from upstream's 92a99c9, with its OS 1.74 port) are refused.
+core, without the companion, and with core-ar2 0.2 (built from upstream's 92a99c9, with its OS 1.74 port) are refused.
 
 Writes only under --work (default build/release_check). Exit status 0: every check passed.
 """
@@ -169,24 +169,31 @@ def main():
     elemods = sorted(p.name for p in args.dir.glob("*.elemod"))
     cores = [n for n in elemods if n.startswith("core-")]
     bundles = [n for n in elemods if n.startswith("rytm-sidecar-")]
-    check(len(cores) == 1 and len(bundles) == 1 and len(elemods) == 2,
-          f"published: one core and one bundle ({', '.join(elemods)})")
+    comps = [n for n in elemods if n.startswith("sidecar-")]
+    check(len(cores) == 1 and len(bundles) == 1 and len(comps) == 1 and len(elemods) == 3,
+          f"published: one core, the companion and one bundle ({', '.join(elemods)})")
     if failures:
         return 1
     for n in elemods:
         raw = (args.dir / n).read_bytes()
         check(sums.get(n) == sha256(raw), f"{n}: sha256 {sha256(raw)} as SHA256SUMS")
         shutil.copy(args.dir / n, work / "in" / n)
-    core, bundle = work / "in" / cores[0], work / "in" / bundles[0]
+    core, bundle, comp = work / "in" / cores[0], work / "in" / bundles[0], work / "in" / comps[0]
     doc = json.loads(bundle.read_text())
+    sdoc = json.loads(comp.read_text())
     cdoc = json.loads(core.read_text())
     check(sha256(core.read_bytes()) == CORE_SHA256, f"core: sha256 is the pinned {CORE_SHA256[:16]}...")
     check(cdoc["id"] == "core" and cdoc["version"] == "0.1" and cdoc["target"]["os"] == "1.74",
           f"core: {cdoc['id']} {cdoc['version']} for OS {cdoc['target']['os']}")
     check(doc["license"] == "GPL-2.0-or-later" and doc["author"] == "trigcondition"
-          and doc["requires"] == ["core"] and doc.get("resources", {}).get("core") == "0.1",
+          and doc["requires"] == ["core", "sidecar"] and doc.get("resources", {}).get("core") == "0.1",
           f"bundle: {doc['id']} {doc['version']}, {doc['license']}, by {doc['author']}, requires "
           f"{doc['requires']}, core >= {doc.get('resources', {}).get('core')}")
+    check(sdoc["id"] == "sidecar" and sdoc["version"] == doc["version"] and sdoc["license"] == "GPL-2.0-or-later"
+          and sdoc["author"] == "trigcondition" and sdoc["requires"] == ["core"]
+          and sdoc.get("resources", {}).get("core") == "0.1" and "sc_cmds" in sdoc.get("collections", {}),
+          f"companion: {sdoc['id']} {sdoc['version']}, {sdoc['license']}, requires {sdoc['requires']}, "
+          f"declares {sorted(sdoc.get('collections', {}))}")
 
     want = {l.split()[1]: l.split()[0] for l in (ROOT / "stock" / "SHA256SUMS").read_text().splitlines() if l}
     check(sha256(STOCK_SYX.read_bytes()) == want[STOCK_SYX.name], f"stock: {STOCK_SYX.name} as stock/SHA256SUMS")
@@ -195,32 +202,35 @@ def main():
     results = {"files": {n: sums[n] for n in elemods}}
 
     # 2. the command line
-    rc, out = elek("elekloader.lint", bundle, "--stock", STOCK_SYX, "--with", core)
-    check(rc == 0, "lint " + bundle.name + " --with " + core.name + ": " +
+    rc, out = elek("elekloader.lint", bundle, "--stock", STOCK_SYX, "--with", core, "--with", comp)
+    check(rc == 0, "lint " + bundle.name + " --with " + core.name + " --with " + comp.name + ": " +
           " | ".join(l for l in out.splitlines() if l.startswith(("OK", "PROBLEM")))[:400])
-    rc, out = elek("elekloader.lint", core, bundle)
+    rc, out = elek("elekloader.lint", comp, "--stock", STOCK_SYX, "--with", core)
+    check(rc == 0, "lint " + comp.name + " --with " + core.name + ": " +
+          " | ".join(l for l in out.splitlines() if l.startswith(("OK", "PROBLEM")))[:400])
+    rc, out = elek("elekloader.lint", core, comp, bundle)
     check(rc == 0, "lint of each file on its own")
-    rc, out = elek("elekloader.patch", "--stock", STOCK_SYX, "--mod", core, "--mod", bundle, "--check")
+    rc, out = elek("elekloader.patch", "--stock", STOCK_SYX, "--mod", core, "--mod", comp, "--mod", bundle, "--check")
     check(rc == 0 and "OK: the mods combine" in out, "patch --check: " + out.strip().splitlines()[-1])
     cli = work / "cli.syx"
-    rc, out = elek("elekloader.patch", "--stock", STOCK_SYX, "--mod", core, "--mod", bundle,
+    rc, out = elek("elekloader.patch", "--stock", STOCK_SYX, "--mod", core, "--mod", comp, "--mod", bundle,
                    "--out", cli, "--version", "1.74")
     if check(rc == 0 and cli.exists(), "patch --out (version 1.74)"):
         print("     " + " | ".join(l.strip() for l in out.splitlines() if l.startswith(("linked", "verified"))))
         results["cli"] = image_checks("cli", cli, expect_main, stock_secs, work)
 
     # 3. the web page's code path
-    res, built = web_build(work / "web", [core, bundle], bundle, ["1.74"])
+    res, built = web_build(work / "web", [core, comp, bundle], bundle, ["1.74"])
     if res:
         dv = res["default_version"]
         if dv != "1.74":
-            res2, built2 = web_build(work / "web-default", [core, bundle], bundle, [dv])
+            res2, built2 = web_build(work / "web-default", [core, comp, bundle], bundle, [dv])
             if res2:
                 res["builds"].update(res2["builds"])
                 built.update(built2)
         check(res["stock"]["ok"], "web: the stock file is known")
-        check(all(a["ok"] for a in res["add"]), "web: both files added as the user's own")
-        check(sorted(res["ticked"]) == sorted([core.name, bundle.name]),
+        check(all(a["ok"] for a in res["add"]), "web: the three files added as the user's own")
+        check(sorted(res["ticked"]) == sorted([core.name, comp.name, bundle.name]),
               f"web: ticking the bundle ticks {', '.join(res['ticked'])}")
         ck = res["check"]
         check(isinstance(ck, dict) and ck.get("ok"), "web: live check " +
@@ -236,8 +246,10 @@ def main():
         check(results.get(k) == ours, f"{k} .syx is build.py's {args.expect_syx.name} ({ours[:16]}...)")
 
     # 4. what must be refused
-    rc, out = elek("elekloader.patch", "--stock", STOCK_SYX, "--mod", bundle, "--check")
+    rc, out = elek("elekloader.patch", "--stock", STOCK_SYX, "--mod", comp, "--mod", bundle, "--check")
     check(rc != 0, "refused without a core: " + out.strip().splitlines()[-1][:200])
+    rc, out = elek("elekloader.patch", "--stock", STOCK_SYX, "--mod", core, "--mod", bundle, "--check")
+    check(rc != 0, "refused without the companion: " + out.strip().splitlines()[-1][:200])
     c02 = work / "core02"
     (c02 / "src").mkdir(parents=True)
     arc = subprocess.run(["git", "-C", ELEK_DIR, "archive", CORE02_REV, "mods/core", "mods/core-ar2"],
@@ -247,7 +259,8 @@ def main():
                    "--out", c02 / "out")
     core02 = next((c02 / "out").glob("core-0.2*.elemod"), None)
     if check(rc == 0 and core02 is not None, f"core-ar2 0.2 built from {CORE02_REV} (for the refusal)"):
-        rc, out = elek("elekloader.patch", "--stock", STOCK_SYX, "--mod", core02, "--mod", bundle, "--check")
+        rc, out = elek("elekloader.patch", "--stock", STOCK_SYX, "--mod", core02, "--mod", comp, "--mod", bundle,
+                       "--check")
         # the refusal must come from the guard: an overlap at one of its addresses
         why = [l for l in out.splitlines() if "overlap" in l and any(a in l for a in GUARD_ADDRS)]
         check(rc != 0 and bool(why), "refused with core 0.2 by the guard: " +
@@ -256,7 +269,8 @@ def main():
     # 5. the user guide's hashes are this release's
     if args.doc:
         text = args.doc.read_text()
-        for what, h in (("core", sums[cores[0]]), ("bundle", sums[bundles[0]]), ("built .syx", ours)):
+        for what, h in (("core", sums[cores[0]]), ("companion", sums[comps[0]]), ("bundle", sums[bundles[0]]),
+                        ("built .syx", ours)):
             check(h in text, f"{args.doc.name} gives the {what}'s sha256 {h[:16]}...")
 
     (work / "result.json").write_text(json.dumps(results, indent=1) + "\n")

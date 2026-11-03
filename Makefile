@@ -27,8 +27,9 @@ setup:
 symbols:
 	$(PY) tools/symbols.py
 
-# The release for the elekloader web page (docs/ELEKLOADER.md): the Sidecar set as ONE elemod,
-# rytm-sidecar-$(VERSION).elemod, with core-ar2 0.1 beside it, in build/release/$(VERSION)/.
+# The release for the elekloader web page (docs/ELEKLOADER.md): the Sidecar set as two elemods, the companion
+# sidecar-$(VERSION).elemod (mods/0032-sidecar) and rytm-sidecar-$(VERSION).elemod, which requires it, with core-ar2 0.1
+# beside them, in build/release/$(VERSION)/.
 # The set and its params are the rui1051 image's (the one on the user's unit). VERSION is the
 # one place the release version is set (build.py reads it too).
 VERSION := $(shell cat VERSION)
@@ -37,10 +38,10 @@ REL_TAG := rel$(subst .,-,$(VERSION))
 # the rui1051 set without 0028-elek-hello (a test counter; nothing needs it). 0031-remote-keys stays out of production
 # builds (the user, 2026-10-29: a dev / test feature; its sources stay for dev builds: RUI_DEV=1 tools/build_rui.sh)
 RELEASE_MODS := 0014-hidden-machines 0021-ext 0022-looper 0023-teensy-drive 0025-sendfx-report \
-	0026-remote-ui 0027-elekloader 0029-sendfx-ui 0030-fx-in
+	0026-remote-ui 0027-elekloader 0029-sendfx-ui 0030-fx-in 0032-sidecar
 RELEASE_ARGS := --param 0014-hidden-machines:variants=0 --param 0014-hidden-machines:funcgen=0 \
 	--param 0014-hidden-machines:test=0 --param slots=1 --param 0022-looper:keys=0 \
-	--param 0022-looper:sfx=1 --param 0022-looper:rui=1 --param 0022-looper:fxin=1 \
+	--param 0022-looper:sfx=1 \
 	--area-elek 0021-ext --area-elek 0022-looper --area-elek 0025-sendfx-report
 
 release: symbols layout
@@ -49,6 +50,7 @@ release: symbols layout
 	$(PY) tools/verify.py --tag $(REL_TAG)
 	rm -rf $(REL) && mkdir -p $(REL)
 	cp build/elek/$(REL_TAG)/core/core-0.1-os1.74.elemod \
+		build/elek/$(REL_TAG)/mods/sidecar/out/sidecar-$(VERSION).elemod \
 		build/elek/$(REL_TAG)/mods/rytm-sidecar/out/rytm-sidecar-$(VERSION).elemod $(REL)/
 	cp LICENSE NOTICE $(REL)/
 	# GPL-2.0 section 3: the corresponding source of core-0.1-os1.74.elemod (and the builder) beside it

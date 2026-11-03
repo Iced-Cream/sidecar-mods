@@ -2758,11 +2758,11 @@ sfu_tick:
 	pea 9.w
 	jsr (%a3)
 	jsr relabel
-	move.l %d5,1075552508
+	move.l %d5,sfu_mbox+4
 	lea (12,%sp),%sp
 	moveq #1,%d0
 	move.l #1397119061,%a0
-	move.l %a0,1075552504
+	move.l %a0,sfu_mbox
 	move.b %d0,sfu_st+1026
 .L367:
 	move.l sfu_x+2320,%d0
@@ -2960,6 +2960,13 @@ sfu_tick:
 	.size	m.0, 7
 m.0:
 	.base64	"8H1SVCMB9w=="
+	.globl	sfu_mbox
+	.section	.bss,"aw",@nobits
+	.align	4
+	.type	sfu_mbox, @object
+	.size	sfu_mbox, 8
+sfu_mbox:
+	.zero	8
 	.globl	sfu_x
 	.section	.bss
 	.align	2

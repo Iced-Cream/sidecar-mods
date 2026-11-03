@@ -4,12 +4,13 @@
  * Code in elekloader's DDR area (build.sh, mod.toml area = "elek"). Every address is OS 1.73's; the
  * named ones come from re/symbols.toml through symbols.inc (build.py's), which elekloader links.
  *
- * The switch lives in cave23's last 6 B (registry, 0030's claim), written by 0022's router (fxin=1) in
- * the MIDI task when the host sends F0 7D 52 54 26 <v> F7:
- *   0x401ba108  u32  'FXI1' (0x46584931) on, 'FXI0' off; anything else (stock's dead code bytes at
- *                    boot, 4a816ed8) is off, so the image boots with AUDIO IN on 10/11 as stock.
- *   0x401ba10c  u16  bumped by the router on every 26 (an ask too): fxin_tick answers with 27.
- * Aligned long / word stores, one writer each in the MIDI task (the router) - plus fxin_tick's reset to
+ * The switch is in this mod's own memory, written by fxin_host in the MIDI task when the host sends
+ * F0 7D 52 54 26 <v> F7 (the companion's router calls it: mods/0032-sidecar, mod.toml [[sidecar.cmds]];
+ * until the companion phase, 2026-11-03, 0022's router wrote cave23's last 6 B, 0x401ba108):
+ *   fxin_word  u32  'FXI1' (0x46584931) on, 'FXI0' off; anything else (0 at boot) is off, so the image
+ *                   boots with AUDIO IN on 10/11 as stock.
+ *   fxin_req   u16  bumped on every 26 (an ask too): fxin_tick answers with 27.
+ * Aligned long / word stores, one writer each in the MIDI task (fxin_host) - plus fxin_tick's reset to
  * off when the port is down, when no host can be sending.
  *
  * Also the mix report for the Sidecar's through mode (host-link 50, design.md "The mix report"): each voice stem's pan
@@ -17,10 +18,21 @@
  */
 #include <stdint.h>
 
-#define FXIN_WORD  (*(volatile uint32_t *)0x401ba108u)
-#define FXIN_REQ   (*(volatile uint16_t *)0x401ba10cu)
+volatile uint32_t fxin_word __attribute__((section(".bss"), aligned(4)));
+volatile uint16_t fxin_req __attribute__((section(".bss"), aligned(2)));
+#define FXIN_WORD  fxin_word
+#define FXIN_REQ   fxin_req
 #define FXIN_ON    0x46584931u   /* 'FXI1' */
 #define FXIN_OFF   0x46584930u   /* 'FXI0' */
+
+/* FX IN (26 <v>) from the host: v 1 the FX return on Overbridge IN L/R, 0 AUDIO IN, 7F (or anything else) asks.
+   The companion's router calls it for every 26 (SC_DIRECT), in the MIDI task; what 0022's router did until the
+   companion phase (2026-11-03), byte for byte. */
+int fxin_host(const uint8_t *d, int32_t len) {
+  if (len >= 7 && (d[5] == 0 || d[5] == 1)) FXIN_WORD = FXIN_OFF + d[5];
+  ++FXIN_REQ;
+  return 1;
+}
 
 /* fxin_ob - called in place of ob_in_write(rx_buffer, 0, 32) at both of its callers in the audio
  * interrupt's block driver (jsr operands 0x401214ba and 0x4011fe76, from_symbol patches). Off (the
@@ -41,7 +53,7 @@ __asm__(
 "	.error	\"fxin_ob reads the reverb at fx_delay_out - 256\"\n"
 "	.endif\n"
 "fxin_ob:\n"
-"	move.l	0x401ba108,%d0\n"
+"	move.l	fxin_word,%d0\n"
 "	cmp.l	#0x46584931,%d0\n"
 "	bne.w	2f\n"
 "	lea	-12(%sp),%sp\n"

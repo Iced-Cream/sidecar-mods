@@ -15,7 +15,8 @@
  *           greet sends a frame and 36 <ticks>, and the screen shows it for that long while every key and knob stays
  *           stock's (none goes to the host); a navigation key or another non-playing key or a turn ends it early,
  *           transport and pads play under it. Never while the page is open.
- * Host -> Rytm through 0022's SysEx router (rui=1): 0x30..0x3F -> the 8 B mailbox 'RUIP' at 0x401ba100.
+ * Host -> Rytm through the companion's SysEx router (mods/0032-sidecar; 0022's until the companion phase, 2026-11-03):
+ * its commands (mod.toml [[sidecar.cmds]]) -> the 8 B mailbox 'RUIP', rui_mbox (until then at 0x401ba100).
  *
  * Messages (F0 7D 52 54 <cmd> <ver 1> ... F7; rytm-teensy sim/protocol.py):
  *   host -> Rytm  38 1 <seq> <col0 0..15> <page0 0..7> <ncols 1..16> <npages 1..8> <packed>   a rectangle of
@@ -66,7 +67,9 @@ typedef void (*unlock_fn)(void *m);
 #define TX_LEVEL     (*(volatile int32_t *)0x413db258u)    /* the sender spins while level + n > 4091      */
 #define USB_POOL     (*(const volatile uint32_t *const volatile *)0x413db390u)  /* free requests, next +52 */
 #define TIMER        (*(volatile uint32_t *)0xfc07000cu)   /* DTCN0, the OS's free-running bus-clock count  */
-#define MBOX         ((volatile uint32_t *)0x401ba100u)    /* 'RUIP', rui_sysex                             */
+/* The mailbox the companion's router calls (mods/0032-sidecar, the table entries in mod.toml): 'RUIP', rui_sysex */
+volatile uint32_t rui_mbox[2] __attribute__((section(".bss"), aligned(4)));
+#define MBOX         rui_mbox
 /* The Rytm's own text drawing, called at runtime (nothing of it copied): text_draw 0x4007154c (bitmap, font, x, y,
    align 0 left / 1 centre / 2 right, box 0 none / 1 inverted, width string, fmt, ...) [code + measured, design.md
    section 9], as 0029's enum knobs and stock's PRE / POST draw call it; the font from text_font(ctx) 0x40071be8, ctx

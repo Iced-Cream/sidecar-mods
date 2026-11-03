@@ -29,9 +29,24 @@ stub = "stub.s"      # generated from teensy_drive.c by build.sh
 [requires]
 shared = false
 symbols = []
-# the Teensy's 0E listings and 14 tables reach it only through 0022's SysEx router; elekloader's `requires` (with what build.py finds in the bytes; tools/build.py cross_refs)
-mods = ["0022-looper"]
+# the Teensy's 0E listings and 14 tables reach it only through the companion's SysEx router (0032, until the companion
+# phase 0022's); elekloader's `requires` (with what build.py finds in the bytes; tools/build.py cross_refs)
+mods = ["0032-sidecar"]
 
 [params]
 # slots: 1 is the 12 B mailbox with td_pool_tab for 0021's user slots; 0 (default): c127fe8's 8 B one.
 slots = 0
+
+# The host commands this mod takes, in the companion's table (mods/0032-sidecar, tools/build.py): listings (0E) and the
+# project's pool table (14), to the mailbox at its fixed address 0x401b9d18 ('TDRV' + the handler, written at run time).
+[[sidecar.cmds]]
+first = 0x0e
+last  = 0x0e
+magic = "TDRV"
+box   = 0x401b9d18
+
+[[sidecar.cmds]]
+first = 0x14
+last  = 0x14
+magic = "TDRV"
+box   = 0x401b9d18

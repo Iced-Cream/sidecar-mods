@@ -3084,7 +3084,7 @@ pj_push:
 	move.l 20(%sp),%d1
 	move.l 24(%sp),%a1
 #APP
-| 4309 "rui.c" 1
+| 4312 "rui.c" 1
 	tas pj+136
 	smi %d2
 | 0 "" 2
@@ -4936,7 +4936,7 @@ isr_send:
 	rts
 .L789:
 #APP
-| 1609 "rui.c" 1
+| 1612 "rui.c" 1
 	move.w %sr,%d0
 | 0 "" 2
 #NO_APP
@@ -4949,7 +4949,7 @@ isr_send:
 	and.l #63743,%d0
 	or.l #1280,%d0
 #APP
-| 1613 "rui.c" 1
+| 1616 "rui.c" 1
 	move.w %d0,%sr
 | 0 "" 2
 #NO_APP
@@ -4958,7 +4958,7 @@ isr_send:
 	jeq .L792
 .L794:
 #APP
-| 1618 "rui.c" 1
+| 1621 "rui.c" 1
 	move.w %d2,%sr
 | 0 "" 2
 #NO_APP
@@ -4982,7 +4982,7 @@ isr_send:
 	move.l %d1,-(%sp)
 	jsr 1073752544
 #APP
-| 1618 "rui.c" 1
+| 1621 "rui.c" 1
 	move.w %d2,%sr
 | 0 "" 2
 #NO_APP
@@ -5334,7 +5334,7 @@ sq_fire:
 	moveq #127,%d0
 .L872:
 #APP
-| 1609 "rui.c" 1
+| 1612 "rui.c" 1
 	move.w %sr,%d1
 | 0 "" 2
 #NO_APP
@@ -5347,7 +5347,7 @@ sq_fire:
 	and.l #63743,%d1
 	or.l #1792,%d1
 #APP
-| 1613 "rui.c" 1
+| 1616 "rui.c" 1
 	move.w %d1,%sr
 | 0 "" 2
 #NO_APP
@@ -5359,7 +5359,7 @@ sq_fire:
 	addq.l #1,sq+380
 .L876:
 #APP
-| 1618 "rui.c" 1
+| 1621 "rui.c" 1
 	move.w %d4,%sr
 | 0 "" 2
 #NO_APP
@@ -6084,9 +6084,9 @@ rui_tick:
 	tst.l st
 	jne .L1016
 	lea rui_sysex,%a1
-	move.l %a1,1075552516
+	move.l %a1,rui_mbox+4
 	move.l #1381321040,%a2
-	move.l %a2,1075552512
+	move.l %a2,rui_mbox
 	mov3q.l #1,st
 	move.l %d2,st+16
 .L1017:
@@ -12817,4 +12817,10 @@ u46:
 	.comm	staging,1024,4
 	.local	shadow
 	.comm	shadow,1024,4
+	.globl	rui_mbox
+	.align	4
+	.type	rui_mbox, @object
+	.size	rui_mbox, 8
+rui_mbox:
+	.zero	8
 	.ident	"GCC: (GNU) 16.2.0"

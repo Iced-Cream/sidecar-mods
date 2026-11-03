@@ -4,9 +4,6 @@ title   = "Looper mode: TRK + REC, pads as clip slots for an Overbridge host's m
 
 enabled = false
 
-# linked with 0021-ext's slots (build.py refuses a mismatch; --param slots=N sets all).
-linked_params = ["slots"]
-
 # re-only | built | hardware-verified | retracted
 status  = "built"
 
@@ -25,23 +22,20 @@ stub = "stub.s"      # generated from looper.c by build.sh
 [requires]
 shared = false
 symbols = []
-mods = ["0021-ext"]   # the 'JUNO' mailbox at its fixed address
+mods = ["0032-sidecar"]   # the companion's router passes it the host's 07 / 08 (its table sc_cmds)
 
 [params]
-# slots: 1 passes 0021's user slots' SysEx (1A..1D) to its mailbox; 0 (default): c127fe8's router (15..17).
-slots = 0
 # keys: 1 (default) hooks TRK + REC, the pads, the panel writer and the LED selector (looper mode).
-# 0: only the SysEx router (host -> Rytm for 0021 and 0023: 0E, 14, 15..1D, and 07/08), no key,
-# pad or LED hook - the looper is unreachable and [YES]/key_dispatch is stock (user, 2026-10-15:
-# the looper needs another key combo).
+# 0: no key, pad or LED hook - the looper is unreachable and [YES]/key_dispatch is stock (user, 2026-10-15:
+# the looper needs another key combo); the host's 07 / 08 still reach looper_host through the companion.
 keys = 1
-# sfx: 1 (needs slots = 1) also passes SENDFX NAMES/STATE/LABELS (21, 22, 24) to 0029-sendfx-ui's mailbox (0x401ba0f8,
-# cave23), and the looper's reports never wait on USB (a try-lock of the MIDI mutex, as 0026);
-# 0 (default): the router byte for byte as before.
+# sfx: 1 the looper's reports never wait on USB (a try-lock of the MIDI mutex, as 0026); 0 (default): they wait, as before.
+# (Until the companion phase, 2026-11-03, sfx / rui / fxin / slots also chose which clients this mod's router passed
+# messages to; each client registers its own commands with mods/0032-sidecar now.)
 sfx = 0
-# rui: 1 (needs sfx = 1) also passes the remote UI's 0x30..0x3F to 0026-remote-ui's mailbox (0x401ba100, cave23);
-# 0 (default): the router byte for byte as before.
-rui = 0
-# fxin: 1 (needs rui = 1) also takes FX IN (26) for 0030-fx-in: writes 0030's switch in cave23's last 6 B
-# (0x401ba108 'FXI1' / 'FXI0', 0x401ba10c the request count); 0 (default): the router byte for byte as before.
-fxin = 0
+
+# The host commands this mod takes, in the companion's table (mods/0032-sidecar, tools/build.py).
+[[sidecar.cmds]]
+first   = 0x07
+last    = 0x08
+handler = "looper_host"     # called for every 07 / 08 (SC_DIRECT)
