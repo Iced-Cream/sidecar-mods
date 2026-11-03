@@ -249,18 +249,18 @@ def check_linked_params(mods, enabled):
 # and is only executed here, like elektron-firmware-tool: nothing of it is copied into
 # this repository. The pinned commit is the Makefile's ELEK_REV; build.py refuses another.
 # The core is built from its source as it was at ELEK_CORE_REV (the same repository): core-ar2
-# 0.1, the core without mod storage, which the Rytm runs since rui1051, at 13fa795 (#105), where
-# it gained its OS 1.74 port (its mod.json's ports."1.74": every site and routine 1.73's moved).
-# Upstream's main has moved core-ar2 to 0.9, OS 1.74 only; 0.2 and later (storage) collide with
-# our sound and kit bytes (mods/0027-elekloader/design.md section 8). From 13fa795's source the
-# current builder makes, for 1.73, the same core-0.1.elemod 8972d70 made (sha256 33de51c0...),
-# and for 1.74 core-0.1 sha256 89c00065... (measured).
+# 0.9 (9f72fb0, #242), OS 1.74 only, since the companion phase (decided 2026-11-03). Until then
+# the Rytm ran 0.1 (13fa795, #105; core-0.1 sha256 89c00065... for 1.74). 0.2 and later keep mod
+# storage in the sound's and kit's spare bytes, the bytes 0013 / 0021 (sound) and 0025 (kit FX
+# words 38..41) use (mods/0027-elekloader/design.md section 8): those mods stay out of 0.9 builds
+# until the Storage phase, and CORE_STORE_GUARD below makes elekloader refuse them.
 ELEK_DIR = ROOT / "vendor" / "elekloader"
-ELEK_REV = "c150ac583a4b7e6d64680d5592f4a40f409193f7"
-ELEK_CORE_REV = "13fa795d601c52a7152c17554ae3b3f6f6ca8b05"
-ELEK_CORE_VERSION = "0.1"
+ELEK_REV = "9f72fb05bd3baeacdf04af00dc2d1357abf96134"
+ELEK_CORE_REV = "9f72fb05bd3baeacdf04af00dc2d1357abf96134"
+ELEK_CORE_VERSION = "0.9"
 ELEK_MOD = "0027-elekloader"
 ELEK_CROSS = "m68k-elf-"
+ELEK_CORE_CROSS = os.environ.get("ELEK_CORE_CROSS", "m68k-linux-gnu-")   # the core's C (elek_build)
 ELEK_ID = "rytm-"          # elemod id = this + the mod's id, e.g. rytm-0021-ext
 
 # --elek-bundle: one elemod for the whole set, the file we publish for the elekloader web page
@@ -507,8 +507,10 @@ def elek_build(img, stock_img, mods, enabled, elek_detours, tag, meta, syx_out, 
     cver = json.loads((src / "mods" / core / "mod.json").read_text())["version"]
     if cver != ELEK_CORE_VERSION:
         raise SystemExit(f"{core} at {ELEK_CORE_REV[:7]} is {cver}, not {ELEK_CORE_VERSION}")
-    elek("elekloader.sdk.build", src / "mods" / core, "--stock", STOCK_SYX,
-         "--out", work / "core")
+    # core-ar2 0.9's C is pre-C23 (unprototyped method pointers): upstream builds it with Ubuntu's gcc-m68k-linux-gnu
+    # (docs/ADAPTING.md), GCC 13, gnu17 by default; GCC 15 and newer refuse it, so the core gets that toolchain
+    run([py, "-m", "elekloader.sdk.build", src / "mods" / core, "--stock", STOCK_SYX, "--out", work / "core"],
+        cwd=ELEK_DIR, env=dict(env, ELEKLOADER_CROSS=ELEK_CORE_CROSS))
     core_mod = next((work / "core").glob("*.elemod"))
 
     # the sites of each rytm-mods mod are the bytes its registry claims changed (each pinned
@@ -632,16 +634,16 @@ def elek_build(img, stock_img, mods, enabled, elek_detours, tag, meta, syx_out, 
                        "description": (
                            "The Sidecar companion for the Analog Rytm MKII on OS 1.74: it owns the host link's "
                            "SysEx, and mods register the host commands they take in its table sc_cmds. "
-                           f"Use it with core-ar2 0.1 for OS 1.74 and {BUNDLE_ID}-{version}, published beside "
+                           f"Use it with core-ar2 {ELEK_CORE_VERSION} for OS 1.74 and {BUNDLE_ID}-{version}, published beside "
                            f"it. Source, licence (GPL-2.0-or-later) and the install guide: {HOMEPAGE} "
                            f"(tag v{version}, docs/ELEKLOADER.md).")}
         elif bundle:
             modjson = {"id": eid, "version": version, **BUNDLE_META,
                        "description": (
                            f"The Sidecar's mods for the Analog Rytm MKII on OS 1.74: "
-                           + ", ".join(ms) + ". Use it with core-ar2 0.1 for OS 1.74 (core-0.1.elemod, "
-                           f"published beside it) only: core 0.2 and newer keep their mod storage "
-                           f"in bytes these mods already use, and are refused. Source, licence "
+                           + ", ".join(ms) + f". Use it with core-ar2 {ELEK_CORE_VERSION} for OS 1.74 "
+                           f"(core-{ELEK_CORE_VERSION}-os1.74.elemod, published beside it) and the Sidecar "
+                           f"companion. Source, licence "
                            f"(GPL-2.0-or-later) and the install guide: {HOMEPAGE} "
                            f"(tag v{version}, docs/ELEKLOADER.md).")}
         else:

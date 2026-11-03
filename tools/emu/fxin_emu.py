@@ -1,11 +1,12 @@
 #!/usr/bin/env python3
-"""Emulator tests of 0030-fx-in in rytm-emu: the host's FX IN switch (host-link 26) puts the delay + reverb
+"""Emulator tests of the companion's FX return (mods/0032-sidecar fxin.c; mod 0030-fx-in until 2026-11-03) in rytm-emu:
+the host's FX IN switch (host-link 26) puts the delay + reverb
 return on Overbridge IN channels 10/11 in place of AUDIO IN, and the Rytm reports its state (27).
 
     .venv/bin/python tools/emu/fxin_emu.py TAG TEST [TEST ...]     exit 0 when every check passes
     .venv/bin/python tools/emu/fxin_emu.py TAG all
 
-TAG: a build with 0030-fx-in and 0022-looper fxin=1, its base made by tools/emu/us_base.sh TAG. Every run is
+TAG: a build with 0032-sidecar (until 2026-11-03: 0030-fx-in and 0022-looper fxin=1), its base made by tools/emu/us_base.sh TAG. Every run is
 under DTEMU_STRICT=1, with a simulated USB host streaming Overbridge (--usb-host --usb-midi-real --ob-link). The
 host's SysEx goes in with dtboot --usb-midi at a fixed clock; the link client here records the Overbridge IN
 frames (oblink R) and the Rytm's USB MIDI (M, after a HELLO_MIDI hello). Key walks and the DIN CCs (82 DEL

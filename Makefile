@@ -10,10 +10,12 @@ all: verify
 EFT_URL := https://github.com/mischa85/elektron-firmware-tool
 EFT_REV := a5bce9a6af644386d900924082993a805e812874
 # elekloader (GPL-2.0-or-later), executed only by builds with 0027-elekloader; tools/build.py
-# checks this same commit (ELEK_REV). Its core-ar2 0.1 (with its OS 1.74 port) is built from
-# the source at ELEK_CORE_REV in build.py. mods/0027-elekloader/design.md.
+# checks this same commit (ELEK_REV). Its core-ar2 0.9 (OS 1.74 only) is built from the source at
+# ELEK_CORE_REV in build.py, with Ubuntu's gcc-m68k-linux-gnu (GCC 13; ELEK_CORE_CROSS), as upstream
+# does: its C is pre-C23. mods/0027-elekloader/design.md.
 ELEK_URL := https://github.com/irpina/elekloader
-ELEK_REV := c150ac583a4b7e6d64680d5592f4a40f409193f7
+ELEK_REV := 9f72fb05bd3baeacdf04af00dc2d1357abf96134
+CORE_VER := 0.9
 
 setup:
 	python3 -m venv .venv
@@ -28,40 +30,34 @@ symbols:
 	$(PY) tools/symbols.py
 
 # The release for the elekloader web page (docs/ELEKLOADER.md): the Sidecar set as two elemods, the companion
-# sidecar-$(VERSION).elemod (mods/0032-sidecar) and rytm-sidecar-$(VERSION).elemod, which requires it, with core-ar2 0.1
-# beside them, in build/release/$(VERSION)/.
-# The set and its params are the rui1051 image's (the one on the user's unit). VERSION is the
-# one place the release version is set (build.py reads it too).
+# sidecar-$(VERSION).elemod (mods/0032-sidecar) and rytm-sidecar-$(VERSION).elemod, which requires it, with core-ar2
+# $(CORE_VER) beside them, in build/release/$(VERSION)/. VERSION is the one place the release version is set (build.py
+# reads it too).
 VERSION := $(shell cat VERSION)
 REL := build/release/$(VERSION)
 REL_TAG := rel$(subst .,-,$(VERSION))
-# the rui1051 set without 0028-elek-hello (a test counter; nothing needs it). 0031-remote-keys stays out of production
-# builds (the user, 2026-10-29: a dev / test feature; its sources stay for dev builds: RUI_DEV=1 tools/build_rui.sh)
-RELEASE_MODS := 0014-hidden-machines 0021-ext 0022-looper 0023-teensy-drive 0025-sendfx-report \
-	0026-remote-ui 0027-elekloader 0029-sendfx-ui 0030-fx-in 0032-sidecar
-RELEASE_ARGS := --param 0014-hidden-machines:variants=0 --param 0014-hidden-machines:funcgen=0 \
-	--param 0014-hidden-machines:test=0 --param slots=1 --param 0022-looper:keys=0 \
-	--param 0022-looper:sfx=1 \
-	--area-elek 0021-ext --area-elek 0022-looper --area-elek 0025-sendfx-report
+# The core-ar2 0.9 set (companion phase, decided 2026-11-03): the companion (with the FX-return routing that was 0030)
+# and the remote screen 0026, both generic services of the Pi engine. Out until the Storage phase: 0014, 0021, 0023,
+# 0025, 0029 (core storage, machine slots, lock codes, pages); 0022 dropped (its host half would be a Pi counterpart).
+# 0031-remote-keys stays out of production builds (a dev / test feature: RUI_DEV=1 tools/build_rui.sh).
+RELEASE_MODS := 0026-remote-ui 0027-elekloader 0032-sidecar
+RELEASE_ARGS := --param 0026-remote-ui:screen=1
 
 release: symbols layout
 	$(PY) tools/comp/calib_tables.py --check
 	$(PY) tools/build.py --tag $(REL_TAG) --elek-bundle --mods $(RELEASE_MODS) $(RELEASE_ARGS)
 	$(PY) tools/verify.py --tag $(REL_TAG)
 	rm -rf $(REL) && mkdir -p $(REL)
-	cp build/elek/$(REL_TAG)/core/core-0.1-os1.74.elemod \
-		build/elek/$(REL_TAG)/mods/sidecar/out/sidecar-$(VERSION).elemod \
+	cp build/elek/$(REL_TAG)/core/core-$(CORE_VER).elemod $(REL)/core-$(CORE_VER)-os1.74.elemod
+	cp build/elek/$(REL_TAG)/mods/sidecar/out/sidecar-$(VERSION).elemod \
 		build/elek/$(REL_TAG)/mods/rytm-sidecar/out/rytm-sidecar-$(VERSION).elemod $(REL)/
 	cp LICENSE NOTICE $(REL)/
-	# GPL-2.0 section 3: the corresponding source of core-0.1-os1.74.elemod (and the builder) beside it
-	git -C vendor/elekloader archive --format=tar.gz --prefix=elekloader-13fa795-core-ar2/ \
-		13fa795d601c52a7152c17554ae3b3f6f6ca8b05 mods/core mods/core-ar2 LICENSE NOTICE \
-		> $(REL)/elekloader-13fa795-core-ar2-src.tar.gz
-	git -C vendor/elekloader archive --format=tar.gz --prefix=elekloader-c150ac5/ \
-		c150ac583a4b7e6d64680d5592f4a40f409193f7 > $(REL)/elekloader-c150ac5-src.tar.gz
+	# GPL-2.0 section 3: the corresponding source of core-$(CORE_VER)-os1.74.elemod and of the builder (one commit) beside it
+	git -C vendor/elekloader archive --format=tar.gz --prefix=elekloader-9f72fb0/ \
+		$(ELEK_REV) > $(REL)/elekloader-9f72fb0-src.tar.gz
 	{ echo "release $(VERSION), built from rytm-mods $$(git rev-parse HEAD)$$(git diff --quiet HEAD || echo ' (uncommitted changes)')"; \
-	  echo "elekloader $$(git -C vendor/elekloader rev-parse HEAD) (builder), core-ar2 from 13fa795d601c52a7152c17554ae3b3f6f6ca8b05"; \
-	  m68k-elf-as --version | head -1; $(PY) --version; uname -sm; } > $(REL)/TOOLCHAIN.txt
+	  echo "elekloader $$(git -C vendor/elekloader rev-parse HEAD) (builder and core-ar2 $(CORE_VER))"; \
+	  m68k-elf-as --version | head -1; $${ELEK_CORE_CROSS:-m68k-linux-gnu-}gcc --version | head -1; $(PY) --version; uname -sm; } > $(REL)/TOOLCHAIN.txt
 	cd $(REL) && { command -v sha256sum > /dev/null && SUM="sha256sum" || SUM="shasum -a 256"; \
 		$$SUM *.elemod *.tar.gz LICENSE NOTICE TOOLCHAIN.txt > SHA256SUMS; } && cat SHA256SUMS
 

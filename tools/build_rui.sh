@@ -4,10 +4,13 @@
 # mod.toml default set (0022 keys=1), which can never coexist with 0026's uart detour (registry: "never both in one
 # build"), so it is not the gate for this set: this is. tools/verify.py must PASS on the exact .syx that is flashed
 # (docs/HAZARDS.md "Verify before flashing, every time"). Prints the verdict and the .syx's SHA256.
+# Since the companion phase (2026-11-03) the tree pins core-ar2 0.9, which refuses 0021 and 0025 (their storage bytes,
+# build.py CORE_STORE_GUARD): this full set builds again only once the Storage phase moves them. The core 0.9 set is the
+# Makefile's RELEASE_MODS. 0030's FX return is the companion's (0032) now.
 set -e
 cd "$(dirname "$0")/.."
 tag=${1:?usage: tools/build_rui.sh TAG [extra build.py args]}; shift
-MODS="0014-hidden-machines 0021-ext 0022-looper 0023-teensy-drive 0025-sendfx-report 0027-elekloader 0028-elek-hello 0029-sendfx-ui 0026-remote-ui 0030-fx-in 0032-sidecar"
+MODS="0014-hidden-machines 0021-ext 0022-looper 0023-teensy-drive 0025-sendfx-report 0027-elekloader 0028-elek-hello 0029-sendfx-ui 0026-remote-ui 0032-sidecar"
 [ -n "$RUI_DEV" ] && MODS="$MODS 0031-remote-keys"   # dev builds only: REMOTE KEYS is out of production (2026-10-29)
 mkdir -p build && echo "$MODS" > "build/rui_$tag.mods"   # (rk_emu.py: does this tag carry 0031)
 PARAMS="--param 0014-hidden-machines:variants=0 --param 0014-hidden-machines:funcgen=0 --param 0014-hidden-machines:test=0

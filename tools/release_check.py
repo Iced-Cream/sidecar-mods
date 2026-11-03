@@ -16,7 +16,8 @@ at the pinned vendor/elekloader:
 
 Each image must have our build's MAIN OS byte for byte (--expect), and sections 1, 2 (the bootstrap,
 also by its pinned sha256, docs/HAZARDS.md), 5 and 8 as stock. Then the refusals: the bundle without a
-core, without the companion, and with core-ar2 0.2 (built from upstream's 92a99c9, with its OS 1.74 port) are refused.
+core, without the companion, and with core-ar2 0.1 (built from upstream's 13fa795, its OS 1.74 port; the core the
+Rytm ran before the companion phase) are refused.
 
 Writes only under --work (default build/release_check). Exit status 0: every check passed.
 """
@@ -34,17 +35,16 @@ ELEK_DIR = ROOT / "vendor" / "elekloader"
 EFT = ROOT / "vendor" / "elektron-firmware-tool" / "elektron-firmware-tool"
 STOCK_SYX = ROOT / "stock" / "Analog-Rytm_MKII_OS1.74.syx"
 BOOTSTRAP_SHA256 = "1b8d3b7288df118512740ac7c59d8dd9f71f44e6633a29628bcb068d756e2ed8"   # docs/HAZARDS.md
-# core-ar2 0.1 for OS 1.74 as elekloader 13fa795 (its 1.74 port) builds it
-CORE_SHA256 = "89c00065e8f83ce839978c45a32200e09879682b8b95cbff0bdb71ca09dc3c8a"
-CORE02_REV = "92a99c9"          # upstream's core-ar2 0.2, with mod storage and an OS 1.74 port (docs/CORES.md)
+# core-ar2 0.9 for OS 1.74 as elekloader 9f72fb0 builds it (with Ubuntu's gcc-m68k-linux-gnu 13, build.py ELEK_CORE_CROSS)
+CORE_SHA256 = "ea2c2a633de79d602c250258ee0c3f223f84a3b4e5ee3509c7366402a002bf12"
+CORE01_REV = "13fa795"          # upstream's core-ar2 0.1 with its OS 1.74 port: too old for this release, refused
 STOCK_SECTIONS = (1, 2, 5, 8)
 MAIN_SECTION = 3
 
 failures = []
 
 sys.path.insert(0, str(ROOT / "tools"))
-from build import CORE_STORE_GUARD                       # noqa: E402  the guard's addresses
-GUARD_ADDRS = {f"0x{a:08x}" for sites in CORE_STORE_GUARD.values() for a, _n in sites}
+from build import ELEK_CORE_VERSION                      # noqa: E402  the core this release is for
 
 
 def sha256(b):
@@ -183,15 +183,15 @@ def main():
     sdoc = json.loads(comp.read_text())
     cdoc = json.loads(core.read_text())
     check(sha256(core.read_bytes()) == CORE_SHA256, f"core: sha256 is the pinned {CORE_SHA256[:16]}...")
-    check(cdoc["id"] == "core" and cdoc["version"] == "0.1" and cdoc["target"]["os"] == "1.74",
+    check(cdoc["id"] == "core" and cdoc["version"] == ELEK_CORE_VERSION and cdoc["target"]["os"] == "1.74",
           f"core: {cdoc['id']} {cdoc['version']} for OS {cdoc['target']['os']}")
     check(doc["license"] == "GPL-2.0-or-later" and doc["author"] == "trigcondition"
-          and doc["requires"] == ["core", "sidecar"] and doc.get("resources", {}).get("core") == "0.1",
+          and doc["requires"] == ["core", "sidecar"] and doc.get("resources", {}).get("core") == ELEK_CORE_VERSION,
           f"bundle: {doc['id']} {doc['version']}, {doc['license']}, by {doc['author']}, requires "
           f"{doc['requires']}, core >= {doc.get('resources', {}).get('core')}")
     check(sdoc["id"] == "sidecar" and sdoc["version"] == doc["version"] and sdoc["license"] == "GPL-2.0-or-later"
           and sdoc["author"] == "trigcondition" and sdoc["requires"] == ["core"]
-          and sdoc.get("resources", {}).get("core") == "0.1" and "sc_cmds" in sdoc.get("collections", {}),
+          and sdoc.get("resources", {}).get("core") == ELEK_CORE_VERSION and "sc_cmds" in sdoc.get("collections", {}),
           f"companion: {sdoc['id']} {sdoc['version']}, {sdoc['license']}, requires {sdoc['requires']}, "
           f"declares {sorted(sdoc.get('collections', {}))}")
 
@@ -250,21 +250,20 @@ def main():
     check(rc != 0, "refused without a core: " + out.strip().splitlines()[-1][:200])
     rc, out = elek("elekloader.patch", "--stock", STOCK_SYX, "--mod", core, "--mod", bundle, "--check")
     check(rc != 0, "refused without the companion: " + out.strip().splitlines()[-1][:200])
-    c02 = work / "core02"
-    (c02 / "src").mkdir(parents=True)
-    arc = subprocess.run(["git", "-C", ELEK_DIR, "archive", CORE02_REV, "mods/core", "mods/core-ar2"],
+    c01 = work / "core01"
+    (c01 / "src").mkdir(parents=True)
+    arc = subprocess.run(["git", "-C", ELEK_DIR, "archive", CORE01_REV, "mods/core", "mods/core-ar2"],
                          check=True, capture_output=True).stdout
-    subprocess.run(["tar", "-x", "-C", c02 / "src"], input=arc, check=True)
-    rc, out = elek("elekloader.sdk.build", c02 / "src" / "mods" / "core-ar2", "--stock", STOCK_SYX,
-                   "--out", c02 / "out")
-    core02 = next((c02 / "out").glob("core-0.2*.elemod"), None)
-    if check(rc == 0 and core02 is not None, f"core-ar2 0.2 built from {CORE02_REV} (for the refusal)"):
-        rc, out = elek("elekloader.patch", "--stock", STOCK_SYX, "--mod", core02, "--mod", comp, "--mod", bundle,
+    subprocess.run(["tar", "-x", "-C", c01 / "src"], input=arc, check=True)
+    rc, out = elek("elekloader.sdk.build", c01 / "src" / "mods" / "core-ar2", "--stock", STOCK_SYX,
+                   "--out", c01 / "out")
+    core01 = next((c01 / "out").glob("core-0.1*.elemod"), None)
+    if check(rc == 0 and core01 is not None, f"core-ar2 0.1 built from {CORE01_REV} (for the refusal)"):
+        rc, out = elek("elekloader.patch", "--stock", STOCK_SYX, "--mod", core01, "--mod", comp, "--mod", bundle,
                        "--check")
-        # the refusal must come from the guard: an overlap at one of its addresses
-        why = [l for l in out.splitlines() if "overlap" in l and any(a in l for a in GUARD_ADDRS)]
-        check(rc != 0 and bool(why), "refused with core 0.2 by the guard: " +
-              (why[0].strip() if why else out[-300:]))
+        # the refusal must name the core version both elemods ask for
+        why = [l for l in out.splitlines() if f"needs core {ELEK_CORE_VERSION} or newer" in l]
+        check(rc != 0 and bool(why), "refused with core 0.1: " + (why[0].strip() if why else out[-300:]))
 
     # 5. the user guide's hashes are this release's
     if args.doc:

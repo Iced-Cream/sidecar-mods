@@ -15,6 +15,9 @@
  *     magic, as 0022's fixed-address mailboxes were "live when the magic is there".
  * A handler is int f(const uint8_t *data, int32_t len), run in the MIDI task; its result is ignored.
  * Ranges do not overlap (build.py refuses it). The table ends with a zero entry.
+ *
+ * The companion's own service, in the same table: the FX return on Overbridge IN L/R (host 26 / 27) and the mix
+ * report (50), fxin.c, included at the end (until the companion phase, 2026-11-03, mod 0030-fx-in; fx-return.md).
  */
 #include <stdint.h>
 
@@ -62,3 +65,5 @@ __asm__(
     "  lea %sp@(-16),%sp\n"
     "  moveml %d2-%d3/%a2-%a3,%sp@\n"
     "  jmp 0x40083de0\n");
+
+#include "fxin.c"

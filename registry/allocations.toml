@@ -6569,6 +6569,7 @@ elek_size = 8
 # the two instructions and rejoins 0x400b4652.
 [[detour]]
 owner     = "0026-remote-ui"
+gate        = "!screen"
 addr      = 0x400b464c
 size      = 6
 expect_len = 6
@@ -6583,6 +6584,7 @@ rejoin    = 0x400b4652
 # instructions and rejoins 0x4009aa30.
 [[detour]]
 owner     = "0026-remote-ui"
+gate        = "!screen"
 addr      = 0x4009aa28
 size      = 6
 expect_len = 8
@@ -6597,6 +6599,7 @@ elek_size = 8
 # two instructions and rejoins the rte.
 [[detour]]
 owner     = "0026-remote-ui"
+gate        = "!screen"
 addr      = 0x4009c00a
 size      = 6
 expect_len = 8
@@ -6612,6 +6615,7 @@ elek_size = 8
 # VCA (pin_frame), re-emits the two instructions and rejoins 0x4007a5aa.
 [[detour]]
 owner     = "0026-remote-ui"
+gate        = "!screen"
 addr      = 0x4007a5a4
 size      = 6
 expect_len = 6
@@ -6627,6 +6631,7 @@ rejoin    = 0x4007a5aa
 # (0x400f9f02) and 0021's (0x400f9f08) items chain there and stay as they are.
 [[detour]]
 owner     = "0026-remote-ui"
+gate        = "!screen"
 addr      = 0x400cb62a
 size      = 6
 expect_len = 6
@@ -6642,6 +6647,7 @@ rejoin    = 0x400cb630
 # stock function (ed_X_orig: the displaced 8 B, then a jmp past them), reports (op, result) and returns its d0.
 [[detour]]
 owner     = "0026-remote-ui"
+gate        = "!screen"
 addr      = 0x400abe4c
 size      = 6
 expect_len = 8
@@ -6652,6 +6658,7 @@ elek_size = 8
 
 [[detour]]
 owner     = "0026-remote-ui"
+gate        = "!screen"
 addr      = 0x400ac062
 size      = 6
 expect_len = 8
@@ -6662,6 +6669,7 @@ elek_size = 8
 
 [[detour]]
 owner     = "0026-remote-ui"
+gate        = "!screen"
 addr      = 0x400ac188
 size      = 6
 expect_len = 8
@@ -6672,6 +6680,7 @@ elek_size = 8
 
 [[detour]]
 owner     = "0026-remote-ui"
+gate        = "!screen"
 addr      = 0x400abf2c
 size      = 6
 expect_len = 8
@@ -6682,6 +6691,7 @@ elek_size = 8
 
 [[detour]]
 owner     = "0026-remote-ui"
+gate        = "!screen"
 addr      = 0x400c2f68
 size      = 6
 expect_len = 8
@@ -6692,6 +6702,7 @@ elek_size = 8
 
 [[detour]]
 owner     = "0026-remote-ui"
+gate        = "!screen"
 addr      = 0x400c47c0
 size      = 6
 expect_len = 8
@@ -6702,6 +6713,7 @@ elek_size = 8
 
 [[detour]]
 owner     = "0026-remote-ui"
+gate        = "!screen"
 addr      = 0x400c49b6
 size      = 6
 expect_len = 8
@@ -6712,6 +6724,7 @@ elek_size = 8
 
 [[detour]]
 owner     = "0026-remote-ui"
+gate        = "!screen"
 addr      = 0x400c3874
 size      = 6
 expect_len = 8
@@ -6722,6 +6735,7 @@ elek_size = 8
 
 [[detour]]
 owner     = "0026-remote-ui"
+gate        = "!screen"
 addr      = 0x400c468c
 size      = 6
 expect_len = 8
@@ -6732,6 +6746,7 @@ elek_size = 8
 
 [[detour]]
 owner     = "0026-remote-ui"
+gate        = "!screen"
 addr      = 0x400c33ae
 size      = 6
 expect_len = 8
@@ -6742,6 +6757,7 @@ elek_size = 8
 
 [[detour]]
 owner     = "0026-remote-ui"
+gate        = "!screen"
 addr      = 0x400c44ba
 size      = 6
 expect_len = 8
@@ -6752,6 +6768,7 @@ elek_size = 8
 
 [[detour]]
 owner     = "0026-remote-ui"
+gate        = "!screen"
 addr      = 0x400c3666
 size      = 6
 expect_len = 8
@@ -6762,6 +6779,7 @@ elek_size = 8
 
 [[detour]]
 owner     = "0026-remote-ui"
+gate        = "!screen"
 addr      = 0x400c4b38
 size      = 6
 expect_len = 8
@@ -6772,6 +6790,7 @@ elek_size = 8
 
 [[detour]]
 owner     = "0026-remote-ui"
+gate        = "!screen"
 addr      = 0x400c39d6
 size      = 6
 expect_len = 8
@@ -6783,6 +6802,7 @@ elek_size = 8
 # 1042: RELOAD / SAVE PATTERN, RELOAD / SAVE TRACK (2D 0A ops 16..19) [measured, rytm-emu: each ran once for its menu item]
 [[detour]]
 owner     = "0026-remote-ui"
+gate        = "!screen"
 addr      = 0x400af64c
 size      = 6
 expect_len = 8
@@ -6793,6 +6813,7 @@ elek_size = 8
 
 [[detour]]
 owner     = "0026-remote-ui"
+gate        = "!screen"
 addr      = 0x400ae5f4
 size      = 6
 expect_len = 8
@@ -6803,6 +6824,7 @@ elek_size = 8
 
 [[detour]]
 owner     = "0026-remote-ui"
+gate        = "!screen"
 addr      = 0x400af6b6
 size      = 6
 expect_len = 8
@@ -6813,6 +6835,7 @@ elek_size = 8
 
 [[detour]]
 owner     = "0026-remote-ui"
+gate        = "!screen"
 addr      = 0x400ae680
 size      = 6
 expect_len = 8
@@ -6825,6 +6848,7 @@ elek_size = 8
 # track with 0026's names: without 0026 (its labels, cu_tick / cu_setup) it stays unlisted (mask 0, as stock).
 [[patch]]
 owner       = "0026-remote-ui"
+gate        = "!screen"
 addr        = 0x401bf494
 size        = 2
 expect_len  = 2
@@ -6834,6 +6858,7 @@ note        = "machine 52 (MULTISAMPLE): home -1 and every voice, as machine 44"
 
 [[patch]]
 owner       = "0026-remote-ui"
+gate        = "!screen"
 addr        = 0x401bf3f4
 size        = 4
 expect_len  = 4
@@ -6843,6 +6868,7 @@ note        = "machine 52 long name: MULTISAMP (MULTISAMPLE does not fit the mac
 
 [[patch]]
 owner       = "0026-remote-ui"
+gate        = "!screen"
 addr        = 0x401bf3f8
 size        = 4
 expect_len  = 4
@@ -6853,6 +6879,7 @@ note        = "machine 52 short name: MSMP"
 # 1034: WAVETABLE (46) and GRANULAR (47) listed on every track with 0026's names (as MULTISAMPLE, above).
 [[patch]]
 owner       = "0026-remote-ui"
+gate        = "!screen"
 addr        = 0x401bf488
 size        = 4
 expect_len  = 4
@@ -6862,6 +6889,7 @@ note        = "machines 46 (WAVETABLE) and 47 (GRANULAR): home -1 and every voic
 
 [[patch]]
 owner       = "0026-remote-ui"
+gate        = "!screen"
 addr        = 0x401bf3c4
 size        = 4
 expect_len  = 4
@@ -6871,6 +6899,7 @@ note        = "machine 46 long name: WAVETABLE"
 
 [[patch]]
 owner       = "0026-remote-ui"
+gate        = "!screen"
 addr        = 0x401bf3c8
 size        = 4
 expect_len  = 4
@@ -6880,6 +6909,7 @@ note        = "machine 46 short name: WTBL"
 
 [[patch]]
 owner       = "0026-remote-ui"
+gate        = "!screen"
 addr        = 0x401bf3cc
 size        = 4
 expect_len  = 4
@@ -6889,6 +6919,7 @@ note        = "machine 47 long name: GRANULAR"
 
 [[patch]]
 owner       = "0026-remote-ui"
+gate        = "!screen"
 addr        = 0x401bf3d0
 size        = 4
 expect_len  = 4
@@ -6899,6 +6930,7 @@ note        = "machine 47 short name: GRAN"
 # 1051: LIVE IN (48) and CHOP (49) listed on every track with 0026's names (as WAVETABLE / GRANULAR, above).
 [[patch]]
 owner       = "0026-remote-ui"
+gate        = "!screen"
 addr        = 0x401bf48c
 size        = 4
 expect_len  = 4
@@ -6908,6 +6940,7 @@ note        = "machines 48 (LIVE IN) and 49 (CHOP): home -1 and every voice, as 
 
 [[patch]]
 owner       = "0026-remote-ui"
+gate        = "!screen"
 addr        = 0x401bf3d4
 size        = 4
 expect_len  = 4
@@ -6917,6 +6950,7 @@ note        = "machine 48 long name: LIVE IN"
 
 [[patch]]
 owner       = "0026-remote-ui"
+gate        = "!screen"
 addr        = 0x401bf3d8
 size        = 4
 expect_len  = 4
@@ -6926,6 +6960,7 @@ note        = "machine 48 short name: LVIN"
 
 [[patch]]
 owner       = "0026-remote-ui"
+gate        = "!screen"
 addr        = 0x401bf3dc
 size        = 4
 expect_len  = 4
@@ -6935,6 +6970,7 @@ note        = "machine 49 long name: CHOP"
 
 [[patch]]
 owner       = "0026-remote-ui"
+gate        = "!screen"
 addr        = 0x401bf3e0
 size        = 4
 expect_len  = 4
@@ -6948,6 +6984,7 @@ note        = "machine 49 short name: CHOP"
 # at 0x400bd1ba too (its call reimplemented), so it lands here as well.
 [[detour]]
 owner     = "0026-remote-ui"
+gate        = "!screen"
 addr      = 0x400bd1ba
 size      = 6
 expect_len = 8
@@ -6963,6 +7000,7 @@ elek_size = 8
 # (rename, clear, init, paste, save's own write).
 [[detour]]
 owner     = "0026-remote-ui"
+gate        = "!screen"
 addr      = 0x40034e98
 size      = 6
 expect_len = 6
@@ -6973,6 +7011,7 @@ rejoin    = 0x40034e9e
 # 1052: delete (lib, slot), the delete job's per-slot call: `movel %d2,%sp@-; moveq #-1,%d0; movel %sp@(12),%d2` (8 B).
 [[detour]]
 owner     = "0026-remote-ui"
+gate        = "!screen"
 addr      = 0x40034a54
 size      = 6
 expect_len = 8
@@ -6984,6 +7023,7 @@ elek_size = 8
 # 1052: copy to the clipboard (lib, slot): `linkw %fp,#-28; moveml %d2-%d3/%a2,%sp@` (8 B): the slot a PASTE copies.
 [[detour]]
 owner     = "0026-remote-ui"
+gate        = "!screen"
 addr      = 0x4003502c
 size      = 6
 expect_len = 8
@@ -6995,6 +7035,7 @@ elek_size = 8
 # 1052: save (project, slot, cb), SAVE / SAVE AS / SAVE TO: `lea %sp@(-48),%sp; moveml %d2-%d4/%a2-%fp,%sp@` (8 B).
 [[detour]]
 owner     = "0026-remote-ui"
+gate        = "!screen"
 addr      = 0x400b07a4
 size      = 6
 expect_len = 8
@@ -7008,6 +7049,7 @@ elek_size = 8
 # rytm-emu rui1052: one call a LOAD, two a SAVE AS, from 0x400aed4a in the job task]. pj_act_det reports LOAD (4B 0A).
 [[detour]]
 owner     = "0026-remote-ui"
+gate        = "!screen"
 addr      = 0x400fa700
 size      = 6
 expect_len = 6
@@ -7020,6 +7062,7 @@ rejoin    = 0x400fa706
 # kt_save_det runs it, then reports 4C SAVE <index> <the active kit at its entry>.
 [[detour]]
 owner     = "0026-remote-ui"
+gate        = "!screen"
 addr      = 0x400b1208
 size      = 6
 expect_len = 8
@@ -7032,6 +7075,7 @@ elek_size = 8
 # menu's RELOAD (0x400dd64a) call it [measured]. kt_reload_det: 4C RELOAD <the kit>.
 [[detour]]
 owner     = "0026-remote-ui"
+gate        = "!screen"
 addr      = 0x400af13e
 size      = 6
 expect_len = 8
@@ -7044,6 +7088,7 @@ elek_size = 8
 # branch with its flag set [code]. kt_all_det: 4C RELOAD ALL <the active kit>.
 [[detour]]
 owner     = "0026-remote-ui"
+gate        = "!screen"
 addr      = 0x400b1386
 size      = 6
 expect_len = 8
@@ -7227,14 +7272,14 @@ expect_sha256 = "17dc225f40a7b26df41249bf968e40cb56a7ec90c75e3e68692b4b48fc35551
 replace = "00000035000000000000000000007f000000000000000001ffffffffffffffff0000000e000000004024091a40240b7f4023723d00000035000000000000000000007f000000000000000001ffffffffffffffff0000000f000000004023758040240b7f4023723d000000390000001d0000000000007f000000000000000001ffffffffffffffff00000014000000004023758d40240b7f4023759b000000390000001d0000000000007f000000000000000001ffffffffffffffff00000015000000004023759f40240b7f402375ad00000039000000260000000000007f000000000000000001ffffffffffffffff0000001600000000402375b140240b7f402375bf00000039000000260000000000007f000000000000000001ffffffffffffffff0000001700000000402375c340240b7f402375d100000039000000270000000000007f000000000000000001ffffffffffffffff0000001800000000402375d540240b7f402375e300000039000000270000000000007f000000000000000001ffffffffffffffff0000001900000000402375e740240b7f402375f500000038000000000000000000007f000000000000000001ffffffffffffffff0000001a00000000402375f940240b7f4023760700000038000000000000000000007f000000000000000001ffffffffffffffff0000001b000000004023760b40240b7f4023761900000038000000280000000000007f000000000000000001ffffffffffffffff0000001c000000004023761d40240b7f4023762b00000038000000280000000000007f000000000000000001ffffffffffffffff0000001d000000004023762f40240b7f4023763e00000038000000290000000000007f000000000000000001ffffffffffffffff0000001e000000004023764340240b7f4023765200000038000000290000000000007f000000000000000001ffffffffffffffff0000001f000000004023765740240b7f40237666"
 note    = "records 14..27 become the AMPLITUDE 2 / SEND FX 1 / SEND FX 2 knobs (fields above; names at run time)"
 
-# ---------------------------------------------------------------- 0030-fx-in
-# The delay + reverb return on Overbridge IN L/R, switched by the host (mods/0030-fx-in/design.md). Code in
-# elekloader's area; the two jsr operands point at fxin_ob there. The switch (fxin_word, fxin_req) is in its own area
-# memory since the companion phase (2026-11-03), written by its handler fxin_host, which the companion's router calls on
-# a host 26 (mods/0032-sidecar); zero at boot reads as off.
+# ---------------------------------------------------------------- 0032-sidecar: the FX return (until 2026-11-03 0030-fx-in)
+# The delay + reverb return on Overbridge IN L/R, switched by the host (mods/0032-sidecar/fx-return.md). Code in
+# elekloader's area; the two jsr operands point at fxin_ob there. The switch (fxin_word, fxin_req) is in the companion's
+# area memory, written by its handler fxin_host, which its router calls on a host 26; zero at boot reads as off. Folded
+# into the companion in the companion phase (decided 2026-11-03): audio routing is a generic service of the link.
 
 [[patch]]
-owner       = "0030-fx-in"
+owner       = "0032-sidecar"
 addr        = 0x401214ba
 size        = 4
 expect_len  = 4
@@ -7243,7 +7288,7 @@ from_symbol = "fxin_ob"
 note        = "jsr operand: ob_in_write(rx_buffer, 0, 32), the block driver's normal path (0024-ob-mix's site)"
 
 [[patch]]
-owner       = "0030-fx-in"
+owner       = "0032-sidecar"
 addr        = 0x4011fe76
 size        = 4
 expect_len  = 4
@@ -7409,6 +7454,7 @@ note        = "machine 50's SRC page: MULTISAMPLE's records 398 443 399 400 401 
 
 [[patch]]
 owner       = "0026-remote-ui"
+gate        = "!screen"
 addr        = 0x401bf490
 size        = 2
 expect_len  = 2
@@ -7418,6 +7464,7 @@ note        = "machine 50 (MIDI): home -1 and every voice, as machine 44 (0x401b
 
 [[patch]]
 owner       = "0026-remote-ui"
+gate        = "!screen"
 addr        = 0x401bf3e4
 size        = 4
 expect_len  = 4
@@ -7427,6 +7474,7 @@ note        = "machine 50 long name: MIDI"
 
 [[patch]]
 owner       = "0026-remote-ui"
+gate        = "!screen"
 addr        = 0x401bf3e8
 size        = 4
 expect_len  = 4

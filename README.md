@@ -168,14 +168,14 @@ In the 0.3.1 module and the Sidecar build `rui1027d` (0028 in `rui1027d` only); 
 |---|---|
 | 0014 | the hidden machines the firmware carries but never lists |
 | 0021 | external voice machines on every track, for the USB host (the Sidecar), and the user slots |
-| 0022 | looper mode, and switches the other Sidecar mods share |
+| 0022 | looper mode (dropped from the core 0.9 build, 2026-11-03: its host half would be a Pi counterpart) |
 | 0023 | the Sidecar's SD card as the SIDECAR folder in the Rytm's sample browser (the mod's name `teensy-drive` dates from Sidecar Mini) |
 | 0025 | the send FX reporter and its storage |
-| 0026 | the remote pages: the Rytm as a terminal for pages the Sidecar draws, and the SRC view |
+| 0026 | the remote pages: the Rytm as a terminal for pages the Sidecar draws, and the SRC view (`screen=1`: the screen only, 30..3F, the core 0.9 build) |
 | 0027 | elekloader's core: the boot copier, hook bus and code area for mod code |
 | 0028 | elekloader smoke test (a counter in elekloader's area) |
 | 0029 | the AMPLITUDE 2 and SEND FX 1/2 pages |
-| 0030 | FX in: the delay and reverb return over USB, switched by the host |
+| 0032 | the Sidecar companion: the host link's SysEx router over a table mods register in, and the FX return on Overbridge IN L/R (until 2026-11-03 mod 0030-fx-in) |
 
 0031-remote-keys (REMOTE KEYS, a development and test feature) is not in the release and not published here; its
 entries in `registry/allocations.toml` and `re/symbols.toml` are kept as a record, and `tools/layout.py` checks only

@@ -66,7 +66,7 @@ SUITES = {
     "md":   dict(mods={"0021", "0029"}, imports={"us", "sfx"}, est=300),
     "mi":   dict(mods={"0021", "0026", "0022"}, imports={"pc", "cu"}, est=90),
     "ar":   dict(mods={"0021", "0026", "0022"}, imports={"us"}, est=120),
-    "fxin": dict(mods={"0030", "0022", "0024"}, est=43),
+    "fxin": dict(mods={"0032", "0024"}, est=43),   # the companion's FX return (0030 until 2026-11-03)
     "td":   dict(mods={"0023"}, imports={"us"}, est=37),
     "frz":  dict(mods={"0029"}, est=22),
 }

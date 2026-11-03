@@ -97,15 +97,29 @@ def main():
         boot_lo, boot_hi = lay["boot"]
         run_lo = lay["run_load"]
         run_len = lay["ddr"][1] - lay["ddr"][0]
-        tail_ok = (boot_lo >= end and boot_lo - end < 16 and run_lo == boot_hi
-                   and base + len(patched) >= run_lo + run_len
-                   and base + len(patched) - (run_lo + run_len) < 16
+        # core-ar2 0.2 and later: the build's store lockfile follows the run image, as elekloader writes it
+        # ("ELKSTORE", a big-endian length, that many bytes of JSON); core 0.1 has none
+        tail_end = run_lo + run_len
+        trailer = bytes(patched[tail_end - base:])
+        store_len = 0
+        if trailer[:8] == b"ELKSTORE" and len(trailer) >= 12:
+            store_len = 12 + int.from_bytes(trailer[8:12], "big")
+            try:
+                json.loads(trailer[12:store_len])
+            except ValueError:
+                store_len = -1
+        # the run image starts at .boot's end, or (core 0.9) at the next 16-byte boundary, zeros between
+        tail_ok = (boot_lo >= end and boot_lo - end < 16 and 0 <= run_lo - boot_hi < 16
+                   and not any(patched[boot_hi - base:run_lo - base]) and store_len >= 0
+                   and base + len(patched) >= tail_end + store_len
+                   and base + len(patched) - (tail_end + store_len) < 16
                    and not any(patched[len(stock):boot_lo - base]))
         area_ok = elek["area"][0] <= lay["ddr"][0] and lay["bss"][1] <= elek["area"][1]
         if tail_ok and area_ok:
             print(f"ok   elekloader block appended at 0x{boot_lo:08x}: .boot {boot_hi - boot_lo} B, "
                   f"run image {run_len} B -> 0x{lay['ddr'][0]:08x}..0x{lay['bss'][1]:08x} "
-                  f"(.bss to the end), {lay['ddr_spare']} B of the area spare")
+                  f"(.bss to the end), {lay['ddr_spare']} B of the area spare"
+                  + (f", store lockfile {store_len} B after it" if store_len else ""))
         else:
             print(f"FAIL elekloader block: tail {tail_ok}, inside its area {area_ok} ({lay})")
             ok = False
@@ -170,6 +184,26 @@ def main():
 
     # the diff must be exactly the claimed regions
     claimed = []
+    # core-ar2's own sites (0.9: 108 of them; 0.1 only the boot jsr, checked above), from the core elemod the build
+    # linked: each claimed for "core", and its bytes outside its relocations must be the elemod's `new`
+    if elek and elek.get("core_elemod"):
+        core_json = json.loads((BUILD / "elek" / args.tag / "core" / elek["core_elemod"]).read_text())
+        bad = 0
+        for st in core_json.get("sites", []):
+            a, n = int(st["addr"], 16), st["len"]
+            claimed.append((a, n, "core"))
+            new = bytes.fromhex(st["new"])
+            fixed = set(range(n))
+            for r in st.get("relocs", []):
+                fixed -= set(range(r[0], r[0] + 4))
+            got = patched[a - base:a - base + n]
+            if any(got[k] != new[k] for k in fixed):
+                print(f"FAIL core site 0x{a:08x} +{n}: {bytes(got).hex()} is not its elemod's {new.hex()}")
+                bad += 1
+        if bad:
+            ok = False
+        else:
+            print(f"ok   core {core_json['version']}: {len(core_json.get('sites', []))} site(s) as its elemod says")
     # only the claims this build made (its mods, their gates as built): a manifest from
     # before "enabled" was recorded falls back to every claim
     on = manifest.get("enabled")

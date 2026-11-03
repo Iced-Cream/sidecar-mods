@@ -56,6 +56,20 @@
  */
 #include <stdint.h>
 
+/* RUI_SCREEN (the param screen, build.sh compiles both; decided 2026-11-03, the companion phase on core-ar2 0.9): the
+   remote screen only - frames, text, keys and encoders, the catch mask, the hello and the splash, the trig LEDs and the
+   page reports, all of 30..3F. Everything else this mod grew for one Sidecar feature is left out: the host's 28 2E 2F
+   45..48 4A 4F (chords, the seq link and PAGE LEDs, arp codes, pinned tracks, source lists, parameter writes, the file
+   browser, DIN MIDI), the reports outside 30..3F (29..2B the SRC view, 2C / 2D the seq link, 49 the Pi display's page,
+   4B / 4C the project slot and kit reports, 4D / 4E the round-6 diagnostics), the UP + trig and UP + SRC combos, and
+   (registry, gate "!screen") every patch site but the UART writer's and the machines 46..52. The static code only those
+   used is dropped by the compiler; the detour entries' code stays in the image, unreached. */
+#ifdef RUI_SCREEN
+#define RUI_CAPS 1        /* the hello's caps: 36 understood; no 16 label tables (0029), no 4B, no 45 */
+#else
+#define RUI_CAPS 15
+#endif
+
 typedef void (*send_fn)(int32_t len, const uint8_t *data);
 typedef int32_t (*trylock_fn)(void *m);
 typedef void (*unlock_fn)(void *m);
@@ -438,7 +452,7 @@ static void flush(void) {
   uint32_t i, k;
   if (st.pend_hello) {
     uint32_t up = st.ticks < 16383 ? st.ticks : 16383;
-    if (!send3(0x35, (uint8_t)(up >> 7), (uint8_t)(up & 0x7f), 15)) return;   /* caps: 36, 1049's 16 label tables, 1052's 4B, 7ae's 45 */
+    if (!send3(0x35, (uint8_t)(up >> 7), (uint8_t)(up & 0x7f), RUI_CAPS)) return;   /* caps: 36, 1049's 16 label tables, 1052's 4B, 7ae's 45 */
     st.pend_hello = 0;
     st.hellos++;
   }
@@ -997,6 +1011,7 @@ static int32_t unpack_rect(const uint8_t *p, int32_t n, int32_t c0, int32_t p0, 
   return 1;
 }
 
+#ifndef RUI_SCREEN
 /* 7o: the Rytm's DIN OUT. 0x400857ca(len, data, port) is the OS's port switch: 3 DIN only [code: the OS's note-on calls it, port 1 = GLOBAL's
    setting; 3 goes to the DIN sender 0x40001dea alone, without the USB mutex; it returns at once while MIDI is not up (0x419f28a8)]. The
    sender's 4 KB DMA ring masks interrupts while it writes and spins while full: DIN_FREE is that wait's own sum, read only. */
@@ -1008,6 +1023,7 @@ static int32_t DIN_FREE(void) {
   return 4096 - (int32_t)(used & 4095u);
 }
 static uint32_t din_sent, din_drop;
+#endif
 
 static int32_t sysex_body(const uint8_t *d, int32_t len) {
   int32_t n = len - 7;               /* bytes between <ver> and F7 */
@@ -1042,6 +1058,7 @@ static int32_t sysex_body(const uint8_t *d, int32_t len) {
     break;
   case 0x3c:
     break;
+#ifndef RUI_SCREEN
   case 0x4a:     /* 1040: <track 0..11> <browse 0/1>: the host's file browser over the bank list (YES / NO its own while 1) */
     if (n == 2 && b[0] == 0x7f && b[1] <= 1) { ls_host_presets = b[1]; break; }
     if (n != 2 || b[0] > 11 || b[1] > 1) { rx_bad++; return 1; }
@@ -1058,6 +1075,7 @@ static int32_t sysex_body(const uint8_t *d, int32_t len) {
     pc_seq++;
     break;
   }
+#endif
   case 0x34: {   /* 1026: <mode> [<c1> .. <c16>]: the trig keys' LEDs (taken by the UI task at its next tick) */
     int32_t i;
     if (n < 1 || b[0] > 1 || (b[0] == 1 && n != 17)) { rx_bad++; return 1; }
@@ -1069,6 +1087,7 @@ static int32_t sysex_body(const uint8_t *d, int32_t len) {
     led_gen++;
     break;
   }
+#ifndef RUI_SCREEN
   case 0x2e: {   /* 1032: <mask lo7> <mask hi5> <flags> [<clock lo7> <clock hi5> [<pin lo7> <pin hi5>]]: the seq tracks
                     (taken by the UI task at its next tick); 1033: the pin mask (more tracks pinned: the host's poly ones) */
     int32_t i;
@@ -1150,6 +1169,7 @@ static int32_t sysex_body(const uint8_t *d, int32_t len) {
     pg_gen++;
     break;
   }
+#endif
   case 0x36:   /* <ticks>: the splash (taken by the UI task at its next tick) */
     if (n < 1) { rx_bad++; return 1; }
     splash_req = 0x100u | (b[0] & 0x7f);
@@ -2511,10 +2531,12 @@ static void tick_body(void *ctrl) {
       st.echo_until[i] = 0;          /* the host's own text again (it has the value by now) */
       st.need_comp = 1;
     }
-  sv_tick(ctrl, r);                  /* 1027: the SRC view */
+  sv_tick(ctrl, r);                  /* 1027: the SRC view (screen: only its top-view watch, for the overlay rule) */
+#ifndef RUI_SCREEN
   ls_tick();                         /* 1038: the bank list closes with the view */
   u46_tick();                        /* 1046: UP + SRC's list */
   pm_tick(ctrl);                     /* 1048: POLY CONFIG picked in the track menu */
+#endif
   /* 1042: any stock overlay coming on top while the page is open (TEMPO's menu, a FUNC + key menu, a toast, a prompt)
      steps the page aside as 1038's SCALE menu does: stock draws, every key and knob is stock's, the page back when no
      overlay is on top any more (one that was on top when the page opened does not count: only a new top) */
@@ -2536,15 +2558,23 @@ static void tick_body(void *ctrl) {
     if ((int32_t)(st.hdr_until - st.ticks) <= 0) st.hdr_until = 0;
     *((volatile uint8_t *)ctrl + 0x20) = 1;
   }
+#ifndef RUI_SCREEN
   sq_tick();                         /* 1032: the 2E, seq mode, the 2D reports (seq mode before the LEDs' owner) */
+#endif
   led_tick();
+#ifndef RUI_SCREEN
   pg_tick();                         /* 1032: the PAGE LEDs */
+#endif
   trk_tick();                        /* 1044: TRK's LED while the page has the keys */
   flush();
+#ifndef RUI_SCREEN
   pc_tick();                         /* 1030: the chord write-back */
+#endif
   if (!st.pend_hello && !st.pend_open && mr_tick()) {   /* 1025: behind the hello and the 30; 1027 behind those */
+#ifndef RUI_SCREEN
     sv_flush();
     arp_tick();
+#endif
   }
 }
 
@@ -2894,6 +2924,7 @@ static int32_t key_body(void *brain, void *ev) {
      (6 INSERT FX, 7 SAMPLE / AUTO, 8 REC, 9 SCOPE, 10 SIDECAR; stock's UP + T6..T10 = T alone [measured, rled_emu.py
      stockup]). 1046: T11..T13 too (11 SONG, 12 PROJECT, 13 POOL; stock's UP + T11..T13 = T alone, a menu open too
      [measured, stockup]); the page map is the host's (49 1 carries the trig's number only). */
+#ifndef RUI_SCREEN
   if (code <= 12 && UPH()) {
     SET(st.eat, code);
     dp.page_req = code + 1;
@@ -2907,6 +2938,8 @@ static int32_t key_body(void *brain, void *ev) {
      within a second), as knob A's first turn would. On DSP SAMPLE (its SMP on the SMPL page, 1045) stock gets SMPL
      instead (a press and release of its own) and the list opens on knob D. Any other track: SRC alone. A trig held
      (seq mode's, or stock's in GRID REC: its lock page) leaves SRC to them. */
+#endif
+#ifndef RUI_SCREEN
   if (code == K_SRC && UPH() && !st.active && !st.splash_on && !(sq.mode && (sq.down[0] & 0xffffu)) &&
       !(st.stock_down[0] & 0xffffu)) {   /* (a stock trig held: SRC is its lock page, stock's) */
     int32_t t = SEL_TRACK;
@@ -2919,6 +2952,7 @@ static int32_t key_body(void *brain, void *ev) {
     SET(st.stock_down, code);
     return 0;
   }
+#endif
   /* 1038: FUNC + PAGE with the page open (hardware report rui1037: on a seq track in GRID REC the host's SEQ page hid
      stock's SCALE menu): PAGE goes to stock, which opens SCALE (its ScaleMenuView on top [measured]); the page steps
      aside - stock draws, every key and knob is stock's - until that view goes (NO, FUNC + PAGE again), then the host's
@@ -3682,14 +3716,18 @@ void rui_tick(void *ctrl) {
   fp.sent_blk = 0;
   while (fp.test == 1) {}      /* (tests: a loop in the UI task) */
   while (fp.test == 2) FP_SLEEP(10000);   /* (tests: the UI task blocked) */
+#ifndef RUI_SCREEN
   cu_tick();
+#endif
   tick_body(ctrl);
+#ifndef RUI_SCREEN
   if (st.init) wr_tick();     /* 1036 */
   cu_defs_tick();             /* 1051 */
   if (st.init && PORT_STATE == 1 && st.hellos) dp_tick();   /* 1036b: after the first hello went out */
   if (st.init && PORT_STATE == 1 && st.hellos) pj_tick();   /* 1052: the project slot reports, after the first hello */
   else pj_drain();                                          /* 1052b: no host: nothing stale kept for one later */
   if (st.init && PORT_STATE == 1 && st.hellos) kd_tick();   /* round 6: keys dropped / dump waits run out */
+#endif
   dt = TIMER - t0;
   st.ui_sum += dt; st.ui_calls++;
   if (dt > st.ui_max) st.ui_max = dt;

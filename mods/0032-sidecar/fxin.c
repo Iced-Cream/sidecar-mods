@@ -1,11 +1,12 @@
-/* Mod 0030 - FX in: the Rytm's delay + reverb return on Overbridge IN L/R (channels 10/11) in place of
- * AUDIO IN, switched at run time by the USB host (host-link 26), state reported back (27). design.md.
+/* The companion's FX return (mod 0030-fx-in until the companion phase, 2026-11-03): the Rytm's delay + reverb
+ * return on Overbridge IN L/R (channels 10/11) in place of AUDIO IN, switched at run time by the USB host
+ * (host-link 26), state reported back (27). fx-return.md. Included by sidecar.c, one translation unit.
  *
- * Code in elekloader's DDR area (build.sh, mod.toml area = "elek"). Every address is OS 1.73's; the
- * named ones come from re/symbols.toml through symbols.inc (build.py's), which elekloader links.
+ * Code in elekloader's DDR area (build.sh, mod.toml area = "elek"). The named addresses come from
+ * re/symbols.toml through symbols.inc (build.py's), which elekloader links.
  *
  * The switch is in this mod's own memory, written by fxin_host in the MIDI task when the host sends
- * F0 7D 52 54 26 <v> F7 (the companion's router calls it: mods/0032-sidecar, mod.toml [[sidecar.cmds]];
+ * F0 7D 52 54 26 <v> F7 (the companion's router calls it: sidecar.c, mod.toml [[sidecar.cmds]];
  * until the companion phase, 2026-11-03, 0022's router wrote cave23's last 6 B, 0x401ba108):
  *   fxin_word  u32  'FXI1' (0x46584931) on, 'FXI0' off; anything else (0 at boot) is off, so the image
  *                   boots with AUDIO IN on 10/11 as stock.

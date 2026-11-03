@@ -1,4 +1,9 @@
-# 0030-fx-in: the delay + reverb return on Overbridge IN L/R, switched by the Sidecar (2026-10-18)
+# The FX return (mod 0030-fx-in until 2026-11-03): the delay + reverb return on Overbridge IN L/R, switched by the Sidecar (2026-10-18)
+
+Since the companion phase (decided 2026-11-03) this is the companion's own service: fxin.c is part of
+mods/0032-sidecar (included by sidecar.c), its two jsr operands are the companion's registry claims, and the host's 26
+reaches fxin_host through the companion's own table entry. Behaviour and bytes of the routine are as below. The rest of
+this file is 0030's design as it was written.
 
 Status: **built**, emulator only (rytm-emu). Never run on a Rytm. OS 1.73 only.
 

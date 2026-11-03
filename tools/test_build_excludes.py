@@ -136,8 +136,7 @@ class LinkedParams(unittest.TestCase):
 
 class SidecarCmds(unittest.TestCase):
     """The companion's table (mods/0032-sidecar): a client needs the companion, and ranges never overlap."""
-    RUI = {"0021-ext", "0022-looper", "0023-teensy-drive", "0026-remote-ui", "0029-sendfx-ui", "0030-fx-in",
-           "0032-sidecar"}
+    RUI = {"0021-ext", "0022-looper", "0023-teensy-drive", "0026-remote-ui", "0029-sendfx-ui", "0032-sidecar"}
 
     def test_rui_set_passes(self):
         mods = build.load_mods(self.RUI)
@@ -152,7 +151,7 @@ class SidecarCmds(unittest.TestCase):
 
     def test_overlap_refused(self):
         mods = build.load_mods(self.RUI)
-        mods["0030-fx-in"]["_sc_cmds"].append({"first": 0x30, "last": 0x30, "handler": "fxin_host"})
+        mods["0032-sidecar"]["_sc_cmds"].append({"first": 0x30, "last": 0x30, "handler": "fxin_host"})
         with self.assertRaises(SystemExit) as cm:
             build.check_sc_cmds(mods, self.RUI)
         self.assertIn("overlap", str(cm.exception))
@@ -162,6 +161,20 @@ class SidecarCmds(unittest.TestCase):
         self.assertEqual([(c["first"], c["last"]) for c in build.sc_cmds_of(mods["0021-ext"])], [(0x15, 0x17)])
         mods["0021-ext"]["_params"]["slots"] = 1
         self.assertEqual([(c["first"], c["last"]) for c in build.sc_cmds_of(mods["0021-ext"])], [(0x15, 0x1d)])
+
+    def test_companion_takes_fx_in(self):
+        """The FX return (once 0030) is the companion's own command 26, called directly."""
+        mods = build.load_mods({"0032-sidecar"})
+        self.assertEqual([(c["first"], c["last"], c.get("handler")) for c in build.sc_cmds_of(mods["0032-sidecar"])],
+                         [(0x26, 0x26, "fxin_host")])
+        build.check_sc_cmds(mods, {"0032-sidecar"})
+
+    def test_screen_keeps_30_3f_only(self):
+        """0026 with screen=1 (the core 0.9 release): only the remote screen's 30..3F reach it."""
+        mods = build.load_mods({"0026-remote-ui"})
+        self.assertEqual(len(build.sc_cmds_of(mods["0026-remote-ui"])), 6)
+        mods["0026-remote-ui"]["_params"]["screen"] = 1
+        self.assertEqual([(c["first"], c["last"]) for c in build.sc_cmds_of(mods["0026-remote-ui"])], [(0x30, 0x3f)])
 
     def test_entry_bytes(self):
         mods = build.load_mods(self.RUI)

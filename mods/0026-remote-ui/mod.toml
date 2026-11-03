@@ -4,7 +4,7 @@ title   = "Remote UI (M1): the Rytm as a terminal for pages the Sidecar draws - 
 
 enabled = false
 
-# code in elekloader's DDR area (needs 0027-elekloader); host messages through 0022's router (rui=1)
+# code in elekloader's DDR area (needs 0027-elekloader); host messages through the companion's router (0032)
 area    = "elek"
 
 # its UART8 panel-writer detour (0x400019e4, the trig LEDs) is the site 0022's keys=1 patches (looper_uart);
@@ -95,6 +95,12 @@ watching its gaps); 4D reports dropped key presses. Emulator only.
 [sources]
 stub = "stub.s"      # generated from rui.c by build.sh
 
+[params]
+# screen: 1 the remote screen only (30..3F: frames, text, keys, mask, hello, splash, the trig LEDs, the page reports),
+# the core-ar2 0.9 release's (decided 2026-11-03: the Pi engine stays generic, so the Rytm side carries no feature's
+# own reports); 0 (default) the whole mod as before. rui.c's head says what is left out; the registry gates its sites.
+screen = 0
+
 [elek]
 subscribe = [
   { event = "ev_tick", fn = "rui_tick", order = 70 },
@@ -108,7 +114,8 @@ subscribe = [
 shared = false
 # the host's messages reach it only through the companion's SysEx router (0032, until the companion phase 0022's, rui=1);
 # elekloader's `requires` (with what build.py finds in the bytes; tools/build.py cross_refs)
-mods = ["0021-ext", "0032-sidecar"]   # 0021: ext_stepbox and us_cubox at their fixed addresses (registry patches: cross_refs sees no cave there)
+mods = ["0032-sidecar"]   # 0021 is optional: its ext_stepbox and us_cubox at fixed addresses are used only while they hold
+                          # their magic (XSTP, CHRD), so without 0021 (core 0.9 builds, decided 2026-11-03) those features stay off
 
 # The host commands this mod takes, in the companion's table (mods/0032-sidecar, tools/build.py), all to its mailbox
 # rui_mbox ('RUIP' + rui_sysex, written at its first tick): 38 rect, 39 commit, 3A open/close, 3C keepalive and the rest
@@ -116,12 +123,14 @@ mods = ["0021-ext", "0032-sidecar"]   # 0021: ext_stepbox and us_cubox at their 
 # tracks' silence, 47 the source lists' names, 48 a parameter write; 4A the host's file browser; 4F MIDI for the DIN port.
 # The ranges 0022's router passed (rui=1).
 [[sidecar.cmds]]
+gate  = "!screen"
 first = 0x28
 last  = 0x28
 magic = "RUIP"
 box   = "rui_mbox"
 
 [[sidecar.cmds]]
+gate  = "!screen"
 first = 0x2e
 last  = 0x2f
 magic = "RUIP"
@@ -134,18 +143,21 @@ magic = "RUIP"
 box   = "rui_mbox"
 
 [[sidecar.cmds]]
+gate  = "!screen"
 first = 0x45
 last  = 0x48
 magic = "RUIP"
 box   = "rui_mbox"
 
 [[sidecar.cmds]]
+gate  = "!screen"
 first = 0x4a
 last  = 0x4a
 magic = "RUIP"
 box   = "rui_mbox"
 
 [[sidecar.cmds]]
+gate  = "!screen"
 first = 0x4f
 last  = 0x4f
 magic = "RUIP"
