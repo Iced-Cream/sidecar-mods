@@ -191,7 +191,7 @@ def slots(card):
 class Emu:
     def __init__(self, tag):
         self.tag = tag
-        self.fw = f"fw/AR173_us_{tag}.syx"
+        self.fw = f"fw/AR174_us_{tag}.syx"
         self.card = os.path.join(EMU, f"sections/us_{tag}.img")
         self.snap = os.path.join(EMU, f"sections/us_{tag}.snap")
         self.clock = json.load(open(os.path.join(EMU, f"sections/us_{tag}.json")))["clock"]

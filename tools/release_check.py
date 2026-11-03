@@ -11,12 +11,12 @@ at the pinned vendor/elekloader:
 - the web page: web/bridge.py, the module the page's worker runs under Pyodide (gui.LoaderModel,
   gui.with_requirements, patch.build / patch.save), run here in CPython on a scratch folder in place of
   its in-memory /work. The files are added as the page adds a user's own files (add_mod: the page lists
-  no Rytm core for OS 1.73), the bundle is ticked (its requirements tick the core), checked and built,
-  once with version 1.73 (what the docs say to type) and once with the page's default version.
+  no Rytm core for OS 1.74), the bundle is ticked (its requirements tick the core), checked and built,
+  once with version 1.74 (what the docs say to type) and once with the page's default version.
 
 Each image must have our build's MAIN OS byte for byte (--expect), and sections 1, 2 (the bootstrap,
 also by its pinned sha256, docs/HAZARDS.md), 5 and 8 as stock. Then the refusals: the bundle without a
-core, and with core-ar2 0.2 (built from upstream's 92a99c9, the last 1.73 core) are refused.
+core, and with core-ar2 0.2 (built from upstream's 92a99c9, with its OS 1.74 port) are refused.
 
 Writes only under --work (default build/release_check). Exit status 0: every check passed.
 """
@@ -32,11 +32,11 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent
 ELEK_DIR = ROOT / "vendor" / "elekloader"
 EFT = ROOT / "vendor" / "elektron-firmware-tool" / "elektron-firmware-tool"
-STOCK_SYX = ROOT / "stock" / "Analog-Rytm_MKII_OS1.73.syx"
+STOCK_SYX = ROOT / "stock" / "Analog-Rytm_MKII_OS1.74.syx"
 BOOTSTRAP_SHA256 = "1b8d3b7288df118512740ac7c59d8dd9f71f44e6633a29628bcb068d756e2ed8"   # docs/HAZARDS.md
-# core-ar2 0.1 as elekloader 8972d70 built it and as the rui builds since rui1051 carry it
-CORE_SHA256 = "33de51c098ab0ecd9cc57e9dfc3efa3d95f8133b1f4a4e6abd80d5fdba2dd825"
-CORE02_REV = "92a99c9"          # upstream's last core-ar2 for OS 1.73: 0.2, with mod storage (docs/CORES.md)
+# core-ar2 0.1 for OS 1.74 as elekloader 13fa795 (its 1.74 port) builds it
+CORE_SHA256 = "89c00065e8f83ce839978c45a32200e09879682b8b95cbff0bdb71ca09dc3c8a"
+CORE02_REV = "92a99c9"          # upstream's core-ar2 0.2, with mod storage and an OS 1.74 port (docs/CORES.md)
 STOCK_SECTIONS = (1, 2, 5, 8)
 MAIN_SECTION = 3
 
@@ -181,7 +181,7 @@ def main():
     doc = json.loads(bundle.read_text())
     cdoc = json.loads(core.read_text())
     check(sha256(core.read_bytes()) == CORE_SHA256, f"core: sha256 is the pinned {CORE_SHA256[:16]}...")
-    check(cdoc["id"] == "core" and cdoc["version"] == "0.1" and cdoc["target"]["os"] == "1.73",
+    check(cdoc["id"] == "core" and cdoc["version"] == "0.1" and cdoc["target"]["os"] == "1.74",
           f"core: {cdoc['id']} {cdoc['version']} for OS {cdoc['target']['os']}")
     check(doc["license"] == "GPL-2.0-or-later" and doc["author"] == "trigcondition"
           and doc["requires"] == ["core"] and doc.get("resources", {}).get("core") == "0.1",
@@ -204,16 +204,16 @@ def main():
     check(rc == 0 and "OK: the mods combine" in out, "patch --check: " + out.strip().splitlines()[-1])
     cli = work / "cli.syx"
     rc, out = elek("elekloader.patch", "--stock", STOCK_SYX, "--mod", core, "--mod", bundle,
-                   "--out", cli, "--version", "1.73")
-    if check(rc == 0 and cli.exists(), "patch --out (version 1.73)"):
+                   "--out", cli, "--version", "1.74")
+    if check(rc == 0 and cli.exists(), "patch --out (version 1.74)"):
         print("     " + " | ".join(l.strip() for l in out.splitlines() if l.startswith(("linked", "verified"))))
         results["cli"] = image_checks("cli", cli, expect_main, stock_secs, work)
 
     # 3. the web page's code path
-    res, built = web_build(work / "web", [core, bundle], bundle, ["1.73"])
+    res, built = web_build(work / "web", [core, bundle], bundle, ["1.74"])
     if res:
         dv = res["default_version"]
-        if dv != "1.73":
+        if dv != "1.74":
             res2, built2 = web_build(work / "web-default", [core, bundle], bundle, [dv])
             if res2:
                 res["builds"].update(res2["builds"])
@@ -232,7 +232,7 @@ def main():
         results["web_default_version"] = dv
     ours = sha256(args.expect_syx.read_bytes())
     results["build_py"] = ours
-    for k in ("cli", "web-1.73"):
+    for k in ("cli", "web-1.74"):
         check(results.get(k) == ours, f"{k} .syx is build.py's {args.expect_syx.name} ({ours[:16]}...)")
 
     # 4. what must be refused

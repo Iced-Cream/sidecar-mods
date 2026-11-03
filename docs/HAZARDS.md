@@ -21,7 +21,7 @@ cut power there.
 That the bootstrap's menu comes up after a bad MAIN OS is inferred from the image,
 not seen on this unit, and its OS UPGRADE needs DIN MIDI and Transfer's legacy
 mode. Before any modified image: back up, then do one full DIN legacy reflash of
-stock 1.73 through FUNC + power > STARTUP MENU > 4 OS UPGRADE (docs/FLASHING.md,
+stock 1.74 through FUNC + power > STARTUP MENU > 4 OS UPGRADE (docs/FLASHING.md,
 stage S0 of docs/REVIEW-2026-10-09.md). The USB route is not a substitute: it
 needs a MAIN OS that boots and a working [YES], and 0022 hooks the panel UART
 writer and key dispatch that [YES] goes through. Then the stages S1..S5, one

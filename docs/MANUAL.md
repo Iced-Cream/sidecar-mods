@@ -5,8 +5,8 @@ building see `README.md`, for installing see `docs/FLASHING.md`, and read
 `docs/HAZARDS.md` before flashing.
 
 The default image is
-`Analog-Rytm_MKII_OS1.73_0000_0002_0003_0004_0006_0008_0009_0010_0012_0013.syx`. It is stock
-OS 1.73 with the mods below added; everything not mentioned here behaves as stock.
+`Analog-Rytm_MKII_OS1.74_0000_0002_0003_0004_0006_0008_0009_0010_0012_0013.syx`. It is stock
+OS 1.74 with the mods below added; everything not mentioned here behaves as stock.
 
 | mod | where | what |
 |---|---|---|
@@ -314,6 +314,6 @@ The design and the measurements are in `mods/0013-voice-dac/mod.toml`.
 
 ## Returning to stock
 
-Flash Elektron's stock OS 1.73 `.syx` the same way (`docs/FLASHING.md`). The mods
+Flash Elektron's stock OS 1.74 `.syx` the same way (`docs/FLASHING.md`). The mods
 store their settings in bits stock firmware ignores, so projects open on stock
 with the mod settings dropped.

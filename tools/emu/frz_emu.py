@@ -3,7 +3,7 @@
 
     .venv/bin/python tools/emu/frz_emu.py TAG [TEST ...]|all      exit 0 when every check passes
 
-TAG: a build whose base tools/emu/us_base.sh TAG made (rytm-emu fw/AR173_us_TAG.syx, sections/us_TAG.snap). Every
+TAG: a build whose base tools/emu/us_base.sh TAG made (rytm-emu fw/AR174_us_TAG.syx, sections/us_TAG.snap). Every
 run DTEMU_STRICT=1 with --usb-host --usb-midi-real (the firmware's own USB MIDI sender and request pool), PLAY pressed
 at the start. Each test checks, per 0.5 s of emulated time: the UI renders (0x400a2b16, 20 Hz: >= 9 a window), the
 sequencer steps (0x40120ca4, the step counter 0x8000e570's writer [measured: +1 a 16th while playing, never while
@@ -42,7 +42,7 @@ def at(ms):
 def run(tag, name, ms, extra):
     out = os.path.join(os.environ.get("RYTM_OUT_ROOT") or os.path.join(ROOT, "build", "emu"), tag)
     os.makedirs(out, exist_ok=True)
-    cmd = [os.path.join(EMU, "target/release/dtboot"), f"fw/AR173_us_{tag}.syx", "--load", f"sections/us_{tag}.snap",
+    cmd = [os.path.join(EMU, "target/release/dtboot"), f"fw/AR174_us_{tag}.syx", "--load", f"sections/us_{tag}.snap",
            "--card", f"sections/us_{tag}.img", "--instr", f"{ms // 5}M", "--every", "100M", "--usb-host",
            "--usb-midi-real", "--press", f"PLAY@{at(200)}", *extra]
     for a in (RENDER, STEP, KEYS, LOCK):

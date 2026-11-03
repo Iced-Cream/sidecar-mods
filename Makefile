@@ -10,8 +10,8 @@ all: verify
 EFT_URL := https://github.com/mischa85/elektron-firmware-tool
 EFT_REV := a5bce9a6af644386d900924082993a805e812874
 # elekloader (GPL-2.0-or-later), executed only by builds with 0027-elekloader; tools/build.py
-# checks this same commit (ELEK_REV). Its core-ar2 0.1 is built from the source at
-# ELEK_CORE_REV in build.py. mods/0027-elekloader/design.md.
+# checks this same commit (ELEK_REV). Its core-ar2 0.1 (with its OS 1.74 port) is built from
+# the source at ELEK_CORE_REV in build.py. mods/0027-elekloader/design.md.
 ELEK_URL := https://github.com/irpina/elekloader
 ELEK_REV := c150ac583a4b7e6d64680d5592f4a40f409193f7
 
@@ -48,17 +48,17 @@ release: symbols layout
 	$(PY) tools/build.py --tag $(REL_TAG) --elek-bundle --mods $(RELEASE_MODS) $(RELEASE_ARGS)
 	$(PY) tools/verify.py --tag $(REL_TAG)
 	rm -rf $(REL) && mkdir -p $(REL)
-	cp build/elek/$(REL_TAG)/core/core-0.1.elemod \
+	cp build/elek/$(REL_TAG)/core/core-0.1-os1.74.elemod \
 		build/elek/$(REL_TAG)/mods/rytm-sidecar/out/rytm-sidecar-$(VERSION).elemod $(REL)/
 	cp LICENSE NOTICE $(REL)/
-	# GPL-2.0 section 3: the corresponding source of core-0.1.elemod (and the builder) beside it
-	git -C vendor/elekloader archive --format=tar.gz --prefix=elekloader-8972d70-core-ar2/ \
-		8972d70629f230af99c63c8624a886b33ec08299 mods/core mods/core-ar2 LICENSE NOTICE \
-		> $(REL)/elekloader-8972d70-core-ar2-src.tar.gz
+	# GPL-2.0 section 3: the corresponding source of core-0.1-os1.74.elemod (and the builder) beside it
+	git -C vendor/elekloader archive --format=tar.gz --prefix=elekloader-13fa795-core-ar2/ \
+		13fa795d601c52a7152c17554ae3b3f6f6ca8b05 mods/core mods/core-ar2 LICENSE NOTICE \
+		> $(REL)/elekloader-13fa795-core-ar2-src.tar.gz
 	git -C vendor/elekloader archive --format=tar.gz --prefix=elekloader-c150ac5/ \
 		c150ac583a4b7e6d64680d5592f4a40f409193f7 > $(REL)/elekloader-c150ac5-src.tar.gz
 	{ echo "release $(VERSION), built from rytm-mods $$(git rev-parse HEAD)$$(git diff --quiet HEAD || echo ' (uncommitted changes)')"; \
-	  echo "elekloader $$(git -C vendor/elekloader rev-parse HEAD) (builder), core-ar2 from 8972d70629f230af99c63c8624a886b33ec08299"; \
+	  echo "elekloader $$(git -C vendor/elekloader rev-parse HEAD) (builder), core-ar2 from 13fa795d601c52a7152c17554ae3b3f6f6ca8b05"; \
 	  m68k-elf-as --version | head -1; $(PY) --version; uname -sm; } > $(REL)/TOOLCHAIN.txt
 	cd $(REL) && { command -v sha256sum > /dev/null && SUM="sha256sum" || SUM="shasum -a 256"; \
 		$$SUM *.elemod *.tar.gz LICENSE NOTICE TOOLCHAIN.txt > SHA256SUMS; } && cat SHA256SUMS
@@ -67,7 +67,7 @@ release: symbols layout
 # page's code path: MAIN OS must be the release build's, sections 1/2/5/8 stock.
 release-check:
 	$(PY) tools/release_check.py --dir $(REL) --expect build/mainos_$(REL_TAG).bin \
-		--expect-syx build/Analog-Rytm_MKII_OS1.73_$(REL_TAG).syx --doc docs/ELEKLOADER.md
+		--expect-syx build/Analog-Rytm_MKII_OS1.74_$(REL_TAG).syx --doc docs/ELEKLOADER.md
 
 layout:
 	$(PY) tools/layout.py
@@ -126,7 +126,7 @@ comp-cal-check:
 	$(PY) tools/comp/calib_tables.py --check
 
 # The calibration image: 0006 alone, cal = 1. Flash
-# build/Analog-Rytm_MKII_OS1.73_cal.syx, then calibrate.py.
+# build/Analog-Rytm_MKII_OS1.74_cal.syx, then calibrate.py.
 comp-cal-build: symbols layout
 	$(PY) tools/comp/calib_tables.py --check
 	$(PY) tools/build.py --tag cal --mods 0006-comp-preview --param 0006-comp-preview:cal=1

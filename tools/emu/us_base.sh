@@ -1,10 +1,10 @@
 #!/bin/bash
 # tools/emu/us_base.sh TAG - the emulator base for the user-slot tests (tools/emu/us_emu.py): cold boot
-# build/Analog-Rytm_MKII_OS1.73_<TAG>.syx in rytm-emu on a fresh card, the startup dialogs answered
+# build/Analog-Rytm_MKII_OS1.74_<TAG>.syx in rytm-emu on a fresh card, the startup dialogs answered
 # (YES, NO, NO, NO as rytm-emu's tools/looper_base.sh does), then USB CONFIG = OVERBRIDGE and TRANSPORT
 # SEND on (GLOBAL > MIDI CONFIG > SYNC), only what is off switched on (its YES toggles), as looper_base.sh
 # reads them. Writes, in rytm-emu (all git-ignored there; firmware-derived, never committed):
-#   fw/AR173_us_<TAG>.syx          the firmware (a copy)
+#   fw/AR174_us_<TAG>.syx          the firmware (a copy)
 #   sections/us_<TAG>.img          the card (a copy of sections/led.img, as looper_base.sh starts from)
 #   sections/us_<TAG>.snap         the state after the boot and the settings
 #   sections/us_<TAG>.json         {"clock": the snapshot's clock in M instructions}
@@ -14,7 +14,7 @@ set -eo pipefail
 TAG=${1:?usage: us_base.sh TAG}
 ROOT=$(cd "$(dirname "$0")/../.." && pwd)
 EMU=${RYTM_EMU:-../rytm-emu}
-SYX="$ROOT/build/Analog-Rytm_MKII_OS1.73_$TAG.syx"
+SYX="$ROOT/build/Analog-Rytm_MKII_OS1.74_$TAG.syx"
 [ -f "$SYX" ] || { echo "no $SYX: build it first (tools/build.py --tag $TAG ...)"; exit 1; }
 # the objects us_emu.py reads symbols from and the manifest (params): build/obj holds the last build's, so this runs
 # right after building TAG; they are copied next to the tests' screens (build/emu/TAG, git-ignored)
@@ -36,7 +36,7 @@ for m in 0021-ext 0023-teensy-drive; do
   cp "$f" "$ROOT/build/emu/$TAG/$m.elf"
 done
 cd "$EMU"
-FW=fw/AR173_us_$TAG.syx CARD=sections/us_$TAG.img SNAP=sections/us_$TAG.snap
+FW=fw/AR174_us_$TAG.syx CARD=sections/us_$TAG.img SNAP=sections/us_$TAG.snap
 cp "$SYX" "$FW"
 cp -c sections/led.img "$CARD"   # an APFS clone, not a 906 MB copy
 TMP=$(mktemp -d)

@@ -11,7 +11,7 @@ unit (docs/REVIEW-2026-10-09.md, HIGH 3 and the staged plan there):
 1. Back up every project and sample (Transfer) and note the +Drive listing
    and byte counts.
 2. Confirm a DIN MIDI interface and Transfer's legacy mode on the computer.
-3. Do a full **DIN legacy reflash of stock 1.73** through the STARTUP menu
+3. Do a full **DIN legacy reflash of stock 1.74** (the OS this branch targets) through the STARTUP menu
    (FUNC + power, TRIG 4, below) - about 16+ minutes for 3 MB. Only this route
    is served by the bootstrap; the USB route needs a booting MAIN OS and a
    working [YES], and 0022 hooks the panel path that [YES] uses.
@@ -98,12 +98,12 @@ mods/0021-ext/design.md ("Status") and user-slots-research.md.
 Before anything:
 - Backups: the user has backed up all projects, samples and sounds (Transfer). Keep that set read-only; note the
   +Drive listing and byte counts again on the day.
-- Stage S0 above (a DIN legacy reflash of stock 1.73 proved on this unit) holds for this build too.
+- Stage S0 above (a DIN legacy reflash of the stock OS proved on this unit) holds for this build too.
 - A scratch project for every step; never the backed-up ones.
 - The Teensy on its own tested build (rytm-teensy, host mode, the store with the test plugins: U1 sine_test,
   U2 fault_test).
 - Record, before flashing: `verify.py --tag hwus1` PASS (its last line), the sha256 of the flashed
-  `build/Analog-Rytm_MKII_OS1.73_hwus1.syx` (`shasum -a 256`), the rytm-mods commit it was built from, and the
+  `build/Analog-Rytm_MKII_OS1.74_hwus1.syx` (`shasum -a 256`), the rytm-mods commit it was built from, and the
   rytm-teensy commit on the Teensy (its user-slots branch was at e5b0407 on 2026-10-11). A finding is only worth
   something against exactly that pair.
 - Projects made under 0002-euclid-accents / 0003-velocity-humanise lose their euclid accents and humanise on a
@@ -136,7 +136,7 @@ Staged steps, one at a time, each with a go / no-go (stop and flash stock back o
    - the slot menu's timing on the real clock (above), and the 60 s window: choose U1 with the Teensy off, connect
      it within a minute (defaults go in) and, in another run, after more than a minute (they do not);
    - power-off persistence: a U-track with knobs moved, a written-back value and a tag; power off, on: the track,
-     its words and its tag come back (cold boot); then the same project on stock 1.73 must show DISABLE without a
+     its words and its tag come back (cold boot); then the same project on stock must show DISABLE without a
      fault (only after the build's own power-off cycle passed).
 5. **Load and switch.** RELOAD KIT, LOAD KIT, a pattern on another kit, LOAD PROJECT right after a choice: the loaded
    words stay (no defaults over them). Sound locks from a pool sound tagged for another plugin: silent on that step.
@@ -145,7 +145,7 @@ Staged steps, one at a time, each with a go / no-go (stop and flash stock back o
    first sessions.
 7. **One hour** of a pattern on U-tracks with Overbridge streaming and knob turns, no fault, no dropouts on the
    Teensy's log.
-8. **Back to stock.** Before flashing stock 1.73 back: put stock machines on every U-track (and the mods' other
+8. **Back to stock.** Before flashing stock 1.74 back: put stock machines on every U-track (and the mods' other
    machines) in the scratch project and save it, and power off once on the build so the working state holds no
    U-track (stock boots that state directly; below).
 
@@ -186,7 +186,7 @@ during Overbridge streaming: clean. Not covered: the OS upgrade's own save
 
 1. Connect over USB, power on.
 2. Transfer > CONNECTION: set MIDI IN and OUT to the device.
-3. Transfer > DROP: drag `build/Analog-Rytm_MKII_OS1.73_<tag>.syx` on.
+3. Transfer > DROP: drag `build/Analog-Rytm_MKII_OS1.74_<tag>.syx` on.
 4. Press `[YES]` on the device to confirm.
 
 The unit restarts by itself. This path runs inside MAIN OS

@@ -17,8 +17,8 @@ applies every other mod's caves, detours and patches as before, then hands the r
 elekloader as one format-2 mod (each changed run a site with its stock bytes) together with
 the code of the mods marked area = "elek", and elekloader links that code into
 0x47BE0000-0x47C00000, appends its core-ar2 boot copier and repacks. core-ar2 0.1 itself
-is hardware-verified by elekloader (Rytm 1.73, 2026-10-11); this combination is emulator
-only. design.md.
+is hardware-verified by elekloader (Rytm 1.73, 2026-10-11; its OS 1.74 port, 13fa795, is
+the core used here); this combination is emulator only. design.md.
 """
 
 # elekloader core this mod pulls in (vendor/elekloader/mods/<core>), and its expected id

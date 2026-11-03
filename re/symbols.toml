@@ -11,10 +11,10 @@
 # demangling rather than by guessing - see re/subsystems/README.md.
 
 [meta]
-target        = "OS1.73"
+target        = "OS1.74"
 base          = 0x40000400
 mainos_size   = 3005432
-mainos_sha256 = "28d9ef40c895e03f17dfce096543109adaf708947392db72818fc2a412d685d6"
+mainos_sha256 = "34cd0c4da8e4b810d1b25284475a99ea53821e2ab7d30a978bf15dc578251f3b"
 
 # The bootstrap ships in the same container (section 2, load base 0x07020000) and is
 # also ColdFire. It is READ-ONLY here: it is the recovery path that survives a bad
@@ -1516,8 +1516,8 @@ note = "1052d: (project) - reloads every kit; kit_reload_key's branch when its R
 # analoghealth's (Iced-Cream/analoghealth 3f71979, GPL-2.0-or-later) OS 1.74 addresses (its ar174.inc and
 # mod.json defsym), carried to 1.73. Method, for every entry below [measured, 2026-10-27, both stock images]:
 # - code and image data: translated by the measured 1.73<->1.74 map (rytm-mods re/port-1.73-to-1.74.md, main
-#   branch: every address below 0x400574e4 +0, 0x40057a2e..0x400fc6d0 +0x6c, 0x401bed40..0x40231cf6 +0x2b0,
-#   0x40271f1a..0x402cc928 +0x360) and accepted only when the 48 bytes around the 1.73 address equal the 48
+#   branch: every 1.73 address below 0x400574e4 +0, 0x40057a2e..0x400fc664 +0x6c, 0x401bea90..0x40231cf6 +0x2b0,
+#   0x40271bba..0x402cc928 +0x360) and accepted only when the 48 bytes around the 1.73 address equal the 48
 #   around the 1.74 one, every difference a 4-byte operand that is itself an image address translating by the
 #   map (0 unexplained bytes for each entry);
 # - RAM: unchanged; every literal reference to the address in 1.74 code sits, translated, at a literal
@@ -1525,6 +1525,8 @@ note = "1052d: (project) - reloads every kit; kit_reload_key's branch when its R
 # analoghealth's own evidence for what each is (its README "How it was checked": a Rytm MKII on 1.74,
 # 22-26 Oct 2026) is external. "verified" below means the 1.73 code was also read here and does what the
 # note says; "inferred" means only the translation above (the role is analoghealth's reading of 1.74).
+# Since the tree's port to OS 1.74 (tools/port_os.py, 2026-11-03) the addresses below are 1.74 ones again, the
+# 1.73 entries moved back by the same map; the verified / inferred notes were made on the 1.73 code.
 
 [fn.button_driver]
 addr = 0x40081dac

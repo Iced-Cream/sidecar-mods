@@ -17,4 +17,4 @@ mkdir -p build
 .venv/bin/python tools/build.py --tag "$tag" --mods $MODS $PARAMS "$@" > "build/b_$tag.log" 2>&1 || { echo "$tag build FAIL"; tail -15 "build/b_$tag.log"; exit 1; }
 .venv/bin/python tools/verify.py --tag "$tag" > "build/v_$tag.log" 2>&1 || { echo "$tag verify FAIL"; tail -15 "build/v_$tag.log"; exit 1; }
 echo "$tag: $(tail -1 "build/v_$tag.log")"
-shasum -a 256 "build/Analog-Rytm_MKII_OS1.73_$tag.syx"
+shasum -a 256 "build/Analog-Rytm_MKII_OS1.74_$tag.syx"

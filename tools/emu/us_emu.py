@@ -6,7 +6,7 @@ messages read back from its USB MIDI out, its memory with dtpeek, its screen as 
     .venv/bin/python tools/emu/us_emu.py TAG TEST [TEST ...]      exit 0 when every check passes
     .venv/bin/python tools/emu/us_emu.py TAG all                  every test in TESTS, in order
 
-TAG: a build (build/Analog-Rytm_MKII_OS1.73_<TAG>.syx) with its base made by tools/emu/us_base.sh TAG.
+TAG: a build (build/Analog-Rytm_MKII_OS1.74_<TAG>.syx) with its base made by tools/emu/us_base.sh TAG.
 TEST: one of the names in TESTS below. Screens go to build/emu/<TAG>/<test>-<n>.png (build/ is
 git-ignored); the checks say which PNG shows what, so a reviewer can look. Key walks measured in
 rytm-emu (tools/emu/us_ui.json, research R0). RYTM_EMU and RYTM_TEENSY: the two checkouts (defaults
@@ -81,7 +81,7 @@ class Emu:
 
     def __init__(self, tag):
         self.tag = tag
-        self.fw = os.path.join(EMU, "fw", f"AR173_us_{tag}.syx")
+        self.fw = os.path.join(EMU, "fw", f"AR174_us_{tag}.syx")
         self.card = os.path.join(EMU, "sections", f"us_{tag}.img")
         self.snap = os.path.join(EMU, "sections", f"us_{tag}.snap")
         self.clock = json.load(open(os.path.join(EMU, "sections", f"us_{tag}.json")))["clock"]
@@ -617,7 +617,7 @@ def card_copy(e, name):
     return c
 
 
-STOCK = os.path.join(ROOT, "stock", "Analog-Rytm_MKII_OS1.73.syx")
+STOCK = os.path.join(ROOT, "stock", "Analog-Rytm_MKII_OS1.74.syx")
 
 
 def t_poweroff(e):

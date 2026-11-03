@@ -145,7 +145,7 @@ def host(link, log, frame, answer, stop_at, secs=900, sends=None):
 class Emu:
     def __init__(self, tag):
         self.tag = tag
-        self.fw = f"fw/AR173_us_{tag}.syx"
+        self.fw = f"fw/AR174_us_{tag}.syx"
         self.card = f"sections/us_{tag}.img"
         self.base = (f"sections/us_{tag}.snap", json.load(open(os.path.join(EMU, f"sections/us_{tag}.json")))["clock"])
         self.out = os.path.join(os.environ.get("RYTM_OUT_ROOT") or os.path.join(ROOT, "build", "emu"), tag)

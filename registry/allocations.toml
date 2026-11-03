@@ -7,7 +7,7 @@
 # owner = the mod directory name, or "reserved:<reason>".
 
 [meta]
-target = "OS1.73"
+target = "OS1.74"
 
 # ---------------------------------------------------------------------- pools
 
@@ -7291,6 +7291,7 @@ note        = "jsr operand: ob_in_write(rx_buffer, 0, 32), the driver's other pa
 # are registry detours like every other (a `jmp` into the area that re-emits the displaced instruction and
 # rejoins), so the stock bytes are guarded by `expect` and verify.py checks the re-emit and the rejoin. No
 # other claim touches these bytes (layout.py), core-ar2's eight sites included. Code in elekloader's area.
+# Since the tree's port to OS 1.74 (tools/port_os.py, 2026-11-03) these are 1.74 addresses again.
 
 # The context switch (fn.context_switch_mask): `move.l #0xffffdfff,%d0`, inside the exception handler, every
 # context switch; nothing branches into 0x4000043a..3d [code]. ts_det adds the idle task's time.

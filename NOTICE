@@ -1,4 +1,4 @@
-rytm-mods (Sidecar mods for the Elektron Analog Rytm MKII, OS 1.73)
+rytm-mods (Sidecar mods for the Elektron Analog Rytm MKII, OS 1.74)
 Copyright (C) 2026 trigcondition
 
 This program is free software: you can redistribute it and/or modify it under
@@ -13,7 +13,7 @@ FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details.
 Corresponding source
 --------------------
 The published files of a release (rytm-sidecar-<version>.elemod, and
-core-0.1.elemod beside it) are built from this repository at the release's
+core-0.1-os1.74.elemod beside it) are built from this repository at the release's
 tag, v<version>, at https://github.com/trigcondition/sidecar-mods:
 `make setup`, then `make release` (docs/ELEKLOADER.md), with the toolchain
 the release's TOOLCHAIN.txt names (the bytes depend on the m68k-elf-as
@@ -21,16 +21,16 @@ version). That tag holds the complete source of our bytes (mods/,
 registry/, re/, tools/) and pins the exact third-party sources the build
 uses (Makefile, tools/build.py):
 
-  - core-0.1.elemod is elekloader's core-ar2 0.1, built unchanged by
-    elekloader's own builder from mods/core-ar2 and mods/core at elekloader
-    commit 8972d70629f230af99c63c8624a886b33ec08299
+  - core-0.1-os1.74.elemod is elekloader's core-ar2 0.1 for OS 1.74, built
+    unchanged by elekloader's own builder from mods/core-ar2 and mods/core
+    at elekloader commit 13fa795d601c52a7152c17554ae3b3f6f6ca8b05
     (https://github.com/irpina/elekloader, GPL-2.0-or-later);
   - the builder, linker and packer are elekloader at commit
     c150ac583a4b7e6d64680d5592f4a40f409193f7.
 
 Their source is also in the release folder, beside the files (GPL-2.0
-section 3): elekloader-8972d70-core-ar2-src.tar.gz (mods/core and
-mods/core-ar2 at 8972d70, with elekloader's LICENSE and NOTICE) and
+section 3): elekloader-13fa795-core-ar2-src.tar.gz (mods/core and
+mods/core-ar2 at 13fa795, with elekloader's LICENSE and NOTICE) and
 elekloader-c150ac5-src.tar.gz (all of elekloader at c150ac5).
 
 Some of our stubs are generated from C (mods/*/build.sh says how); the C file
@@ -46,7 +46,7 @@ vendor/ (git-ignored) at pinned commits, and the build executes it.
       GPL-2.0-or-later (its LICENSE and NOTICE; its js/ kit, not used here, is
       GPL-3.0-or-later). Builds the elemods, links them into the image
       with its core-ar2 (boot copier and hook bus), packs and checks the .syx.
-      A built image, and core-0.1.elemod, contain elekloader's core-ar2 code.
+      A built image, and core-0.1-os1.74.elemod, contain elekloader's core-ar2 code.
 
   vendor/elektron-firmware-tool
       https://github.com/mischa85/elektron-firmware-tool, (C) 2026 Marcel

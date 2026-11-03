@@ -26,7 +26,13 @@ Not in this snapshot: **master FX**.
 ## About
 
 The source of the Analog Rytm MKII OS mods that Sidecar | Expander uses: the patch sources, the symbol map, the
-allocation registry and the build that turns your own stock OS 1.73 `.syx` into a modded one.
+allocation registry and the build that turns your own stock OS 1.74 `.syx` into a modded one.
+
+This branch ports the tree from OS 1.73 to OS 1.74 with the same behaviour (`tools/port_os.py` moved every firmware
+address; each build differs from its 1.73 build only by moved addresses), on elekloader's core-ar2 0.1 port for 1.74
+(`13fa795`). Design notes and research files (`*.md`) keep the 1.73 addresses they were written with. Not yet run
+in the emulator or on a unit. The releases below (0.3.1, `rui1027d`) are OS 1.73 builds: build
+them from their tags with a 1.73 stock file.
 
 This branch is a development snapshot on top of the **Rytm firmware 0.3.1**, released with **Sidecar 0.3.1** (Raspberry Pi 4B and
 Pi 5), a fix release: send FX values now follow a kit switch. It is one elekloader module, `rytm-sidecar-0.3.1.elemod`, used with elekloader's `core-0.1.elemod` on OS 1.73.
@@ -75,15 +81,15 @@ Prerequisites:
 - `m68k-elf-binutils` (`brew install m68k-elf-binutils` on macOS)
 - a Ghidra install, only for `make ghidra`
 
-The stock firmware is not included. Download Analog Rytm MKII OS 1.73 from
+The stock firmware is not included. Download Analog Rytm MKII OS 1.74 from
 Elektron's support site and place the `.syx` at
-`stock/Analog-Rytm_MKII_OS1.73.syx`. The build refuses any file whose checksum
+`stock/Analog-Rytm_MKII_OS1.74.syx`. The build refuses any file whose checksum
 differs from `stock/SHA256SUMS`.
 
     make setup     # venv + Python deps, clone and build the vendor tool at its pinned commit
     make verify    # build + assert the result
 
-Produces `build/Analog-Rytm_MKII_OS1.73_<tag>.syx`, the only delivery format this
+Produces `build/Analog-Rytm_MKII_OS1.74_<tag>.syx`, the only delivery format this
 device has - there is no CF-card `.bin` equivalent. See `docs/FLASHING.md` to install it.
 
 Build a subset for hardware bisection:

@@ -10,7 +10,7 @@ and the window's link closes with it, so the bridge exits after each step: start
 
 EVENT: KEY@SECS[:HOLD] (names as in rytm-emu src/panel.rs RYTM_KEYS: SRC, DOWN, YES, FUNC, CHRO, BD, ...)
        or TURN:ENC:DELTA@SECS (ENC 0..7 = knobs A..H).
-TAG picks fw/AR173_us_<TAG>.syx in rytm-emu. Seconds are wall-clock; the window runs about real time.
+TAG picks fw/AR174_us_<TAG>.syx in rytm-emu. Seconds are wall-clock; the window runs about real time.
 """
 import os
 import re
@@ -36,7 +36,7 @@ def main():
         sys.exit(__doc__)
     tag, snap, card, secs, png, rest = a[0], a[1], a[2], a[3], a[4], a[5:]
     codes = key_codes()
-    cmd = [os.path.join(EMU, "target", "release", "rytm"), os.path.join(EMU, "fw", f"AR173_us_{tag}.syx"),
+    cmd = [os.path.join(EMU, "target", "release", "rytm"), os.path.join(EMU, "fw", f"AR174_us_{tag}.syx"),
            "--card", card, "--snapshot", snap, "--headless", "--midi", "--usb-host", "--ob-link", "--audio-null",
            "--after", secs, "--screenshot", os.path.abspath(png)]
     for ev in rest:

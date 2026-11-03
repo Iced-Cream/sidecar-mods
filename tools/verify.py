@@ -18,7 +18,7 @@ import symbols as symmod
 
 ROOT = Path(__file__).resolve().parent.parent
 BUILD = ROOT / "build"
-STOCK_SYX = ROOT / "stock" / "Analog-Rytm_MKII_OS1.73.syx"
+STOCK_SYX = ROOT / "stock" / "Analog-Rytm_MKII_OS1.74.syx"
 EFT = ROOT / "vendor" / "elektron-firmware-tool" / "elektron-firmware-tool"
 
 
