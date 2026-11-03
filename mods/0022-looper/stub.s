@@ -34,7 +34,7 @@ looper_router:
 2:
   lea %sp@(-16),%sp
   moveml %d2-%d3/%a2-%a3,%sp@
-  jmp 0x40083d74
+  jmp 0x40083de0
 
 	  .text
   .globl looper_pad
@@ -47,7 +47,7 @@ looper_pad:
 1:
   lea %sp@(-76),%sp
   moveml %d2-%d5/%a2-%fp,%sp@
-  jmp 0x400c785c
+  jmp 0x400c78c8
 
 #NO_APP
 	.section	.lp2,"ax",@progbits
@@ -233,7 +233,7 @@ paint_all:
 	mvz.b (%a2,%d2.l),%d0
 	move.l %d0,-(%sp)
 	move.l %d2,-(%sp)
-	jsr 1074355016
+	jsr 1074355124
 	addq.l #1,%d2
 	addq.l #8,%sp
 	moveq #21,%d0
@@ -311,7 +311,7 @@ looper_sel:
 	move.l %d1,12(%sp)
 	move.l %d0,8(%sp)
 	move.l (%sp)+,%d2
-	jmp 1074355016
+	jmp 1074355124
 .L41:
 	move.l (%sp)+,%d2
 	rts
@@ -460,9 +460,9 @@ looper_sysex:
 	jra .L57
 .L50:
 	move.l #1413763670,%d3
-	cmp.l 1075550836.l,%d3
+	cmp.l 1075551512.l,%d3
 	jne .L56
-	move.l 1075550840,%d0
+	move.l 1075551516,%d0
 .L84:
 	move.l %a1,-(%sp)
 	move.l %a0,-(%sp)
@@ -481,9 +481,9 @@ looper_sysex:
 	cmp.l %d0,%d1
 	jeq .L56
 	move.l #1397119061,%d2
-	cmp.l 1075551828.l,%d2
+	cmp.l 1075552504.l,%d2
 	jne .L56
-	move.l 1075551832,%d0
+	move.l 1075552508,%d0
 	jra .L84
 .L64:
 	add.l #-46,%d1
@@ -493,9 +493,9 @@ looper_sysex:
 	jeq .L56
 .L62:
 	move.l #1381321040,%d3
-	cmp.l 1075551836.l,%d3
+	cmp.l 1075552512.l,%d3
 	jne .L56
-	move.l 1075551840,%d0
+	move.l 1075552516,%d0
 	jra .L84
 .L63:
 	moveq #79,%d2
@@ -508,11 +508,11 @@ looper_sysex:
 	cmp.l %d0,%d1
 	jcs .L65
 	add.l #1180191024,%d0
-	move.l %d0,1075551844
+	move.l %d0,1075552520
 .L65:
-	move.w 1075551848,%d0
+	move.w 1075552524,%d0
 	addq.l #1,%d0
-	move.w %d0,1075551848
+	move.w %d0,1075552524
 	jra .L56
 	.size	looper_sysex, .-looper_sysex
 	.text
@@ -651,7 +651,7 @@ looper_key:
 	move.l (%sp)+,%d2
 	move.l (%sp)+,%d3
 	addq.l #4,%sp
-	jmp 1074397898
+	jmp 1074398006
 	.size	looper_key, .-looper_key
 	.text
 	.type	CSWTCH.9, @object
@@ -725,7 +725,7 @@ looper_router:
 2:
   lea %sp@(-16),%sp
   moveml %d2-%d3/%a2-%a3,%sp@
-  jmp 0x40083d74
+  jmp 0x40083de0
 
 	  .text
   .globl looper_pad
@@ -738,7 +738,7 @@ looper_pad:
 1:
   lea %sp@(-76),%sp
   moveml %d2-%d5/%a2-%fp,%sp@
-  jmp 0x400c785c
+  jmp 0x400c78c8
 
 #NO_APP
 	.section	.lp2,"ax",@progbits
@@ -924,7 +924,7 @@ paint_all:
 	mvz.b (%a2,%d2.l),%d0
 	move.l %d0,-(%sp)
 	move.l %d2,-(%sp)
-	jsr 1074355016
+	jsr 1074355124
 	addq.l #1,%d2
 	addq.l #8,%sp
 	moveq #21,%d0
@@ -1002,7 +1002,7 @@ looper_sel:
 	move.l %d1,12(%sp)
 	move.l %d0,8(%sp)
 	move.l (%sp)+,%d2
-	jmp 1074355016
+	jmp 1074355124
 .L41:
 	move.l (%sp)+,%d2
 	rts
@@ -1147,9 +1147,9 @@ looper_sysex:
 	jra .L57
 .L50:
 	move.l #1413763670,%d3
-	cmp.l 1075550836.l,%d3
+	cmp.l 1075551512.l,%d3
 	jne .L56
-	move.l 1075550840,%d0
+	move.l 1075551516,%d0
 .L81:
 	move.l %a1,-(%sp)
 	move.l %a0,-(%sp)
@@ -1168,9 +1168,9 @@ looper_sysex:
 	cmp.l %d0,%d1
 	jeq .L56
 	move.l #1397119061,%d2
-	cmp.l 1075551828.l,%d2
+	cmp.l 1075552504.l,%d2
 	jne .L56
-	move.l 1075551832,%d0
+	move.l 1075552508,%d0
 	jra .L81
 .L61:
 	add.l #-46,%d1
@@ -1180,9 +1180,9 @@ looper_sysex:
 	jeq .L56
 .L59:
 	move.l #1381321040,%d3
-	cmp.l 1075551836.l,%d3
+	cmp.l 1075552512.l,%d3
 	jne .L56
-	move.l 1075551840,%d0
+	move.l 1075552516,%d0
 	jra .L81
 .L60:
 	moveq #79,%d2
@@ -1326,7 +1326,7 @@ looper_key:
 	move.l (%sp)+,%d2
 	move.l (%sp)+,%d3
 	addq.l #4,%sp
-	jmp 1074397898
+	jmp 1074398006
 	.size	looper_key, .-looper_key
 	.text
 	.type	CSWTCH.9, @object
@@ -1397,7 +1397,7 @@ looper_router:
 2:
   lea %sp@(-16),%sp
   moveml %d2-%d3/%a2-%a3,%sp@
-  jmp 0x40083d74
+  jmp 0x40083de0
 
 	  .text
   .globl looper_pad
@@ -1410,7 +1410,7 @@ looper_pad:
 1:
   lea %sp@(-76),%sp
   moveml %d2-%d5/%a2-%fp,%sp@
-  jmp 0x400c785c
+  jmp 0x400c78c8
 
 #NO_APP
 	.section	.lp2,"ax",@progbits
@@ -1596,7 +1596,7 @@ paint_all:
 	mvz.b (%a2,%d2.l),%d0
 	move.l %d0,-(%sp)
 	move.l %d2,-(%sp)
-	jsr 1074355016
+	jsr 1074355124
 	addq.l #1,%d2
 	addq.l #8,%sp
 	moveq #21,%d0
@@ -1674,7 +1674,7 @@ looper_sel:
 	move.l %d1,12(%sp)
 	move.l %d0,8(%sp)
 	move.l (%sp)+,%d2
-	jmp 1074355016
+	jmp 1074355124
 .L41:
 	move.l (%sp)+,%d2
 	rts
@@ -1804,9 +1804,9 @@ looper_sysex:
 	jra .L56
 .L50:
 	move.l #1413763670,%d3
-	cmp.l 1075550836.l,%d3
+	cmp.l 1075551512.l,%d3
 	jne .L53
-	move.l 1075550840,%d0
+	move.l 1075551516,%d0
 .L74:
 	move.l %a1,-(%sp)
 	move.l %a0,-(%sp)
@@ -1825,9 +1825,9 @@ looper_sysex:
 	cmp.l %d0,%d1
 	jeq .L53
 	move.l #1397119061,%d2
-	cmp.l 1075551828.l,%d2
+	cmp.l 1075552504.l,%d2
 	jne .L53
-	move.l 1075551832,%d0
+	move.l 1075552508,%d0
 	jra .L74
 	.size	looper_sysex, .-looper_sysex
 	.text
@@ -1966,7 +1966,7 @@ looper_key:
 	move.l (%sp)+,%d2
 	move.l (%sp)+,%d3
 	addq.l #4,%sp
-	jmp 1074397898
+	jmp 1074398006
 	.size	looper_key, .-looper_key
 	.text
 	.type	CSWTCH.9, @object
@@ -2037,7 +2037,7 @@ looper_router:
 2:
   lea %sp@(-16),%sp
   moveml %d2-%d3/%a2-%a3,%sp@
-  jmp 0x40083d74
+  jmp 0x40083de0
 
 	  .text
   .globl looper_pad
@@ -2050,7 +2050,7 @@ looper_pad:
 1:
   lea %sp@(-76),%sp
   moveml %d2-%d5/%a2-%fp,%sp@
-  jmp 0x400c785c
+  jmp 0x400c78c8
 
 #NO_APP
 	.section	.lp2,"ax",@progbits
@@ -2223,7 +2223,7 @@ paint_all:
 	mvz.b (%a2,%d2.l),%d0
 	move.l %d0,-(%sp)
 	move.l %d2,-(%sp)
-	jsr 1074355016
+	jsr 1074355124
 	addq.l #1,%d2
 	addq.l #8,%sp
 	moveq #21,%d0
@@ -2301,7 +2301,7 @@ looper_sel:
 	move.l %d1,12(%sp)
 	move.l %d0,8(%sp)
 	move.l (%sp)+,%d2
-	jmp 1074355016
+	jmp 1074355124
 .L34:
 	move.l (%sp)+,%d2
 	rts
@@ -2391,9 +2391,9 @@ looper_sysex:
 	jne .L47
 .L46:
 	move.l #1413763670,%d3
-	cmp.l 1075550836.l,%d3
+	cmp.l 1075551512.l,%d3
 	jne .L43
-	move.l 1075550840,%a1
+	move.l 1075551516,%a1
 .L55:
 	move.l %d1,-(%sp)
 	move.l %a0,-(%sp)
@@ -2581,7 +2581,7 @@ looper_key:
 	move.l (%sp)+,%d2
 	move.l (%sp)+,%d3
 	addq.l #4,%sp
-	jmp 1074397898
+	jmp 1074398006
 	.size	looper_key, .-looper_key
 	.text
 	.type	CSWTCH.9, @object
@@ -2651,7 +2651,7 @@ looper_router:
 2:
   lea %sp@(-16),%sp
   moveml %d2-%d3/%a2-%a3,%sp@
-  jmp 0x40083d74
+  jmp 0x40083de0
 
 	  .text
   .globl looper_pad
@@ -2664,7 +2664,7 @@ looper_pad:
 1:
   lea %sp@(-76),%sp
   moveml %d2-%d5/%a2-%fp,%sp@
-  jmp 0x400c785c
+  jmp 0x400c78c8
 
 #NO_APP
 	.section	.lp2,"ax",@progbits
@@ -2837,7 +2837,7 @@ paint_all:
 	mvz.b (%a2,%d2.l),%d0
 	move.l %d0,-(%sp)
 	move.l %d2,-(%sp)
-	jsr 1074355016
+	jsr 1074355124
 	addq.l #1,%d2
 	addq.l #8,%sp
 	moveq #21,%d0
@@ -2915,7 +2915,7 @@ looper_sel:
 	move.l %d1,12(%sp)
 	move.l %d0,8(%sp)
 	move.l (%sp)+,%d2
-	jmp 1074355016
+	jmp 1074355124
 .L34:
 	move.l (%sp)+,%d2
 	rts
@@ -3005,9 +3005,9 @@ looper_sysex:
 	jne .L47
 .L46:
 	move.l #1413763670,%d3
-	cmp.l 1075550836.l,%d3
+	cmp.l 1075551512.l,%d3
 	jne .L43
-	move.l 1075550840,%a1
+	move.l 1075551516,%a1
 .L55:
 	move.l %d1,-(%sp)
 	move.l %a0,-(%sp)
@@ -3195,7 +3195,7 @@ looper_key:
 	move.l (%sp)+,%d2
 	move.l (%sp)+,%d3
 	addq.l #4,%sp
-	jmp 1074397898
+	jmp 1074398006
 	.size	looper_key, .-looper_key
 	.text
 	.type	CSWTCH.9, @object

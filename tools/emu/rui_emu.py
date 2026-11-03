@@ -23,8 +23,8 @@ TEENSY = os.environ.get("RYTM_TEENSY", "../rytm-teensy")
 sys.path.insert(0, os.path.join(TEENSY, "sim"))
 import protocol as P   # noqa: E402
 
-TILE_FN = 0x40095924   # panel tile writer (0x10|page, column, 8 bytes)
-RENDER = 0x400a2aaa    # the UI render, 20 Hz
+TILE_FN = 0x40095990   # panel tile writer (0x10|page, column, 8 bytes)
+RENDER = 0x400a2b16    # the UI render, 20 Hz
 K_YES, K_NO, K_TRK = 0x44, 0x45, 0x86
 ST = dict(init=0, active=4, ticks=8, idle=12, rx_seen=16, shown=20, enter_commits=24, blits=28, torn=32, tx_ok=36,
           tx_busy=40, tx_drop=44, enters=48, leaves=52, t_blit=56, lat_commit_blit=60, t_enc=64, lat_enc_report=68,

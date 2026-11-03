@@ -6,9 +6,9 @@
  *
  * The switch lives in cave23's last 6 B (registry, 0030's claim), written by 0022's router (fxin=1) in
  * the MIDI task when the host sends F0 7D 52 54 26 <v> F7:
- *   0x401b9e64  u32  'FXI1' (0x46584931) on, 'FXI0' off; anything else (stock's dead code bytes at
+ *   0x401ba108  u32  'FXI1' (0x46584931) on, 'FXI0' off; anything else (stock's dead code bytes at
  *                    boot, 4a816ed8) is off, so the image boots with AUDIO IN on 10/11 as stock.
- *   0x401b9e68  u16  bumped by the router on every 26 (an ask too): fxin_tick answers with 27.
+ *   0x401ba10c  u16  bumped by the router on every 26 (an ask too): fxin_tick answers with 27.
  * Aligned long / word stores, one writer each in the MIDI task (the router) - plus fxin_tick's reset to
  * off when the port is down, when no host can be sending.
  *
@@ -17,19 +17,19 @@
  */
 #include <stdint.h>
 
-#define FXIN_WORD  (*(volatile uint32_t *)0x401b9e64u)
-#define FXIN_REQ   (*(volatile uint16_t *)0x401b9e68u)
+#define FXIN_WORD  (*(volatile uint32_t *)0x401ba108u)
+#define FXIN_REQ   (*(volatile uint16_t *)0x401ba10cu)
 #define FXIN_ON    0x46584931u   /* 'FXI1' */
 #define FXIN_OFF   0x46584930u   /* 'FXI0' */
 
 /* fxin_ob - called in place of ob_in_write(rx_buffer, 0, 32) at both of its callers in the audio
- * interrupt's block driver (jsr operands 0x4012144e and 0x4011fe0a, from_symbol patches). Off (the
+ * interrupt's block driver (jsr operands 0x401214ba and 0x4011fe76, from_symbol patches). Off (the
  * word is not 'FXI1'): a compare and a jump, stock's call unchanged. On: 0024-ob-mix's obfx_in loop
  * (rytm-mods ob-fx f01cdbb, measured there): this block's fx_generate has run, so fx_delay_out /
- * fx_reverb_out hold this block's returns, and 0x4009ef40 (sampler / meters) has already read the
+ * fx_reverb_out hold this block's returns, and 0x4009efac (sampler / meters) has already read the
  * buffer, so only the USB copy changes. Words 10/11 of each of the 32 frames become
  * gd * delay + 2 gr * reverb per side, Q31 x Q31 in EMAC fractional mode, saturating (MACSR 0xa0);
- * gd / gr the PRE + POST return gain targets (the router 0x4010e8a0 zeroes the bank an effect is not
+ * gd / gr the PRE + POST return gain targets (the router 0x4010e90c zeroes the bank an effect is not
  * in); the 2: both stock return mixers MAC the reverb sample twice per side [code, 0024 research.md].
  * Interrupt context: d0/d1/a0/a1 free (a call clobbers them), d2-d4 saved, MACSR saved and put back
  * exactly, the accumulators cleared on entry and left clear. ~534 instructions a block when on. */
@@ -41,7 +41,7 @@ __asm__(
 "	.error	\"fxin_ob reads the reverb at fx_delay_out - 256\"\n"
 "	.endif\n"
 "fxin_ob:\n"
-"	move.l	0x401b9e64,%d0\n"
+"	move.l	0x401ba108,%d0\n"
 "	cmp.l	#0x46584931,%d0\n"
 "	bne.w	2f\n"
 "	lea	-12(%sp),%sp\n"
@@ -124,7 +124,7 @@ static int32_t try_send(const uint8_t *m, int32_t n) {
 extern const volatile int16_t lfo_track_array[];
 #define W_PAN        38
 #define TRACK_WORDS  42
-#define OWNER(v)     (((const volatile uint8_t *)0x40290dd8u)[v])
+#define OWNER(v)     (((const volatile uint8_t *)0x40291138u)[v])
 #define ROUTE_BYTE   (*(const volatile uint8_t *)0x80006466u)
 #define MIX_EVERY    20          /* ev_tick is about 20 Hz */
 static const uint8_t stem_voice[8] = {0, 2, 7, 1, 3, 5, 4, 6};

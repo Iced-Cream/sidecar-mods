@@ -347,7 +347,7 @@ def t_cost(e):
 # struct sfu_x, appended fields (sfu.c; offsets from m68k-elf-gcc offsetof)
 X_UN, X_KN, X_KLO, X_LOOK, X_STEPS = 1412 + DL, 1420 + DL, 1428 + DL, 1524 + DL, 1552 + DL
 X_XM = 1560 + DL                 # xm[127], then xn[127] (0021's records 334..460)
-REC = lambda r: 0x401bf918 + 0x34 * r          # noqa: E731
+REC = lambda r: 0x401bfbc8 + 0x34 * r          # noqa: E731
 DESC = lambda r: 0x419a4888 + 84 * r           # noqa: E731
 # Turns start LATE after the base resumes: in its first seconds the FX track's views take a turn as already awake
 # (no two wake frames; FILTER TYPE's view does not) [measured: SEND FX 1 TYPE, 3 turns of 8 at 250M -> 2 steps, at

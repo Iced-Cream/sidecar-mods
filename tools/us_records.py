@@ -9,11 +9,11 @@ value the spec states is checked against it first (engine entries, name pointers
 records' machine fields), so a different image stops here rather than producing claims. Nothing of
 the image is written anywhere but the claims' expect fields, as for every other claim in the registry.
 
-Per machine m = 35..39 (slot s = m - 35): the engine entry (0x4029037c + 4 m) -> ext_render; home and
-mask ffff (one 10-byte patch for all five at 0x401bf1c2); the long and short name pointers
-(0x401befa4 + 8 m) -> us_l<n> / us_s<n> (RAM buffers in .usr); the SRC page's 8 records
-(0x40287cc8 + 36 m + 4) -> 334 + 8 s .. + 7 in order; the 8 records' first 40 bytes
-(0x401bf918 + 0x34 r): slot 9 + k, range 0..127, default 64, CC 16 + k, NRPN 1:k (0x80 + k), the rest
+Per machine m = 35..39 (slot s = m - 35): the engine entry (0x402906dc + 4 m) -> ext_render; home and
+mask ffff (one 10-byte patch for all five at 0x401bf472); the long and short name pointers
+(0x401bf254 + 8 m) -> us_l<n> / us_s<n> (RAM buffers in .usr); the SRC page's 8 records
+(0x40288028 + 36 m + 4) -> 334 + 8 s .. + 7 in order; the 8 records' first 40 bytes
+(0x401bfbc8 + 0x34 r): slot 9 + k, range 0..127, default 64, CC 16 + k, NRPN 1:k (0x80 + k), the rest
 as stock (+0 keeps the machine m: the setter's and the flush's kind gate, research R11). Page 2's shared
 records 438 457 458 459 460 403 404 405: machine 0x36, slot 17 + j, range 0..127, default 64, no CC/NRPN,
 +32 0x32 + j, +36 0x600 (0021's page-2 pattern, record 422; kind 0x36 >= 53 passes R11's gate, where
@@ -27,9 +27,9 @@ import sys
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 BASE = 0x40000400
-ENGINES = {35: 0x4010f990, 36: 0x4010ee08, 37: 0x40116e58, 38: 0x4011657c, 39: 0x401157d8}
-NAMES = {35: (0x401bf0bc, 0x401bf0c0), 36: (0x401bf0c4, 0x401bf0c8), 37: (0x401bf0cc, 0x401bf0d0),
-         38: (0x401bf0d4, 0x401bf0d8), 39: (0x401bf0dc, 0x401bf0e0)}
+ENGINES = {35: 0x4010f9fc, 36: 0x4010ee74, 37: 0x40116ec4, 38: 0x401165e8, 39: 0x40115844}
+NAMES = {35: (0x401bf36c, 0x401bf370), 36: (0x401bf374, 0x401bf378), 37: (0x401bf37c, 0x401bf380),
+         38: (0x401bf384, 0x401bf388), 39: (0x401bf38c, 0x401bf390)}
 SRC = {35: [334, 338, 339, 337, 340, 336, 341, 335], 36: [342, 346, 347, 345, 348, 344, 349, 343],
        37: [356, 357, 350, 351, 353, 354, 355, 352], 38: [358, 360, 359, 361, 363, 362, 364, 365],
        39: [372, 373, 366, 367, 371, 369, 370, 368]}
@@ -37,7 +37,7 @@ P2 = [438, 457, 458, 459, 460, 403, 404, 405]
 
 
 def rec_addr(r):
-    return 0x401bf918 + 0x34 * r
+    return 0x401bfbc8 + 0x34 * r
 
 
 def main():
@@ -61,16 +61,16 @@ def main():
 
     for m in range(35, 40):
         s = m - 35
-        a = 0x4029037c + 4 * m
+        a = 0x402906dc + 4 * m
         if u32(a) != ENGINES[m]:
             sys.exit(f"engine entry of {m} at {a:#x} is {u32(a):#x}, not {ENGINES[m]:#x}: another image")
         patch(a, 4, rd(a, 4), f"engine entry of machine {m} (U{s + 1}): ext_render, as machine 44", sym="ext_render")
         for i, sym in enumerate((f"us_l{s + 1}", f"us_s{s + 1}")):
-            a = 0x401befa4 + 8 * m + 4 * i
+            a = 0x401bf254 + 8 * m + 4 * i
             if a != NAMES[m][i] or not BASE <= u32(a) < BASE + len(img):
                 sys.exit(f"name pointer at {a:#x} ({u32(a):#x}) is not a string of the image")
             patch(a, 4, rd(a, 4), f"machine {m} {'long' if not i else 'short'} name: U{s + 1}'s RAM buffer", sym=sym)
-        a = 0x40287cc8 + 36 * m + 4
+        a = 0x40288028 + 36 * m + 4
         recs = list(struct.unpack(">8I", rd(a, 32)))
         if recs != SRC[m]:
             sys.exit(f"SRC page of {m} at {a:#x} lists {recs}, not {SRC[m]}")
@@ -86,7 +86,7 @@ def main():
                 st[26:28] + struct.pack(">I", 0x80 + k) + st[32:40]
             patch(rec_addr(r), 40, st, f"record {r}: U{s + 1} P{k + 1}, slot {9 + k}, 0..127, default 64, CC {16 + k}, NRPN 1:{k}",
                   replace=new)
-    a = 0x401bf17c + 2 * 35
+    a = 0x401bf42c + 2 * 35
     if rd(a, 10) != bytes(10):
         sys.exit(f"home/mask of 35..39 at {a:#x} is {rd(a, 10).hex()}, not zero")
     patch(a, 10, rd(a, 10), "machines 35..39 (U1..U5): home -1 and every voice, as machine 44", replace=b"\xff" * 10)

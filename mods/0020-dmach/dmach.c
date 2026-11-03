@@ -33,7 +33,7 @@
 #define STATE(v)    ((int32_t *)(0x8000fef8u + 32u * (v)))
 /* The track that owns a physical voice; the trig velocity per track (high byte
    of a 16-bit word). Found in rytm-emu by diffing RAM between hits, 2026-10-06. */
-#define OWNER(v)    (((const uint8_t *)0x40290dd8u)[v])
+#define OWNER(v)    (((const uint8_t *)0x40291138u)[v])
 #define VELOCITY(t) (((const uint8_t *)0x800067c4u)[2u * (t)])
 
 #define P(i) ((uint32_t)(uint16_t)params[i] >> 8)   /* stored param i, 0..127 */
@@ -363,16 +363,16 @@ FM4H int32_t fm4_param_record(uint32_t index, uint32_t machine) {
 /* The SMPL page itself does not ask sound_param_record: a parameter page view
    (base class shared by the TRIG/SMPL/FLTR/AMP/LFO pages; vtable slots 0x68
    page id, 0x90 and the record/title methods are common [measured, vtables at
-   0x401e31bc.. compared 2026-10-07]) takes its eight records and title from the
-   static page table page_info(id) = 0x4028843c + 36 id {title, 8 records in
+   0x401e346c.. compared 2026-10-07]) takes its eight records and title from the
+   static page table page_info(id) = 0x4028879c + 36 id {title, 8 records in
    display order}; ids 4 and 5 are SMPL. The two generic methods are replaced
    whole: on an SMPL page whose sound plays machine 35 they answer FM4's page 2.
-   The view's machine is found as the SRC page's own record method (0x400d3544)
+   The view's machine is found as the SRC page's own record method (0x400d35b0)
    finds it: vtable 0x90 (a sound slot, or < 0), then the sound from the view's
    track (+116, +120) or that slot (+104), then the sound's machine. */
 typedef int32_t (*fn1)(int32_t);
 typedef int32_t (*fn2)(int32_t, int32_t);
-#define PAGE_INFO(id)   ((const int32_t *)((fn1)0x400ff574)(id))
+#define PAGE_INFO(id)   ((const int32_t *)((fn1)0x400ff5e0)(id))
 #define VCALL(v, off)   (((fn1)(*(int32_t **)(v))[(off) / 4])((int32_t)(v)))
 static const int32_t fm4_p2_records[8] FM4D = {449, 450, 452, 451, 453, 454, 455, 456};  /* display order */
 const char fm4_p2_title[] FM4D = "FM4 PAGE 2";
@@ -380,9 +380,9 @@ const char fm4_p2_title[] FM4D = "FM4 PAGE 2";
 FM4H static int fm4_view_is_fm4(const int32_t *view, int32_t id) {
   if (id != 4 && id != 5) return 0;
   int32_t slot = VCALL(view, 0x90), sound;
-  if (slot < 0) sound = ((fn2)0x400a675e)(view[30], ((fn1)0x400b68d2)(view[29]));
-  else sound = ((fn2)0x400ae494)(view[26], slot);
-  return ((fn1)0x400bca70)(sound) == 35;
+  if (slot < 0) sound = ((fn2)0x400a67ca)(view[30], ((fn1)0x400b693e)(view[29]));
+  else sound = ((fn2)0x400ae500)(view[26], slot);
+  return ((fn1)0x400bcadc)(sound) == 35;
 }
 
 /* 0x4003795a: record of knob k (0..7) on a parameter page. */
@@ -423,8 +423,8 @@ extern char P_FM4_HALF[];
 
 /* 1 when the voice's AMP envelope has surely reached silence: its record (control
    frame +168 + 8v: start 2, target 3, mode nibble 4, then a 20-bit rate, 4-bit
-   exponent over 16-bit mantissa, as the OS's encoder 0x4011e7ae writes and its
-   decoder 0x4011e780 reads) has a target at or below 0 and is ramping, and the
+   exponent over 16-bit mantissa, as the OS's encoder 0x4011e81a writes and its
+   decoder 0x4011e7ec reads) has a target at or below 0 and is ramping, and the
    ramp has covered 160 levels since. Ramping: bit 20 set (a finite AMP DEC's
    release: `.. 0080 0010 0000`) or a ramp mode (9, B, F). Not ramping: a hold
    (mode 3), or bit 20 clear (AMP DEC infinite after a release: all zero; the
@@ -437,7 +437,7 @@ FM4H static int fm4_amp_done(const uint8_t *r, struct fm4x *x) {
     x->travel = 0;
     return 0;
   }
-  /* Levels << 23 per two samples (the OS's decoder 0x4011e780), x16 a block. */
+  /* Levels << 23 per two samples (the OS's decoder 0x4011e7ec), x16 a block. */
   uint32_t step = (0x7fffffffu - ((w & 0xffff) << 14)) >> ((w >> 16) & 15);
   uint32_t add = step >= (1u << 28) ? 0xffffffffu : step << 4;
   x->travel = x->travel + add < x->travel ? 0xffffffffu : x->travel + add;

@@ -242,8 +242,8 @@ class Device:
 # and these eight cover every one. The input stage finds each voice alone, and
 # the returns alone, in what this records.
 ROLL_TRACKS = (1, 2, 3, 5, 6, 7, 9, 11)
-# Track 1..12 to physical voice (ROM 0x4025a070), and physical voice to receive
-# slot (0x401ef1d0): compressor-hardware.md, "Voice order".
+# Track 1..12 to physical voice (ROM 0x4025a3a0), and physical voice to receive
+# slot (0x401ef480): compressor-hardware.md, "Voice order".
 TRACK_VOICE = (0, 2, 7, 7, 1, 3, 5, 5, 4, 4, 6, 6)
 VOICE_SLOT = (0, 3, 1, 4, 6, 5, 7, 2)
 

@@ -22,12 +22,12 @@
 
         | SAVE TRACK's std::function managers, reused: the label and icon
         | lambdas capture nothing and the action captures the menu, as ours do.
-        .equ    MGR_LABEL,      0x400f9a38
-        .equ    MGR_ACTION,     0x400f9a8a
-        .equ    MGR_ICON,       0x400f9ae6
-        .equ    SP_COUNTED_VT,  0x401ccab4        | shared_ptr control block, as SAVE TRACK's
-        .equ    MSG_FX,         0x40241249        | stock's "ONLY ON SOUND TRACKS"
-        .equ    CTOR_REJOIN,    0x400f9e9c        | the constructor's `lea %sp@(128),%sp; rts`
+        .equ    MGR_LABEL,      0x400f9aa4
+        .equ    MGR_ACTION,     0x400f9af6
+        .equ    MGR_ICON,       0x400f9b52
+        .equ    SP_COUNTED_VT,  0x401ccd64        | shared_ptr control block, as SAVE TRACK's
+        .equ    MSG_FX,         0x40241579        | stock's "ONLY ON SOUND TRACKS"
+        .equ    CTOR_REJOIN,    0x400f9f08        | the constructor's `lea %sp@(128),%sp; rts`
 
         .text
 

@@ -27,12 +27,12 @@
  * firmware's colour messages for the pads' LEDs (B0..B4 for hardware LEDs
  * 72..83, [measured: rytm-emu panel.rs]) through the UART8 writer 0x400019e4,
  * and their selector groups 18..20 (pads only) through the selector callback
- * (pointer 0x40287a10, stock 0x40095b48), and paints each pad with
+ * (pointer 0x40287d70, stock 0x40095bb4), and paints each pad with
  * B4 id c c c c (the colour in all four slots, so any selector shows it). On
  * leaving it re-sends the firmware's own cached slot colours (0x42fb6f49 +
  * 4 x logical LED; pads are logical 16..27) and last-sent selectors (0x41920534),
  * so the panel matches what the firmware believes.
- * Host SysEx is taken at the router's entry (0x40083d6c: data, len, interface;
+ * Host SysEx is taken at the router's entry (0x40083dd8: data, len, interface;
  * the MIDI task) before stock sees it.
  */
 #include <stdint.h>
@@ -42,7 +42,7 @@
 typedef void (*dispatch_fn)(void *ui, void *event);
 typedef void (*void_fn)(void);
 typedef void (*send_fn)(int32_t len, const uint8_t *data);
-#define KEY_DISPATCH ((dispatch_fn)0x400a02cau)
+#define KEY_DISPATCH ((dispatch_fn)0x400a0336u)
 #define MIDI_LOCK    ((void_fn)0x40002914u)
 #define MIDI_UNLOCK  ((void_fn)0x40002924u)
 #define MIDI_SEND    ((send_fn)0x400029e0u)
@@ -62,7 +62,7 @@ typedef void (*sel_fn)(int32_t group, int32_t value);
 #define LED_UNLOCK  ((mutex_fn)0x400011eeu)
 #define LED_MUTEX   ((void *)0x41920560u)
 #define PANEL_SEND  ((uart_fn)0x400019e4u)
-#define SEL_SEND    ((sel_fn)0x40095b48u)
+#define SEL_SEND    ((sel_fn)0x40095bb4u)
 #define SLOT_CACHE  ((const int8_t *)0x42fb6f49u)
 #define SEL_SENT    ((const uint8_t *)0x41920534u)
 
@@ -168,7 +168,7 @@ LP4 int looper_sysex(const uint8_t *d, int32_t len) {
   if (d[4] == 0x0e || d[4] == 0x14) {
     /* Listings (0E) and the project's pool table (14) for 0023: its mailbox at
        a fixed address (cave23), live when the magic 'TDRV' is there. */
-    volatile uint32_t *mb = (volatile uint32_t *)0x401b9a74u;
+    volatile uint32_t *mb = (volatile uint32_t *)0x401b9d18u;
     if (mb[0] == 0x54445256u) ((int (*)(const uint8_t *, int32_t))mb[1])(d, len);
     return 1;
   }
@@ -188,9 +188,9 @@ LP4 int looper_sysex(const uint8_t *d, int32_t len) {
   }
 #if LP_SFX   /* build param sfx: 1 with 0029-sendfx-ui */
   if (d[4] >= 0x21 && d[4] <= 0x24 && d[4] != 0x23) {
-    /* SENDFX NAMES (21), STATE (22) and LABELS (24; 23 ASK only goes to the host) for 0029: its mailbox at a fixed address (0x401b9e54, cave23's tail),
+    /* SENDFX NAMES (21), STATE (22) and LABELS (24; 23 ASK only goes to the host) for 0029: its mailbox at a fixed address (0x401ba0f8, cave23's tail),
        live when the magic 'SFXU' is there (0029 writes it at its first ev_tick). */
-    volatile uint32_t *mb = (volatile uint32_t *)0x401b9e54u;
+    volatile uint32_t *mb = (volatile uint32_t *)0x401ba0f8u;
     if (mb[0] == 0x53465855u) ((int (*)(const uint8_t *, int32_t))mb[1])(d, len);
     return 1;
   }
@@ -199,9 +199,9 @@ LP4 int looper_sysex(const uint8_t *d, int32_t len) {
   if ((d[4] >= 0x30 && d[4] <= 0x3f) || d[4] == 0x28 || d[4] == 0x2e || d[4] == 0x2f || (d[4] >= 0x46 && d[4] <= 0x48) ||
       d[4] == 0x4a || d[4] == 0x4f || d[4] == 0x45) {
     /* Remote UI (38 rect, 39 commit, 3A open/close, 3C keepalive; 1030: 28 the chord write-back) for 0026: its
-       mailbox at a fixed address (0x401b9e5c, cave23's tail after 0029's), live when the magic 'RUIP' is there (0026's
+       mailbox at a fixed address (0x401ba100, cave23's tail after 0029's), live when the magic 'RUIP' is there (0026's
        first ev_tick); 1032: 2E the seq tracks, 2F the PAGE LEDs; 1033: 46 the pinned tracks' silence; 1036: 47 the source lists' names, 48 a parameter write; 1040: 4A the host's file browser over the bank list; 7o: 4F MIDI for the DIN port; 7ae: 45 a sound's arpeggiator code. */
-    volatile uint32_t *mb = (volatile uint32_t *)0x401b9e5cu;
+    volatile uint32_t *mb = (volatile uint32_t *)0x401ba100u;
     if (mb[0] == 0x52554950u) ((int (*)(const uint8_t *, int32_t))mb[1])(d, len);
     return 1;
   }
@@ -210,8 +210,8 @@ LP4 int looper_sysex(const uint8_t *d, int32_t len) {
   if (d[4] == 0x26) {
     /* FX IN (26 <v>): v 1 the FX return on Overbridge IN L/R, 0 AUDIO IN, 7F ask. 0030's switch at a fixed
        address (cave23's last 6 B): the word 'FXI1' / 'FXI0', then the request count its ev_tick answers (27). */
-    if (len >= 7 && (d[5] == 0 || d[5] == 1)) *(volatile uint32_t *)0x401b9e64u = 0x46584930u + d[5];
-    ++*(volatile uint16_t *)0x401b9e68u;
+    if (len >= 7 && (d[5] == 0 || d[5] == 1)) *(volatile uint32_t *)0x401ba108u = 0x46584930u + d[5];
+    ++*(volatile uint16_t *)0x401ba10cu;
     return 1;
   }
 #endif
@@ -250,7 +250,7 @@ __asm__(
     "2:\n"
     "  lea %sp@(-16),%sp\n"
     "  moveml %d2-%d3/%a2-%a3,%sp@\n"
-    "  jmp 0x40083d74\n");
+    "  jmp 0x40083de0\n");
 
 int looper_pad_skip(void) {
   return looper.on;
@@ -268,7 +268,7 @@ __asm__(
     "1:\n"
     "  lea %sp@(-76),%sp\n"
     "  moveml %d2-%d5/%a2-%fp,%sp@\n"
-    "  jmp 0x400c785c\n");
+    "  jmp 0x400c78c8\n");
 
 /* At least n free USB requests (free list 0x413db390, next at +52), else the
    sender waits for the host and the UI freezes (review 2026-10-09). */

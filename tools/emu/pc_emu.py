@@ -14,7 +14,7 @@ with --usb-host --usb-midi-real. Times are ms after the run's start (200 M instr
 Addresses (rytm-emu, OS 1.73, [measured] in this build's base): the working pattern's live BD track data 0x407dd8e3
 (+0x80 notes), live locks 0x407e0774 (+5674 t + 88 step + 2 k), the stored copy of bank pattern i at
 0x405c8f38 + 13101 (i + 1) (+4 + 641 t + 0x70 notes, 0x80 | note; +0x2091 the 72 lock slots of 66 B {type, track,
-64 coarse values}); stored lock types of sound words 21..24 are 12..15 (the map 0x401c59cc).
+64 coarse values}); stored lock types of sound words 21..24 are 12..15 (the map 0x401c5c7c).
 """
 import json
 import os

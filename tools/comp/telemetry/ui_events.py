@@ -2,7 +2,7 @@
 
 That build sends, in place of the ADC slots, the UI queue's write index, the types
 of its two newest entries and the types of the two at its head, on every block.
-An event's type is the first byte of the event, which the UI loop at 0x400a4684
+An event's type is the first byte of the event, which the UI loop at 0x400a46f0
 switches on (0..41). From consecutive write indices this counts arrivals by type;
 more than two arrivals in one block are counted as type "?".
 

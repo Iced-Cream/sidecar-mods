@@ -20,7 +20,7 @@
         .equ    ID_FIRST,       1
         .equ    OFF_PARAMS,     0x14              | live sound parameter array
         .equ    OFF_MACHINE,    0x68              | live sound machine byte
-        .equ    PARAM_ROM,      0x401bf918        | 0x34-byte ROM parameter records
+        .equ    PARAM_ROM,      0x401bfbc8        | 0x34-byte ROM parameter records
         .equ    PARAM_ROM_SHORT, 0x30
         .equ    LIST_X,         184               | the list view's x; +188 is its width
 
@@ -49,7 +49,7 @@ page_info_gate:
         |
         | page_view_activate pushes the title once, before the key handler cycles
         | to the next page, so the header lagged one page. Reached by a jmp over
-        | `movel %a2,%sp@-; jsr 0x40078514` right after the cycle; a2 is the view.
+        | `movel %a2,%sp@-; jsr 0x40078580` right after the cycle; a2 is the view.
         | Re-emits both - the pushed view stays for stock's addql #8 - then pushes
         | the new page's title exactly as page_view_activate does.
         | ------------------------------------------------------------------
@@ -59,7 +59,7 @@ page_info_gate:
         .align  2
 title_after_cycle:
         move.l  %a2,-(%sp)                        | displaced
-        jsr     0x40078514                        | displaced
+        jsr     0x40078580                        | displaced
         lea     -24(%sp),%sp
         movem.l %d0-%d1/%a0-%a1,(%sp)             | string at 20(sp), alloc byte at 19(sp)
         move.l  %a2,-(%sp)
@@ -173,7 +173,7 @@ get_gate:
         | The write bypasses stock's setter, and with it whatever makes the page
         | redraw at once, so the view is invalidated here after each change.
         | ------------------------------------------------------------------
-        .equ    VIEW_INVALIDATE, 0x40078514
+        .equ    VIEW_INVALIDATE, 0x40078580
         .align  2
 delta_gate:
         move.l  %sp@(20),%d0
@@ -297,7 +297,7 @@ dst_name:
         | the call is handed to lfo_dst_knob_draw.
         |
         | That frame is (functor, value, x, y, h, 1), written over our own argument
-        | slots in place, exactly as param_knob_draw does at 0x400a85a8. The functor
+        | slots in place, exactly as param_knob_draw does at 0x400a8614. The functor
         | slot keeps whatever it held: the invoker reads the value at its +8 and the
         | three at +12/+16/+20 and nothing else - checked instruction by instruction -
         | so it never looks at it.
@@ -618,7 +618,7 @@ trig_cfg_gate:
         | ------------------------------------------------------------------
         | The audio interrupt's LFO call, with the modifiers first.
         |
-        | Reached by a jmp over `jsr 0x4009e790`, with the LFO's argument at
+        | Reached by a jmp over `jsr 0x4009e7fc`, with the LFO's argument at
         | (%sp). Per voice track: on a note this block, draw both offsets from
         | cfg; then add the held offsets to their destinations, clamped to
         | 0..PARAM_MAX. Then call the LFO exactly as stock does.

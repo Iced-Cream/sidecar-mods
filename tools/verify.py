@@ -342,7 +342,7 @@ def main():
     #
     # Hardware, 2026-09-20: mod 0006 did exactly this - `lea -96(%sp),%sp`
     # with `movem.l %d2-%d4/%a3,88(%sp)`, four registers ending at 104 - and
-    # the unit threw V03 at 0x40289E36, which is that rts. It is invisible to
+    # the unit threw V03 at 0x4028A196, which is that rts. It is invisible to
     # every other check here because the image is perfectly well formed.
     order = "d0 d1 d2 d3 d4 d5 d6 d7 a0 a1 a2 a3 a4 a5 fp sp".split()
 

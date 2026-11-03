@@ -48,7 +48,7 @@
 
         | The per-side input model (compressor-hardware.md, "Voices: level, pan
         | and routing"). The VCA words are uint16 per PHYSICAL voice, written by
-        | 0x401098d4 earlier in this same interrupt; SLOT_MAP takes a physical
+        | 0x40109940 earlier in this same interrupt; SLOT_MAP takes a physical
         | voice to its receive slot. VOICE_OWNER takes it to the track that owns
         | it, and that track's bit in MAIN_OFF (or the global set, when MAIN_OFF
         | is negative) takes the voice off the main bus - the bits stock packs
@@ -57,14 +57,14 @@
         .equ    VCA_R,          0x800063da
         .equ    MAIN_OFF,       0x8000ed6c  | per-track main-disable bits, or
         .equ    MAIN_OFF_G,     0x8000ee58  | the global set when MAIN_OFF < 0
-        .equ    VOICE_OWNER,    0x40290dd8  | physical voice -> owning track, bytes
-        .equ    SLOT_MAP,       0x401ef1d0  | eight longs
+        .equ    VOICE_OWNER,    0x40291138  | physical voice -> owning track, bytes
+        .equ    SLOT_MAP,       0x401ef480  | eight longs
 
         | The PRE returns. Each buffer is 32 interleaved L/R long frames,
         | written by the effects call just before the detour, so they hold this
         | block's output. The PRE gains are (2 * return level * FX track level)^2
-        | in Q31, built at 0x4010e8a0; a return set to POST clears its PRE word,
-        | so a POST return drops out here on its own. The consumer at 0x4010eb26
+        | in Q31, built at 0x4010e90c; a return set to POST clears its PRE word,
+        | so a POST return drops out here on its own. The consumer at 0x4010eb92
         | sends -(gain * return) >> 8 to the DAC, so the return reaches the
         | analog bus in voice-slot units only through a constant, measured with
         | MAIN carrying returns alone (calibrate.py input). The constants start
@@ -82,7 +82,7 @@
         | then an asymmetric saturation, present at DIST 0 as well, applied to
         | each side of voices plus PRE returns. DIST's amount is 0x8000fbce,
         | 8.8, which the interrupt doubles into the analog control block at
-        | 0x40121306; read back on the device at 0 and 64 against CC 70.
+        | 0x40121372; read back on the device at 0 and 64 against CC 70.
         | Its symmetry is 0x8000fbd0, 64 at centre, and the saturation below
         | was measured at 64 only.
         |
@@ -113,7 +113,7 @@
         | device against eight distinct known values; the cal build's record
         | reads it back on every block.
         |
-        | The firmware agrees. 0x8000fbd4 is passed as a pointer to 0x4010e1a0
+        | The firmware agrees. 0x8000fbd4 is passed as a pointer to 0x4010e20c
         | beside the analog control block; that consumer reads +0 as a threshold
         | (12288 - v/2 into a DAC), +10 through an exponential as a gain, and +12
         | and +14 as two multipliers into it - MUP, MIX and VOL. It never touches
@@ -225,10 +225,10 @@
         | the page only while it is set (0x4003ab08, 0x4003a834).
         .equ    CYCLE_ARMED,    0x417e32b9
         | DMA timer 0's counter, free-running; stock reads it as a time base at
-        | 0x40069d6a and 0x40083496. Times the enumeration labels, and the cal
+        | 0x40069dd6 and 0x40083502. Times the enumeration labels, and the cal
         | and telem builds' interrupt interval and run time.
         .equ    DTCN0,          0xfc07000c
-        | The UI task's event queue, which the UI loop at 0x400a4684 takes one
+        | The UI task's event queue, which the UI loop at 0x400a46f0 takes one
         | event from each pass; +4 is the events waiting (0x40001444 shows the
         | layout). The estimator's interrupt time comes out of the UI task's
         | share: at about 10% of every block it let this queue run away on a
@@ -249,7 +249,7 @@
         | BG_WAIT blocks, a quarter of a second - long enough that its usual
         | single jobs, handled at once, never trip it. BgWorker is the
         | singleton at *0x419f2898; its job deque's start and finish cursors
-        | are at +44 and +60 (its base's destructor, 0x4017f478).
+        | are at +44 and +60 (its base's destructor, 0x4017f644).
         |
         | BG_WAIT alone still costs a quarter of a second each time. After a
         | pattern change the UI can settle with the queue at 6 to 9 while the
@@ -267,20 +267,20 @@
         .equ    BGWORKER_P,     0x419f2898
         .equ    BG_WAIT,        375
         .equ    BG_NUDGE,       30
-        .equ    BITMAP_CTOR,    0x4006f9c2
-        .equ    BITMAP_BLIT,    0x40071674
+        .equ    BITMAP_CTOR,    0x4006fa2e
+        .equ    BITMAP_BLIT,    0x400716e0
         .equ    PARAM_DRAW,     0x40039782
-        .equ    AUDIO_RESUME,   0x401213aa
+        .equ    AUDIO_RESUME,   0x40121416
 
         .text
 
         | ------------------------------------------------------------------
-        | comp_probe - the producer, detoured at 0x401213a0, just after the effects
-        | call at 0x4012139a returns. That is the window where the receive buffer
-        | holds this block's voices and 0x4009ef40 at 0x4012143a has not yet been
+        | comp_probe - the producer, detoured at 0x4012140c, just after the effects
+        | call at 0x40121406 returns. That is the window where the receive buffer
+        | holds this block's voices and 0x4009efac at 0x401214a6 has not yet been
         | able to overwrite them. Six bytes of jmp displace `addql #4,%sp`,
         | `clrl %d1` and the first half of `lea 0x8000e508,%a1`; all three are
-        | re-emitted before rejoining at 0x401213aa.
+        | re-emitted before rejoining at 0x40121416.
         |
         | Interrupt context: no allocation and no call. MACSR rests at 0x20 -
         | signed, fractional, truncating, accumulator saturation off - which is what
@@ -1100,7 +1100,7 @@ draw_seg:
         | stock handler at 0x4003a544.
         |
         | The event's code is at +12 (0x40 LEFT, 0x41 RIGHT, 0x42 UP, 0x43 DOWN,
-        | as the list handler at 0x400d5986 steps on UP and DOWN; the page keys
+        | as the list handler at 0x400d59f2 steps on UP and DOWN; the page keys
         | 0x30..0x35) and the word at +16 its state: bit 0 down, bit 3 a long
         | hold. is_key_held(0x80) is FUNC. The page key's press is taken whole; clearing CYCLE_ARMED leaves
         | its release, which goes to stock, doing nothing.
@@ -1111,7 +1111,7 @@ draw_seg:
         |                 about the threshold's row, TRACE_THR
         | ------------------------------------------------------------------
         .equ    STOCK_KEYS,     0x4003a544
-        .equ    IS_KEY_HELD,    0x40081bbc
+        .equ    IS_KEY_HELD,    0x40081c28
         .equ    HRES_MAX,       5
         .equ    VRES_MAX,       4
         .align  2
@@ -1175,7 +1175,7 @@ comp_keys:
 
         | ------------------------------------------------------------------
         | comp_setsel - the compressor vtable's set-sub-page slot, +0x60. The FX
-        | page code at 0x400cbcd4 shows the view and then, when the page shown
+        | page code at 0x400cbd40 shows the view and then, when the page shown
         | before it was a different one, sets its sub-page to 0 - so coming back
         | drew the preview for a frame and then dropped to the stock page. A
         | request for 0 is taken as a request for the current sub-page; stock's
@@ -1318,13 +1318,13 @@ softtab:
         | argument changed. Per knob k (0..3 the top row, 4..7 the bottom):
         |   id    = view vt +156 (view, k); none -> nothing drawn
         |   a6    = 0x40039608(view, id, &b0, &b1)
-        |   a9    = 0x4006f378(view + 144, k), low byte
-        |   a7    = 0x4006f166(view + 144, k), the value
+        |   a9    = 0x4006f3e4(view + 144, k), low byte
+        |   a7    = 0x4006f1d2(view + 144, k), the value
         |   a8    = b1 ? 1 : b0
         |   draw  = b0 ? view vt +152 : view vt +148
         |   draw(view, canvas, x, y, id, a6, a7, a8, a9, 1)
         | with x = 16 + 32 * column. The last argument is where stock passes a
-        | per-parameter flag (bit 17 of the record at 0x400ff556(id)); set, the
+        | per-parameter flag (bit 17 of the record at 0x400ff5c2(id)); set, the
         | knob draw at 0x40037a56 skips its dial and draws only the text, 13
         | px from y, centred on x. The text is the short name, or the value
         | while the knob is being turned, as on the stock page.
@@ -1403,12 +1403,12 @@ draw_labels:
         move.l  %d0,%a3
         move.l  %d2,-(%sp)
         move.l  %d7,-(%sp)
-        jsr     0x4006f378
+        jsr     0x4006f3e4
         addq.l  #8,%sp
         mvz.b   %d0,%d6
         move.l  %d2,-(%sp)
         move.l  %d7,-(%sp)
-        jsr     0x4006f166
+        jsr     0x4006f1d2
         addq.l  #8,%sp
         move.l  %d0,%d4
         moveq   #1,%d3
@@ -1429,9 +1429,9 @@ draw_labels:
 
         | This knob's value, drawn the way the knob draw at 0x40037a56 draws its
         | text: formatted "%.7s" into a string object (0x4002b0ac, a0 = the
-        | object), measured (0x40071d36), centred on x within the screen, drawn
-        | at y - 13 (0x4007126c with the object's character pointer) and the
-        | object destroyed (0x401bb29c).
+        | object), measured (0x40071da2), centred on x within the screen, drawn
+        | at y - 13 (0x400712d8 with the object's character pointer) and the
+        | object destroyed (0x401bb540).
         move.l  %d0,%d3
         sub.l   #13,%d3                           | text y
         move.l  12(%sp),%a0                       | map entry
@@ -1445,7 +1445,7 @@ draw_labels:
 6:      move.l  4(%a0),%a1
         lsl.l   #2,%d0
         move.l  (%a1,%d0.l),-(%sp)                | the value's string
-        pea     0x4023f777                        | "%.7s"
+        pea     0x4023faa7                        | "%.7s"
         pea     16
         lea     20(%sp),%a0                       | the object at 8
         jsr     0x4002b0ac
@@ -1453,7 +1453,7 @@ draw_labels:
         pea     -1
         pea     12(%sp)
         pea     0x417e389c                        | text_ctx
-        jsr     0x40071d36
+        jsr     0x40071da2
         lea     12(%sp),%sp
         move.l  %d0,%d4                           | width
         move.l  %a5,%d1
@@ -1469,7 +1469,7 @@ draw_labels:
         move.l  %d0,%d1
 8:      move.l  %d1,%d4                           | x
         pea     0x417e389c
-        jsr     0x40071b7c                        | text_font
+        jsr     0x40071be8                        | text_font
         addq.l  #4,%sp
         move.l  8(%sp),-(%sp)                     | the object's characters
         pea     -1
@@ -1477,10 +1477,10 @@ draw_labels:
         move.l  %d4,-(%sp)
         move.l  %d0,-(%sp)
         move.l  %a4,-(%sp)
-        jsr     0x4007126c
+        jsr     0x400712d8
         lea     24(%sp),%sp
         pea     8(%sp)
-        jsr     0x401bb29c
+        jsr     0x401bb540
         addq.l  #4,%sp
         bra.s   9f
 
@@ -1517,13 +1517,13 @@ draw_labels:
         .align  2
 enum_map:
         .byte   2,1,0,0
-        .long   0x401ec430                        | ATK .03 .. 30
+        .long   0x401ec6e0                        | ATK .03 .. 30
         .byte   4,2,0,0
-        .long   0x401ec410                        | REL .1 .. A2
+        .long   0x401ec6c0                        | REL .1 .. A2
         .byte   6,4,0,0
-        .long   0x401ec45c                        | RAT, as the device labels it
+        .long   0x401ec70c                        | RAT, as the device labels it
         .byte   8,5,0,0
-        .long   0x401ec44c                        | SEQ OFF .. HIT
+        .long   0x401ec6fc                        | SEQ OFF .. HIT
 
 
         | The slow-attack scale on the demand, (byte + 1) / 256, per ATK, REL
@@ -1841,13 +1841,13 @@ lvl_ring:
         | The ADC slots are for compressor-hardware.md, "Gain-reduction
         | readback": the MK1's meter read AN1, which ADLST1 maps to slot 0 here.
         |
-        | The queue is the one the UI loop at 0x400a4684 takes an event from
+        | The queue is the one the UI loop at 0x400a46f0 takes an event from
         | each pass; 0x40001444 shows its layout: +4 the events waiting, +16
         | the index mask, +20 the buffer, +28 the read index.
         |
         | BgWorker - the task behind verify_samples_in_bgworker and
         | sample_loader_load_sample, created at priority 2 by 0x40033384 - is a
-        | singleton at *0x419f2898. Its base's destructor 0x4017f478 walks a
+        | singleton at *0x419f2898. Its base's destructor 0x4017f644 walks a
         | std::deque of jobs at +36: start iterator (cur, first, last, node) at
         | +44, finish at +60.
         |
@@ -2015,7 +2015,7 @@ tw_job:
         | write index (+24); the types of the two newest entries; and the types
         | of the entry at the read index (+28) and the one after it. Each pair
         | holds the earlier entry in the low byte. An entry is a pointer to the
-        | event, whose first byte is the type the UI loop at 0x400a4684 switches
+        | event, whose first byte is the type the UI loop at 0x400a46f0 switches
         | on, 0..41; 0xff stands for a pointer outside RAM. Entries behind the
         | read index have been taken already: the write index says how many
         | are new. Posting and taking both run with interrupts masked, so the

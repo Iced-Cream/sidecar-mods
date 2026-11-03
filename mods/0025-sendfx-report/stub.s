@@ -22,7 +22,7 @@ sfx_hook:
 	addq.l	#4,%sp
 	clr.l	%d1
 	lea	0x8000e508,%a1
-	jmp	0x401213aa
+	jmp	0x40121416
 
 	.align	2
 	.globl	sfx_lock_load

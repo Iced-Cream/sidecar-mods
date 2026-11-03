@@ -8,13 +8,13 @@ worked out by hand. The worst of them offered a live switch body as free space, 
 is how a unit gets bricked rather than how a scan gets embarrassed.
 
 So each test below pins one of those failures:
-  - resolve_table  must read the 23-entry table at 0x4013d072 exactly, because
-                   0x4013d0de is arm 1 of it and looks dead to any absolute scan;
+  - resolve_table  must read the 23-entry table at 0x4013d23e exactly, because
+                   0x4013d2aa is arm 1 of it and looks dead to any absolute scan;
   - boot_layout    must return the ceiling, and must refuse a changed image rather
                    than read six arbitrary longwords;
-  - text_end       must land on 0x401bea90 and not be dragged off the image by a
+  - text_end       must land on 0x401bed40 and not be dragged off the image by a
                    displacement that happens to look like an address;
-  - dead_regions   must find 0x4002905e AND must not offer 0x4013d0de.
+  - dead_regions   must find 0x4002905e AND must not offer 0x4013d2aa.
 """
 
 import struct
@@ -28,7 +28,7 @@ IMAGE = ROOT / "build" / "stock_mainos.bin"
 DIS = ROOT / "build" / "mainos_emac.dis"
 BASE = 0x40000400
 CEILING = 0x402CE000
-TEXT_END = 0x401BEA90
+TEXT_END = 0x401BED40
 
 needs_image = unittest.skipUnless(IMAGE.exists(), "run make build first")
 needs_dis = unittest.skipUnless(DIS.exists(), "run make disasm first")
@@ -95,26 +95,26 @@ class JumpTableTests(unittest.TestCase):
 
     @needs_image
     def test_resolves_the_known_table(self):
-        arms, count = cavescan.resolve_table(image(), BASE, 0x4013D072)
+        arms, count = cavescan.resolve_table(image(), BASE, 0x4013D23E)
         self.assertEqual(count, 23)                 # the bound before the jmp is 22
-        self.assertEqual(arms[0], 0x4013D0A0)
-        self.assertEqual(arms[1], 0x4013D0DE)       # the false positive that started this
-        self.assertEqual(arms[-1], 0x4013DCBA)
-        self.assertEqual(max(arms), 0x4013DD10)     # the default arm, entry 13
+        self.assertEqual(arms[0], 0x4013D26C)
+        self.assertEqual(arms[1], 0x4013D2AA)       # the false positive that started this
+        self.assertEqual(arms[-1], 0x4013DE86)
+        self.assertEqual(max(arms), 0x4013DEDC)     # the default arm, entry 13
         self.assertEqual(len(set(arms)), 23)
 
     @needs_image
     def test_table_ends_where_its_first_arm_begins(self):
-        arms, count = cavescan.resolve_table(image(), BASE, 0x4013D072)
-        self.assertEqual(0x4013D072 + 2 * count, min(arms))
+        arms, count = cavescan.resolve_table(image(), BASE, 0x4013D23E)
+        self.assertEqual(0x4013D23E + 2 * count, min(arms))
 
     @needs_image
     def test_gives_up_rather_than_guessing(self):
         # a first word that is not a plausible offset must return None, so the caller
         # blacks the table's whole reach out instead of trusting a bad arm list
         data = bytearray(image())
-        struct.pack_into(">H", data, 0x4013D072 - BASE, 0xD568)
-        self.assertIsNone(cavescan.resolve_table(bytes(data), BASE, 0x4013D072))
+        struct.pack_into(">H", data, 0x4013D23E - BASE, 0xD568)
+        self.assertIsNone(cavescan.resolve_table(bytes(data), BASE, 0x4013D23E))
 
 
 class ComputedJumpTests(unittest.TestCase):
@@ -126,18 +126,18 @@ class ComputedJumpTests(unittest.TestCase):
                                        else "blackout")
 
     def test_the_switch_shape_is_a_table(self):
-        self.assertEqual(self.shape("jmp %pc@(0x4013d072,%d0:l)"), "table")
-        self.assertEqual(self.shape("jmp %pc@(0x4013d072,%a1:l)"), "table")
-        self.assertEqual(self.shape("jmp %pc@(0x4013d072,%d1)"), "table")
+        self.assertEqual(self.shape("jmp %pc@(0x4013d23e,%d0:l)"), "table")
+        self.assertEqual(self.shape("jmp %pc@(0x4013d23e,%a1:l)"), "table")
+        self.assertEqual(self.shape("jmp %pc@(0x4013d23e,%d1)"), "table")
 
     def test_other_shapes_are_blacked_out_not_missed(self):
         # a computed jsr, and a scaled index: once matched by nothing at all
-        self.assertEqual(self.shape("jsr %pc@(0x401f7179,%d0:w)"), "blackout")
-        self.assertEqual(self.shape("jsr %pc@(0x402175a2,%d3:l:4)"), "blackout")
-        self.assertEqual(self.shape("jmp %pc@(0x402175a2,%d3:l:2)"), "blackout")
+        self.assertEqual(self.shape("jsr %pc@(0x401f7429,%d0:w)"), "blackout")
+        self.assertEqual(self.shape("jsr %pc@(0x40217852,%d3:l:4)"), "blackout")
+        self.assertEqual(self.shape("jmp %pc@(0x40217852,%d3:l:2)"), "blackout")
 
     def test_a_plain_pc_relative_call_is_not_computed(self):
-        self.assertIsNone(self.shape("jsr %pc@(0x400af0d2)"))
+        self.assertIsNone(self.shape("jsr %pc@(0x400af13e)"))
 
 
 class TextEndTests(unittest.TestCase):
@@ -154,8 +154,8 @@ class TextEndTests(unittest.TestCase):
         # `jsr %a2@(0x40bc67fd)` is a displacement off a register, not a direct call.
         # Matching it pushed the boundary past the end of the image.
         self.assertIsNone(cavescan.CALL_RE.match("%a2@(0x40bc67fd)"))
-        self.assertIsNotNone(cavescan.CALL_RE.match("0x401bea50"))
-        self.assertIsNotNone(cavescan.CALL_RE.match("%pc@(0x401bea50)"))
+        self.assertIsNotNone(cavescan.CALL_RE.match("0x401becf4"))
+        self.assertIsNotNone(cavescan.CALL_RE.match("%pc@(0x401becf4)"))
 
 
 class DeadRegionTests(unittest.TestCase):
@@ -179,16 +179,16 @@ class DeadRegionTests(unittest.TestCase):
     @needs_dis
     @needs_image
     def test_finds_the_pools(self):
-        for start in (0x4002905E, 0x4002871A, 0x401BA28E):
+        for start in (0x4002905E, 0x4002871A, 0x401BA532):
             self.assertTrue(self.covered(start), f"lost 0x{start:08x}")
 
     @needs_dis
     @needs_image
     def test_does_not_offer_a_live_switch_arm(self):
-        # 0x4013d0de is arm 1 of the table at 0x4013d072. Nothing in the image refers
+        # 0x4013d2aa is arm 1 of the table at 0x4013d23e. Nothing in the image refers
         # to it, it sits after a braw, and it is perfectly reachable. If this ever
         # fails, the tool is handing out live code as free space.
-        for arm in (0x4013D0DE, 0x4013D194, 0x4013D24A, 0x4013D80E):
+        for arm in (0x4013D2AA, 0x4013D360, 0x4013D416, 0x4013D9DA):
             self.assertFalse(self.covered(arm),
                              f"0x{arm:08x} is a live switch arm, not free space")
 
@@ -197,7 +197,7 @@ class DeadRegionTests(unittest.TestCase):
     def test_small_pools_sit_wholly_in_one_region(self):
         # what the registry actually claims, not just the start addresses
         for name, lo, hi in (("cave5", 0x4002871C, 0x40028A14),
-                             ("cave6", 0x401BA290, 0x401BA4E8)):
+                             ("cave6", 0x401BA534, 0x401BA78C)):
             covering = [(a, n) for a, n in self.dead if a <= lo and hi <= a + n]
             self.assertEqual(len(covering), 1,
                              f"{name} is not wholly inside one reported region")
@@ -240,7 +240,7 @@ class DeadRegionTests(unittest.TestCase):
     def test_nothing_outside_a_region_references_into_it(self):
         data = image()
         for lo, hi in ((0x4002905E, 0x40029A90), (0x4002871A, 0x40028A14),
-                       (0x401BA28E, 0x401BA4E8)):
+                       (0x401BA532, 0x401BA78C)):
             hits = []
             for off in range(0, len(data) - 3, 2):     # pointers are even-aligned
                 value = struct.unpack_from(">I", data, off)[0]

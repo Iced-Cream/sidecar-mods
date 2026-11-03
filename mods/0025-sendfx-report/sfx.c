@@ -18,7 +18,7 @@
  *
  * It writes nothing the firmware reads. It runs in the audio interrupt
  * (level 5), from the block driver right after fx_generate (detour at
- * 0x401213a0, 0006's site), so it never waits. It calls the OS's USB MIDI
+ * 0x4012140c, 0006's site), so it never waits. It calls the OS's USB MIDI
  * sender (0x400029e0) only when that is safe from here, with 0021's tests
  * [measured, OS 1.73, mods/0021-ext/ext.c]: the sender's mutex (0x42f67a28)
  * free, its SysEx state (0x413db244) idle, its 4 KB ring fill (0x413db258)
@@ -32,7 +32,7 @@
  * kit). So from an active kit change on, each track reports its words from the active kit itself (live kit k at
  * 0x412558e3 + 2531 k: sound t's words at + 42 + 152 t + 20, the FX track's at + 1866) until its trig_kit_copied is
  * the active kit (its first trig has copied it, its p-locks on top). RELOAD KIT / RELOAD ALL / LOAD need none of
- * this: kit_push (0x4011f89e) copies every track's sound into the trig array itself [code; measured, rytm-emu].
+ * this: kit_push (0x4011f90a) copies every track's sound into the trig array itself [code; measured, rytm-emu].
  */
 #include <stdint.h>
 
@@ -135,9 +135,9 @@ void sfx_block(void) {
   next_t = t;                                 /* round robin over refused sends */
 }
 
-/* The detour at 0x401213a0 (addql #4,%sp; clrl %d1; lea 0x8000e508,%a1):
+/* The detour at 0x4012140c (addql #4,%sp; clrl %d1; lea 0x8000e508,%a1):
    sfx_block with d0/d1/a0/a1 kept, then the displaced instructions, rejoining
-   at 0x401213aa. sfx_block is a C function (d2-d7/a2-a6 callee-saved); it
+   at 0x40121416. sfx_block is a C function (d2-d7/a2-a6 callee-saved); it
    uses no EMAC. */
 __asm__(
 "	.if	(P_RR < 0) + (P_RR > 127)\n"
@@ -157,7 +157,7 @@ __asm__(
 "	addq.l	#4,%sp\n"                          /* displaced, verbatim */
 "	clr.l	%d1\n"
 "	lea	0x8000e508,%a1\n"
-"	jmp	0x401213aa\n");
+"	jmp	0x40121416\n");
 
 /* ---------------------------------------------------------------------------
  * Persistent FX words 38..41 (M1b-b, rytm-teensy 2026-10-16-sidecar-send-fx-storage.md): the four live-only FX words
@@ -165,7 +165,7 @@ __asm__(
  * FX track: 42..45 the hi halves (bits 8..14) of FX 38..41, 46..49 the lo halves (bits 1..7), each a plain 64-step
  * slot, never a 0x80 0x80 continuation. Stock skips types above 41 at load (0x40009040) and drops them at its next
  * full rebuild; it never reads 0x816. Without these hooks a live FX 38..41 lock would be saved by stock as types
- * 9..12 (its reverse map 0x401c589c has 38 entries and runs into the next table): FX 18..21 locks.
+ * 9..12 (its reverse map 0x401c5b4c has 38 entries and runs into the next table): FX 18..21 locks.
  * ------------------------------------------------------------------------- */
 #define LOCK_TRACK 5674          /* live lock array: a track's bytes */
 #define LOCK_STEP 88             /* a step: 42 words, then the u32 lock count at +84 */

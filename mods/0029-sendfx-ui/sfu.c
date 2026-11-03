@@ -43,15 +43,15 @@ typedef int32_t (*sprintf_fn)(void *str, const char *fmt, ...);
 typedef void (*send_fn)(int32_t len, const uint8_t *data);
 typedef void (*void_fn)(void);
 
-#define S_READ  ((rd_fn)0x400a8dfau)
-#define S_WRITE ((wr_fn)0x400a9f9eu)
-#define S_LGET  ((lg_fn)0x400a9848u)
-#define S_LSET  ((ls_fn)0x400a98bau)
-#define F_READ  ((rd_fn)0x400a8e90u)
-#define F_WRITE ((wr_fn)0x400aa01cu)
-#define F_LGET  ((lg_fn)0x400a99bau)
-#define F_LSET  ((ls_fn)0x400a9a2cu)
-#define STR_PRINTF ((sprintf_fn)0x40098602u)
+#define S_READ  ((rd_fn)0x400a8e66u)
+#define S_WRITE ((wr_fn)0x400aa00au)
+#define S_LGET  ((lg_fn)0x400a98b4u)
+#define S_LSET  ((ls_fn)0x400a9926u)
+#define F_READ  ((rd_fn)0x400a8efcu)
+#define F_WRITE ((wr_fn)0x400aa088u)
+#define F_LGET  ((lg_fn)0x400a9a26u)
+#define F_LSET  ((ls_fn)0x400a9a98u)
+#define STR_PRINTF ((sprintf_fn)0x4009866eu)
 #define MIDI_SEND   ((send_fn)0x400029e0u)
 /* Never wait on USB (the UI task): 0026-remote-ui's pattern. MIDI_LOCK 0x40002914 = take(0x42f67a28) pends while
    another task owns it, and the sender spins while its 4 KB ring is full; so a try-lock of the same mutex
@@ -66,19 +66,19 @@ typedef void (*unlock_fn)(void *m);
 #define TX_LEVEL    (*(volatile int32_t *)0x413db258u)    /* the sender spins while level + n > 4091 */
 #define USB_POOL    (*(const volatile uint32_t *const volatile *)0x413db390u)   /* free requests, next +52 */
 
-#define REC(r)  ((uint32_t *)(0x401bf918u + 0x34u * (uint32_t)(r)))   /* fields set at build (registry); names here */
+#define REC(r)  ((uint32_t *)(0x401bfbc8u + 0x34u * (uint32_t)(r)))   /* fields set at build (registry); names here */
 #define DESC(r) ((uint32_t *)(0x419a4888u + 84u * (uint32_t)(r)))
 #define REC_DIAL 410   /* a plain numeric dial (0021's REC_DIAL) */
 #define REC_DEL  60    /* AMP DEL: the stock send knob's look */
 #define REC_FTYP 49    /* FILTER TYPE: the stock enum (range 0..0x600, encoder profile 0x417e37ac) [measured, 1.73] */
-#define REC_LOOP 45    /* SAMPLE LOOP: the stock OFF / ON toggle (the same profile, the switch draw 0x400fed88) */
-#define REC_DROUT 81   /* DISTORTION DEL: the stock PRE / POST text draw 0x400fbe1e */
+#define REC_LOOP 45    /* SAMPLE LOOP: the stock OFF / ON toggle (the same profile, the switch draw 0x400fedf4) */
+#define REC_DROUT 81   /* DISTORTION DEL: the stock PRE / POST text draw 0x400fbe8a */
 #define DESC_BASE 0x419a4888u
 typedef void *(*font_fn)(void *ctx);
 typedef void (*tdraw_fn)(int32_t x, void *font, int32_t y, int32_t h, int32_t a, int32_t b, const char *w,
                          const char *fmt, ...);
-#define TEXT_FONT ((font_fn)0x40071b7cu)   /* text_font(ctx) */
-#define TEXT_DRAW ((tdraw_fn)0x400714e0u)  /* text_draw, as the PRE / POST draw 0x400fbe1e calls it */
+#define TEXT_FONT ((font_fn)0x40071be8u)   /* text_font(ctx) */
+#define TEXT_DRAW ((tdraw_fn)0x4007154cu)  /* text_draw, as the PRE / POST draw 0x400fbe8a calls it */
 #define TEXT_CTX  ((void *)0x417e389cu)
 
 /* per knob: container index, half (0 hi, 1 lo), kit only, kind (record +0) */
@@ -106,7 +106,7 @@ const struct page sfu_pages[3] = {
   {n_fx1, {ID0 + 2, ID0 + 3, ID0 + 4, ID0 + 5, ID0 + 6, ID0 + 7, 0, 0}},
   {n_fx2, {ID0 + 8, ID0 + 9, ID0 + 10, ID0 + 11, ID0 + 12, ID0 + 13, 0, 0}},
 };
-/* the three views' page vectors (view factory 0x400ca9b2), count 2 each */
+/* the three views' page vectors (view factory 0x400caa1e), count 2 each */
 const uint32_t sfu_vec_amp[2] = {7, 12}, sfu_vec_del[2] = {8, 13}, sfu_vec_rev[2] = {9, 14};
 
 /* The TYPE names: built-in ids as rytm-teensy sim/protocol.py SENDFX_TYPES until the Sidecar sends its
@@ -773,8 +773,8 @@ static void tick_body(void *ctrl) {
     set_look(3, 3, 2);    /* P1 ROUTE: PRE / POST */
     set_look(9, 3, 2);
     relabel();
-    ((volatile uint32_t *)0x401b9e54u)[1] = (uint32_t)sfu_sysex;
-    ((volatile uint32_t *)0x401b9e54u)[0] = 0x53465855u;   /* 'SFXU' */
+    ((volatile uint32_t *)0x401ba0f8u)[1] = (uint32_t)sfu_sysex;
+    ((volatile uint32_t *)0x401ba0f8u)[0] = 0x53465855u;   /* 'SFXU' */
     st.init = 1;
   }
   /* the 21 list: a copy for the UI task when the MIDI task is not writing it (ogen even) and it is new */
@@ -799,7 +799,7 @@ static void tick_body(void *ctrl) {
   if (st.asked < 2 && st.ask_div >= 100 && send_ask()) st.ask_div = 0;   /* not sent: again next tick */
 }
 
-/* Gates (detours). page_info 0x400ff574: ids 12..14 are ours. page_get_value 0x40038462: our ids.
+/* Gates (detours). page_info 0x400ff5e0: ids 12..14 are ours. page_get_value 0x40038462: our ids.
    The page key's cycle 0x4003ab94: push the new page's title (stock pushes it only on activate). */
 __asm__(
     "  .text\n"
@@ -818,7 +818,7 @@ __asm__(
     "1:\n"
     "  moveq #11,%d1\n"
     "  move.l 4(%sp),%d0\n"
-    "  jmp 0x400ff57a\n"
+    "  jmp 0x400ff5e6\n"
     "  .align 2\n"
     "sfu_getv:\n"
     "  move.l 8(%sp),%d0\n"
@@ -838,7 +838,7 @@ __asm__(
     "  .align 2\n"
     "sfu_title:\n"
     "  move.l %a2,-(%sp)\n"
-    "  jsr 0x40078514\n"
+    "  jsr 0x40078580\n"
     "  lea -24(%sp),%sp\n"
     "  movem.l %d0-%d1/%a0-%a1,(%sp)\n"
     "  move.l %a2,-(%sp)\n"
@@ -849,14 +849,14 @@ __asm__(
     "  pea 19(%sp)\n"
     "  move.l %d0,-(%sp)\n"
     "  pea 28(%sp)\n"
-    "  jsr 0x401bcd4c\n"
+    "  jsr 0x401bcff0\n"
     "  lea 12(%sp),%sp\n"
     "  pea 20(%sp)\n"
     "  move.l 108(%a2),-(%sp)\n"
     "  jsr 0x40035fe8\n"
     "  addq.l #8,%sp\n"
     "  pea 20(%sp)\n"
-    "  jsr 0x401bb29c\n"
+    "  jsr 0x401bb540\n"
     "  addq.l #4,%sp\n"
     "  movem.l (%sp),%d0-%d1/%a0-%a1\n"
     "  lea 24(%sp),%sp\n"

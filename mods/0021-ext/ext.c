@@ -35,7 +35,7 @@
 #define SYSEX_STATE   (*(volatile uint32_t *)0x413db244u)
 #define RING_FILL     (*(volatile uint32_t *)0x413db258u)
 #define STATE0(v)     (*(volatile int32_t *)(0x8000fef8u + 32u * (v)))
-#define OWNER(v)      (((const uint8_t *)0x40290dd8u)[v])
+#define OWNER(v)      (((const uint8_t *)0x40291138u)[v])
 #define US_ARP_KIT(k, t) ((const volatile uint8_t *)(0x4125597au + 2531u * (k) + 152u * (t)))   /* 7ae: kit k, track t: +0x6d, then +0x6e */
 #define VELOCITY(t)   (((const uint8_t *)0x800067c4u)[2u * (t)])
 
@@ -119,7 +119,7 @@ const char ext_s16[] EXT3 = "VOL";
 
 typedef void (*engine_fn)(int32_t voice, uint8_t *frame, const int16_t *params, int32_t pitch);
 typedef void (*send_fn)(int32_t len, const uint8_t *data);
-#define DISABLE_ENGINE ((engine_fn)0x40113efcu)
+#define DISABLE_ENGINE ((engine_fn)0x40113f68u)
 #define USB_MIDI_SEND  ((send_fn)0x400029e0u)
 
 #define NP 16
@@ -184,13 +184,13 @@ __attribute__((section(".ext9"), noinline)) static int ext_try_send(const uint8_
  * data, only functions shared by type (the plain dial by 238 records, the
  * bipolar text by 67), so a knob takes on another record's look by copying its
  * descriptor. BD TEST's were bipolar P1/P2 and list switches P7/P8. Done once,
- * in the UI task, at the first param_value_text (0x400a85e0; the bottom bar
+ * in the UI task, at the first param_value_text (0x400a864c; the bottom bar
  * prints a value from the first screen on) - after boot built the table, before
  * any page can show EXT's knobs [measured: a descriptor changed after boot takes
  * effect when the page is drawn].
  * ------------------------------------------------------------------------- */
 #define DESC(r) ((uint32_t *)(0x419a4888u + 84u * (r)))
-#define REC_ADDR(r) ((const int32_t *)(0x401bf918u + 0x34u * (uint32_t)(r)))
+#define REC_ADDR(r) ((const int32_t *)(0x401bfbc8u + 0x34u * (uint32_t)(r)))
 #define REC_P1 408
 #define REC_DIAL 410        /* P3: plain dial, number */
 #define REC_TUNE 100        /* BD HARD TUN: centred dial, +-N */
@@ -198,7 +198,7 @@ __attribute__((section(".ext9"), noinline)) static int ext_try_send(const uint8_
 #define REC_BIPOLAR 40      /* SMPL FIN: centred dial, +-N */
 #define REC_P2 422          /* EXT page 2: RS TEST's records, rewritten */
 typedef int32_t (*sprintf_fn)(void *str, const char *fmt, ...);
-#define STR_PRINTF ((sprintf_fn)0x40098602u)
+#define STR_PRINTF ((sprintf_fn)0x4009866eu)
 
 /* Plaits' models as curated 2026-10-09 (17 of 24): its 6-op FM models (2..4)
    are the 6-OP FM machine's, NOISE (17) went, its drums (21..23) are
@@ -295,7 +295,7 @@ EXT2 void ext_descriptors(void) {
 /* ---------------------------------------------------------------------------
  * Page 2, on the SMPL key (page ids 4/5) [measured, as 0020's FM4 page 2]. Not
  * on SRC: pressing SRC again opens the machine list, on every machine [measured:
- * a page list {0, 4} for the SRC view, constructor 0x400cae98, never cycled].
+ * a page list {0, 4} for the SRC view, constructor 0x400caf04, never cycled].
  * Three lookups answer EXT's page-2 records on machine 44 and stock's otherwise
  * (each replaced whole):
  *   0x4003795a  a parameter page's record of knob k
@@ -308,7 +308,7 @@ EXT2 void ext_descriptors(void) {
 #define EXT4 __attribute__((section(".ext4")))
 typedef int32_t (*fn1)(int32_t);
 typedef int32_t (*fn2)(int32_t, int32_t);
-#define PAGE_INFO(id)   ((const int32_t *)((fn1)0x400ff574)(id))
+#define PAGE_INFO(id)   ((const int32_t *)((fn1)0x400ff5e0)(id))
 #define VCALL(v, off)   (((fn1)(*(int32_t **)(v))[(off) / 4])((int32_t)(v)))
 #define EXT_MACHINE 44
 #define REC_DSP2 430        /* DAISYSP page 2: BT TEST's and LT TEST's records */
@@ -325,9 +325,9 @@ const char ext_p2_title[] EXT3 = "PLAITS PAGE 2";
 
 EXT4 static int32_t ext_view_machine(const int32_t *view) {
   int32_t slot = VCALL(view, 0x90), sound;
-  if (slot < 0) sound = ((fn2)0x400a675e)(view[30], ((fn1)0x400b68d2)(view[29]));
-  else sound = ((fn2)0x400ae494)(view[26], slot);
-  return ((fn1)0x400bca70)(sound);
+  if (slot < 0) sound = ((fn2)0x400a67ca)(view[30], ((fn1)0x400b693e)(view[29]));
+  else sound = ((fn2)0x400ae500)(view[26], slot);
+  return ((fn1)0x400bcadc)(sound);
 }
 
 /* The machines' page-2 answers live in .us1 (us_page_record, us_page_title, us_param_record): PLAITS,
@@ -398,7 +398,7 @@ __asm__(
     "  jsr ext_ui_tick\n"
     "  lea %sp@(-20),%sp\n"
     "  moveml %d2-%d4/%a2-%a3,%sp@\n"
-    "  jmp 0x400a85e8\n");
+    "  jmp 0x400a8654\n");
 
 __attribute__((noinline)) void ext_render_body(int32_t voice, uint8_t *frame, const int16_t *params, int32_t pitch) {
   /* A trig: the firmware zeroes word 0 of the voice's state block (0x8000fef8 +
@@ -602,7 +602,7 @@ EXTD void dd_descriptors(void) {
     r[2] = md_rec[k][0];
     r[3] = md_rec[k][1];
     r[4] = md_rec[k][2];
-    ((uint32_t *)(0x40287ccc + 36 * DD_MACHINE))[k] = REC_DD + k;
+    ((uint32_t *)(0x4028802c + 36 * DD_MACHINE))[k] = REC_DD + k;
   }
 #endif
 }
@@ -721,8 +721,8 @@ EXTP static void ext_project(void) {
  *   XLV XTN XDC XP4 XP5  the exciter machine's slots 9..13 (level, tune/tone,
  *        decay, then its own), each scaled over that slot's record range
  *   WID  stereo width of the resonance on MAIN
- * With INP NAT (the track's default machine, 0x401bf14c[track]) or NOISE (UT
- * NOISE, 15) dsp_excite runs that machine's engine (0x4029037c + 4m) on this
+ * With INP NAT (the track's default machine, 0x401bf3fc[track]) or NOISE (UT
+ * NOISE, 15) dsp_excite runs that machine's engine (0x402906dc + 4m) on this
  * voice with a parameter block of its own: its records' defaults
  * (0x413db5fc[8m + slot - 9] -> record, +16 default, +8/+12 range) and the five
  * X knobs. The voice then sounds as that machine, and its Overbridge output
@@ -731,8 +731,8 @@ EXTP static void ext_project(void) {
 #define EXT7 __attribute__((section(".ext7")))   /* code */
 #define EXT8 __attribute__((section(".ext8")))   /* names */
 #define MACHINE_REC(m, s) (((const int32_t *)0x413db5fcu)[(m) * 8 + (s) - 9])
-#define DEFAULT_MACHINE(t) (((const int32_t *)0x401bf14cu)[t])
-#define ENGINE(m)         (((const engine_fn *)0x4029037cu)[m])
+#define DEFAULT_MACHINE(t) (((const int32_t *)0x401bf3fcu)[t])
+#define ENGINE(m)         (((const engine_fn *)0x402906dcu)[m])
 #define UT_NOISE 15
 
 const char dsp_p2_title[] EXT8 = "EXCITER";
@@ -818,7 +818,7 @@ EXT7 void dsp_descriptors2(void) {
   copy_desc(REC_DSPS2 + 2, REC_DIAL);
   copy_desc(REC_DSPS_SMP, REC_DIAL);   /* 1045: SMP a dial (0026 gives it its text, 0029 its step) */
 #if EXT_SLOTS
-  ((uint32_t *)(0x40287ccc + 36 * DSPS_MACHINE))[0] = REC_DSPS_SMP;   /* 7h: SRC knob A (the registry's row had ENG there) */
+  ((uint32_t *)(0x4028802c + 36 * DSPS_MACHINE))[0] = REC_DSPS_SMP;   /* 7h: SRC knob A (the registry's row had ENG there) */
   ((uint32_t *)REC_ADDR(dsps_rec[4]))[4] = 0;   /* MIX's default 0 (was 64): a sample player, the resonator an option; a fresh
                                                    choice takes it, a saved sound keeps its word */
 #endif
@@ -911,7 +911,7 @@ __attribute__((section(".extc"), noinline)) void fm_descriptors(void) {
  * it [measured, rytm-emu lp3n 2026-10-09]: the active kit's sound, track t's machine
  * words at 0x41255933 + 2531 k + 152 t (KIT_WORD; int16 8.8, packed; the screen
  * draws from it; same address in the user's own snapshot of another boot), and
- * the live copy through 0x4011f3fa(value, track, index) (what a CUT turn calls;
+ * the live copy through 0x4011f466(value, track, index) (what a CUT turn calls;
  * JUNO's records 383..388 are sound indices 10..15). Since 2026-10-10 (R11)
  * through us_set, as the turn does: the live copy, then kit_param_changed, whose
  * drain writes the kit word and the project's copy (kept by a save and the
@@ -924,18 +924,18 @@ typedef void (*setp_fn)(int32_t value, int32_t track, int32_t index);
 #define MIDI_LOCK    ((void_fn)0x40002914u)
 #define MIDI_UNLOCK  ((void_fn)0x40002924u)
 #if EXT_SLOTS
-/* The active kit k (0..127): the 32-bit 0x800067b8, written only by 0x4011f82a, which refuses values above 127; all
+/* The active kit k (0..127): the 32-bit 0x800067b8, written only by 0x4011f896, which refuses values above 127; all
    128 kits are resident at 0x412558e3 + 2531 k, and a trig copies track t's sound from 0x4125590d + 2531 k + 152 t,
-   k the trig's kit byte (0x42ade134 + 56 t), set from 0x800067b8 (0x4011d054 / 0x4011d090) [read; measured: A02 sets
+   k the trig's kit byte (0x42ade134 + 56 t), set from 0x800067b8 (0x4011d0c0 / 0x4011d0fc) [read; measured: A02 sets
    it to 1, and its knobs and records write kit 1]. & 127 only keeps an address inside the kits. */
 #define US_KIT()        (*(volatile const uint32_t *)0x800067b8u & 127u)
 #define KIT_WORD(t, w)  ((volatile uint8_t *)(0x41255933u + 2531u * US_KIT() + 152u * (t) + 2u * (w)))
-#define SET_PARAM    ((setp_fn)0x4011f3fau)
+#define SET_PARAM    ((setp_fn)0x4011f466u)
 /* R11 [measured]: a stock knob turn is the live copy (SET_PARAM) and then kit_param_changed(bank, track,
    record, value 8.8) on the bank from its getter; the bank's drain (UI loop) writes the kit word and the
    project's copy (what a save and the power-off keep). UI task only: it takes the bank's mutex. The
    record's +0 kind must be the track's machine or >= 53 (the takeover's claims make it so). */
-#define US_BANK   ((void *(*)(void))0x40194618u)
+#define US_BANK   ((void *(*)(void))0x401947e4u)
 #define US_COMMIT ((void (*)(void *bank, int32_t track, int32_t record, int32_t value))0x4003355cu)
 void us_set(int32_t t, int32_t index, int32_t record, int32_t v);
 #define JN_NAME 10   /* 9 characters kept of the 13 sent (the knob shows ~8) */
@@ -1033,7 +1033,7 @@ __attribute__((section(".exto"), noinline)) void us_set(int32_t t, int32_t index
 }
 #else   /* slots=0: the pre-slot JUNO mailbox and tick (c127fe8) */
 #define KIT_WORD(t, k) ((volatile uint8_t *)(0x41255933u + 152u * (t) + 2u * (k)))
-#define SET_PARAM    ((setp_fn)0x4011f3fau)
+#define SET_PARAM    ((setp_fn)0x4011f466u)
 #define JN_NAME 10   /* 9 characters kept of the 13 sent (the knob shows ~8) */
 
 int jn_sysex(const uint8_t *d, int32_t len);
@@ -1279,14 +1279,14 @@ EXTX void mod_desc(void) {
 #define MD_ASK 0x40            /* 19 / 1A / 1B slot bytes 0x40..0x42: MD's labels for ENGINE 0..2 */
 #define MD_TAG 0x224du         /* the sound tag of a converted MD sound (MD-BUILTIN.md 2): 03 / 04 report it, stored slot 47 */
 #define US_SEL_TRACK (*(volatile uint8_t *)0x41318982u)
-#define US_NEW ((void *(*)(uint32_t))0x400829d4u)
-#define US_SLEEP ((void (*)(uint32_t))0x40098c18u)
+#define US_NEW ((void *(*)(uint32_t))0x40082a40u)
+#define US_SLEEP ((void (*)(uint32_t))0x40098c84u)
 /* R1: every caller of a record's value text passes the record's descriptor + 20 as the functor
    (US_THUNKS 0); 1: it does not, and each record gets a thunk that puts its own functor in.
    [measured, research R1: knob and p-lock paths and the machine list's preview pass descriptor + 20] */
 #define US_THUNKS 0
 /* R3: the sound's sample words follow its machine words in the kit (track t's word 9 + k at
-   0x41255933 + 152 t + 2 k for k 0..15, in kit 0; kit n 2531 n further) and 0x4011f3fa takes their sound
+   0x41255933 + 152 t + 2 k for k 0..15, in kit 0; kit n 2531 n further) and 0x4011f466 takes their sound
    indices 9 + k. */
 /* [measured, research R3: SMPL word 17 at kit + 16 a track, the setter's index 17] */
 #define US_INDEX(k) (9 + (k))
@@ -1345,7 +1345,7 @@ __asm__(".globl us_off_tgen\n.set us_off_tgen, 40\n.globl us_off_layer\n.set us_
         ".globl us_off_ch\n.set us_off_ch, 63\n.globl us_off_wb\n.set us_off_wb, 36\n"
         ".globl us_wb_pslot\n.set us_wb_pslot, 3\n.globl us_wb_pgen\n.set us_wb_pgen, 22\n.globl us_wb_size\n.set us_wb_size, 28\n"
         ".globl us_off_en\n.set us_off_en, 500\n");
-/* The machine list's names (0x401befa4 + 8 m points here): rewritten in the UI task, whole names. */
+/* The machine list's names (0x401bf254 + 8 m points here): rewritten in the UI task, whole names. */
 /* MD's state (md_tick). mode: the page the records show, 0 none yet, 1 DIGIDRUM's, 2 MD's. (A track's us_wb.pv, byte stores
    as us_loaded's in the audio interrupt: its machine 42 came from the list's cursor, so its words are no old DIGIDRUM
    sound: a YES sets them up fresh.) */
@@ -1461,7 +1461,7 @@ US1 static int32_t us_preset_text(int32_t s, int32_t v, void *str) {
 /* A pool knob: pool slot v's name from 0023's table (its mailbox's third word, td_pool_tab), OFF for 0;
    the number when 0023 is not in the image. */
 US1 static int32_t us_pool_text(int32_t v, void *str) {
-  const volatile uint32_t *mb = (const volatile uint32_t *)0x401b9a74u;
+  const volatile uint32_t *mb = (const volatile uint32_t *)0x401b9d18u;
   const char *t;
   if (!v) return STR_PRINTF(str, ext_fmt_s, us_off);
   if (mb[0] == 0x54445256u && mb[2] && (t = (const char *)((void *(*)(void))mb[2])()) != 0)
@@ -1539,8 +1539,8 @@ US1 static void us_record(int32_t r, int32_t s, int32_t k, uint32_t inv) {
   rec[3] = (uint32_t)(q ? q->max : 127) << 8;
   rec[4] = (uint32_t)(q ? q->def : 64) << 8;
 }
-/* SRC: U(s+1)'s records in the machine page table (0x40287cc8 + 36 m: name, 8 records; machine_page_info
-   0x400ff59a, what the SRC view draws and its knobs edit [code, 0x400d3544]): 334 + 8 s + k, or 0 for an unused knob,
+/* SRC: U(s+1)'s records in the machine page table (0x40288028 + 36 m: name, 8 records; machine_page_info
+   0x400ff606, what the SRC view draws and its knobs edit [code, 0x400d35b0]): 334 + 8 s + k, or 0 for an unused knob,
    as stock machines with fewer knobs have [measured: zero entries for machines 0..34]. */
 _Static_assert(__builtin_offsetof(struct us_cache, k) == 36 && sizeof(struct us_knob) == 28 && __builtin_offsetof(struct us_head, state) == 1 &&
                __builtin_offsetof(struct us_knob, lng) == 8, "us_src_table");
@@ -1557,7 +1557,7 @@ __asm__(
     "  lsl.l #3,%d1\n"
     "  add.l #334,%d1\n"               /* r = US_REC + 8 s */
     "  mulu.w #36,%d0\n"
-    "  add.l #0x40287ccc+36*35,%d0\n"
+    "  add.l #0x4028802c+36*35,%d0\n"
     "  move.l %d0,%a0\n"               /* the machine's 8 records */
     "  tst.l %a1\n"
     "  jeq 2f\n"
@@ -1953,20 +1953,20 @@ US2 void us_tick(void) {
  * list's YES, the SOUND menu's MACHINE item, or the slot menu's assign - takes the plugin's 1A defaults on
  * all its knobs, P1..P16 (P9..P16 when page 2 is knobs), as a stock machine takes its records' defaults when
  * chosen; never on a kit or project load or a kit switch. [measured, rytm-emu us1 2026-10-10, --count; R12]
- * Every DOWN in the machine list previews: its cursor (0x400d40a4) calls 0x400bed62, which calls set_machine
- * 0x400bd14e(sound, machine, track, flag), which resets P1..P8 from the records (0x400bcbac) when the
+ * Every DOWN in the machine list previews: its cursor (0x400d4110) calls 0x400bedce, which calls set_machine
+ * 0x400bd1ba(sound, machine, track, flag), which resets P1..P8 from the records (0x400bcc18) when the
  * machine changed; YES calls nothing more (the preview stays); NO puts the old machine back through
- * 0x400a68a2 and restores its P1..P8; both close the list through 0x400dea82(window, yes) (MachineListView's
- * own: its only constructor call is 0x400d3f5a). So the cursor's set_machine call notes the track (us.ch,
- * detour 0x400bee40) and the close with YES takes it (detour 0x400dea8e): the defaults go in only for a
+ * 0x400a690e and restores its P1..P8; both close the list through 0x400deaee(window, yes) (MachineListView's
+ * own: its only constructor call is 0x400d3fc6). So the cursor's set_machine call notes the track (us.ch,
+ * detour 0x400beeac) and the close with YES takes it (detour 0x400deafa): the defaults go in only for a
  * confirmed list, and a preview passing a slot leaves the sample words alone. The list can also be left
  * without its close (GLOBAL, the TRACK menu: the preview stays, no defaults), so its opening clears the
- * note (us_open_thunk, at the constructor's call). 0x400bed62's other caller, the SOUND menu's MACHINE item
- * (FUNC + FLTR, LEFT/RIGHT; 0x400ef678), steps the machine at once, stock resetting P1..P8 on each step: a
- * step onto a slot is a choice of its own (us_step, by 0x400bed62's return address). The chosen track waits
+ * note (us_open_thunk, at the constructor's call). 0x400bedce's other caller, the SOUND menu's MACHINE item
+ * (FUNC + FLTR, LEFT/RIGHT; 0x400ef6e4), steps the machine at once, stock resetting P1..P8 on each step: a
+ * step onto a slot is a choice of its own (us_step, by 0x400bedce's return address). The chosen track waits
  * (pslot) for the first UI tick that sees the slot's 1A current - at once, or when it arrives (no Teensy
  * yet, LOADING, stale) - within ~60 s of the choice, while no kit or project is loaded (us_loaded) and the
- * track still plays the slot. (A machine change by MIDI, 0x4010330c, is neither: no defaults, as a load.) */
+ * track still plays the slot. (A machine change by MIDI, 0x40103378, is neither: no defaults, as a load.) */
 #define US_NOW() (*(volatile const uint32_t *)0x419ca2acu)   /* audio blocks: 48 kHz / 32 = 1500 a second [R12] */
 #define US_PEND_WINDOW 90000u                                /* 60 s */
 /* The sound tag (the user's decision, 2026-10-10; sound-tag-research.md): sound index 0 holds the fingerprint of the
@@ -1983,7 +1983,7 @@ US2 void us_tick(void) {
    sound_save carry it (us_tag_load / us_tag_save, 0013's two detour sites; 0021 excludes 0013), only for machines
    35..39 (0 otherwise: the spare bytes are heap garbage on other sounds), and migrate a sound tagged the old way (slot
    47 zero, slot 41 set, a U machine): the tag from slot 41, slot 41 cleared in the record before stock loads it. The
-   trig's copy of a sound (0x4011f558, kit or sound lock) puts its tag into us_tag[t] (us_tag_copy), which ext_render
+   trig's copy of a sound (0x4011f5c4, kit or sound lock) puts its tag into us_tag[t] (us_tag_copy), which ext_render
    reports. Stock ignores slot 47 and zeroes it at its next save: the sound comes back untagged (plays). */
 #define US_TAG_OFF 0x5a
 #define US_TAG_PROJ(t)   ((volatile uint8_t *)(0x4076598du + 162u * (t)))
@@ -2024,7 +2024,7 @@ UST void us_tag_save_c(volatile uint8_t *st, const volatile uint8_t *live) {
     st[0x7b] = live[0x6f];
   }
 }
-/* 0x4011f558 copies sound a2 into track d2's live array (the trig loop: kit sound or sound lock; kit loads) */
+/* 0x4011f5c4 copies sound a2 into track d2's live array (the trig loop: kit sound or sound lock; kit loads) */
 UST void us_tag_copy_c(const volatile uint8_t *snd, uint32_t t) {
   if (t < 13)
     us_tag[t] = (uint32_t)snd[0x68] - US_FIRST < US_SLOTS || snd[0x68] == DD_MACHINE ? (uint16_t)((snd[0x6e] << 8 | snd[0x6f]) & 0x3fff) : 0;
@@ -2034,30 +2034,30 @@ __asm__(
 "	.pushsection	.ust,\"ax\",@progbits\n"
 "	.align	2\n"
 "	.globl	us_tag_load\n"
-"us_tag_load:\n"                          /* 0x4000826a: lea 0x401c5a74,%a0 */
+"us_tag_load:\n"                          /* 0x4000826a: lea 0x401c5d24,%a0 */
 "	move.l	%a3,-(%sp)\n"
 "	move.l	%a2,-(%sp)\n"
 "	jsr	us_tag_load_c\n"
 "	addq.l	#8,%sp\n"
-"	lea	0x401c5a74,%a0\n"
+"	lea	0x401c5d24,%a0\n"
 "	jmp	0x40008270\n"
 "	.globl	us_tag_save\n"
-"us_tag_save:\n"                          /* 0x40008492: lea 0x401c59cc,%a0 */
+"us_tag_save:\n"                          /* 0x40008492: lea 0x401c5c7c,%a0 */
 "	move.l	%a3,-(%sp)\n"
 "	move.l	%a2,-(%sp)\n"
 "	jsr	us_tag_save_c\n"
 "	addq.l	#8,%sp\n"
-"	lea	0x401c59cc,%a0\n"
+"	lea	0x401c5c7c,%a0\n"
 "	jmp	0x40008498\n"
 "	.globl	us_tag_copy\n"
-"us_tag_copy:\n"                          /* 0x4011f58a: move.l %d2,-(%sp); pea 20(%a2) */
+"us_tag_copy:\n"                          /* 0x4011f5f6: move.l %d2,-(%sp); pea 20(%a2) */
 "	move.l	%d2,-(%sp)\n"
 "	move.l	%a2,-(%sp)\n"
 "	jsr	us_tag_copy_c\n"
 "	addq.l	#8,%sp\n"
 "	move.l	%d2,-(%sp)\n"
 "	pea	20(%a2)\n"
-"	jmp	0x4011f590\n"
+"	jmp	0x4011f5fc\n"
 "	.globl	us_snd_init\n"
 "us_snd_init:\n"                          /* 0x400122e6 in sound_init_defaults (a2 the sound): lea 0x40007028,%a4 */
 "	clr.b	109(%a2)\n"                  /* 7ae: a fresh sound's spare bytes are the allocator's: no code, no tag */
@@ -2132,26 +2132,26 @@ US6 static void us_defaults(int32_t t, int32_t s, uint8_t g) {
   /* the kit's two bytes and the live word with interrupts masked (IPL 7): a trig may copy the kit sound to
      0x8000e5b0, and one between the stores would play a half-new tag; nothing - interrupt or task switch - runs
      between them now. Measured in rytm-emu (us1): SR 0x2004 here before the mask (UI task, supervisor, IPL 0),
-     0x2704 after; the audio interrupt (v191, 0x4011fafa) enters at IPL 5 (US_MASK). The active kit is read inside the
+     0x2704 after; the audio interrupt (v191, 0x4011fb66) enters at IPL 5 (US_MASK). The active kit is read inside the
      mask, with the stores.
-     A trig copies the kit sound (0x4011f558: to 0x8000e5b0 and 0x8000f7a8 + 84 t, 0x80005f10 cleared; ext_render
+     A trig copies the kit sound (0x4011f5c4: to 0x8000e5b0 and 0x8000f7a8 + 84 t, 0x80005f10 cleared; ext_render
      reads the tag from the first) only when 0x8000fc58[t], the kit last copied for t, is not the one it plays
-     (0x4012062e). Index 0 has no record, so after a track's first trig nothing else brings word 0 over [measured,
+     (0x4012069a). Index 0 has no record, so after a track's first trig nothing else brings word 0 over [measured,
      E2E bug 2]: the tag goes into the live word 0 here, as SET_PARAM stores a knob's (one move.w, even address;
      SET_PARAM(fp, t, 0) would also clear 0x80005f10[42 t], a smoothing step, as the full copy does). Not
      -1 in fc58 (b4a8f74): that made the next trig copy the kit's P1..P16 while US_COMMIT still held them queued
      (drained every 8th UI pass, ~11M instructions), so a trig in that window kept the old words for good.
      That window remains wherever stock forces the copy itself (user-slots-research.md, bug 2, "Remaining risk"): the
-     first trig after a kit load (-1 for all twelve, 0x4011f8da), the first since boot (-1, 0x4011fa08), the step
-     after a sound-lock step (-1, 0x401205e2) and a set 0x8000fe30[t] (its setter not traced). A trig within ~11M
+     first trig after a kit load (-1 for all twelve, 0x4011f946), the first since boot (-1, 0x4011fa74), the step
+     after a sound-lock step (-1, 0x4012064e) and a set 0x8000fe30[t] (its setter not traced). A trig within ~11M
      instructions of a choice copied the old P words into the live array until 2026-10-11; since then the loop above
      stores each knob word into the active kit before its us_set, so such a copy brings the defaults. The tag is never
      lost: it is written here into the kit word directly, not queued.
      A pattern's kit switch can land during the sixteen us_set calls above: the audio interrupt compares the kit word
-     0x800067b8 with the applied kit 0x8000fc8c (0x40120ad6; -1 at boot, 0x4011fa3c), calls 0x4011f6bc (us_loaded:
-     us.lgen moves on) and stores 0x800067b8 into 0x8000fc8c (0x40120afc) - its only writers [read]. So, inside the
+     0x800067b8 with the applied kit 0x8000fc8c (0x40120b42; -1 at boot, 0x4011faa8), calls 0x4011f728 (us_loaded:
+     us.lgen moves on) and stores 0x800067b8 into 0x8000fc8c (0x40120b68) - its only writers [read]. So, inside the
      mask, the tag goes in only when us.lgen is still g (no switch since us_tick3's read), the track - live and in the
-     kit sound - still plays the slot, and 0x800067b8 is 0x8000fc8c (a kit set by the UI task's 0x4011f82a, not yet
+     kit sound - still plays the slot, and 0x800067b8 is 0x8000fc8c (a kit set by the UI task's 0x4011f896, not yet
      applied - up to one audio block - would be switched to with the old kit's tag written): us_kit_sound, as for
      the knob words above. The project copy's two bytes are written there too, so nothing sees half a tag in any
      copy. */
@@ -2210,22 +2210,22 @@ US3 void us_confirm(int32_t yes) {
   }
   us.wb[t].pslot = MD_S + 2;
 }
-/* 0x400bed62 set track t's machine (UI task; ret: its caller): the machine list's cursor previews (noted for
+/* 0x400bedce set track t's machine (UI task; ret: its caller): the machine list's cursor previews (noted for
    the list's YES), the SOUND menu's MACHINE item chooses. */
 US5 void us_step(int32_t t, uint32_t ret) {
-  if (ret == 0x400d40dau) {
+  if (ret == 0x400d4146u) {
     us.ch = (uint8_t)(t + 1);
     if ((uint32_t)t < 12 && us.wb) us.wb[t].pv = MACHINE_OF(t) == DD_MACHINE;
-  } else if (ret == 0x400ef67eu) {
+  } else if (ret == 0x400ef6eau) {
     int32_t (*h)(int32_t) = US_CUBOX.steps;
     us_choose(t);
     if (h) h(-13 - t);   /* 7o: 0026 is told too: a choice here has no list for it to see */
   }
 }
-/* 0x4011f6bc ran: a kit or a project was loaded (RELOAD KIT, LOAD KIT, a pattern's other kit, LOAD PROJECT;
+/* 0x4011f728 ran: a kit or a project was loaded (RELOAD KIT, LOAD KIT, a pattern's other kit, LOAD PROJECT;
    not SAVE KIT, a machine choice or a knob [measured, R12]). The tracks waiting for a choice's defaults keep
    what the load brought. Called from the UI/load context and from the audio interrupt on a pattern's kit
-   switch (0x40120af0, in the handler ending 0x4012165e): it must stay interrupt-safe - byte stores only (the
+   switch (0x40120b5c, in the handler ending 0x401216ca): it must stay interrupt-safe - byte stores only (the
    generation first, so a us_tick3 under way sees it moved before it commits). */
 US5 void us_loaded(void) {
   struct us_wb *w = us.wb;
@@ -2293,7 +2293,7 @@ US6 void us_tick3(void) {
 
 /* ---- the slot menu: five items U1..U5 in the track menu (FUNC + CHRO), the spec's fallback (R5) ----
  * Appended by a detour over TrackMenuView's constructor's last instruction pair (`lea %sp@(128),%sp;
- * rts` at 0x400f9e9c, after 0012's SLICE LOOP item if 0012 is in the image: its stub rejoins there, so
+ * rts` at 0x400f9f08, after 0012's SLICE LOOP item if 0012 is in the image: its stub rejoins there, so
  * the two chain without naming each other). Each item is built as stock's: four std::function objects
  * (label, action, icon, empty: menu_item_ctor's order, R5), a 0x54-byte MenuItem, appended, the four
  * destroyed; SAVE TRACK's managers (their captures match: nothing for the label and icon, the menu for
@@ -2306,17 +2306,17 @@ US6 void us_tick3(void) {
 struct us_fn { void *storage; uint32_t pad; void *manager; void *invoker; };   /* std::function, 16 B */
 typedef void (*us_ctor_fn)(void *item, struct us_fn *label, struct us_fn *action, struct us_fn *icon,
                            struct us_fn *empty, int32_t a, int32_t b);
-#define US_ITEM_CTOR  ((us_ctor_fn)0x40072f50u)
-#define US_APPEND     ((void (*)(void *menu, void *item))0x40072786u)
-#define US_FN_DTOR    ((void (*)(struct us_fn *))0x401709c6u)
-#define US_STR        ((void (*)(void *s, const char *c, void *alloc))0x401bcd4cu)
-#define US_STR_DTOR   ((void (*)(void *s))0x401bb29cu)
-#define US_POPUP      ((void (*)(void *p, void *s))0x400766e8u)
-#define US_SHOW       ((void (*)(void *mgr, void *sp, int32_t z))0x400793f6u)
-#define US_SP_RELEASE ((void (*)(void *cb))0x40170a0cu)
-#define US_MGR_LABEL  ((void *)0x400f9a38u)
-#define US_MGR_ACTION ((void *)0x400f9a8au)
-#define US_MGR_ICON   ((void *)0x400f9ae6u)
+#define US_ITEM_CTOR  ((us_ctor_fn)0x40072fbcu)
+#define US_APPEND     ((void (*)(void *menu, void *item))0x400727f2u)
+#define US_FN_DTOR    ((void (*)(struct us_fn *))0x40170b92u)
+#define US_STR        ((void (*)(void *s, const char *c, void *alloc))0x401bcff0u)
+#define US_STR_DTOR   ((void (*)(void *s))0x401bb540u)
+#define US_POPUP      ((void (*)(void *p, void *s))0x40076754u)
+#define US_SHOW       ((void (*)(void *mgr, void *sp, int32_t z))0x40079462u)
+#define US_SP_RELEASE ((void (*)(void *cb))0x40170bd8u)
+#define US_MGR_LABEL  ((void *)0x400f9aa4u)
+#define US_MGR_ACTION ((void *)0x400f9af6u)
+#define US_MGR_ICON   ((void *)0x400f9b52u)
 static const char us_t_res[7][16] USD = {"READY", "NOT INSTALLED", "NO ROOM", "STOP TO INSTALL", "NOT ON CARD",
                                           "BAD", "LOADING"};
 static const char us_t_none[] USD = "NO SIDECAR";   /* 1021: was NO TEENSY */
@@ -2343,7 +2343,7 @@ US4 static void us_popup(void *menu, const char *text) {   /* in .us4 since 2026
   cb = (uint32_t *)US_NEW(0x10);
   if (!p || !cb) goto out;   /* the heap is out: no popup (one block may stay allocated) */
   US_POPUP(p, str);
-  cb[0] = 0x401ccab4u;   /* shared_ptr's control block vtable, as SAVE TRACK's */
+  cb[0] = 0x401ccd64u;   /* shared_ptr's control block vtable, as SAVE TRACK's */
   cb[1] = 1;
   cb[2] = 1;
   cb[3] = (uint32_t)p;
@@ -2495,7 +2495,7 @@ __asm__(
     "  pea %fp@(-1)\n"
     "  movel %d0,%sp@-\n"
     "  movel %a2,%sp@-\n"
-    "  jsr 0x401bcd4c\n"             /* std_string_from_cstr */
+    "  jsr 0x401bcff0\n"             /* std_string_from_cstr */
     "  lea %sp@(12),%sp\n"
     "  movel %a2,%d0\n"
     "  movel %sp@+,%a2\n"
@@ -2528,32 +2528,32 @@ __asm__(
     "  addql #4,%sp\n"
     "  moveal %fp@(8),%a2\n"         /* displaced */
     "  movel %a2,%sp@-\n"            /* displaced */
-    "  jmp 0x400dea94\n"
-    /* 0x400bed62 calls set_machine(sound, machine, track d3, flag) (0x400bee40's `movel %d2,%sp@-;
-       jsr %pc@(0x400bd14e)`, reimplemented: pc-relative), then us_step(track, 0x400bed62's return address,
+    "  jmp 0x400deb00\n"
+    /* 0x400bedce calls set_machine(sound, machine, track d3, flag) (0x400beeac's `movel %d2,%sp@-;
+       jsr %pc@(0x400bd1ba)`, reimplemented: pc-relative), then us_step(track, 0x400bedce's return address,
        sp + 64 there: 48 B of frame, three arguments, d2) */
     "  .section .us5,\"ax\"\n"
     "  .globl us_prev_thunk\n"
     "us_prev_thunk:\n"
     "  movel %d2,%sp@-\n"
-    "  jsr 0x400bd14e\n"
+    "  jsr 0x400bd1ba\n"
     "  movel %sp@(64),%sp@-\n"
     "  movel %d3,%sp@-\n"
     "  jsr us_step\n"
     "  addql #8,%sp\n"
-    "  jmp 0x400bee46\n"
-    /* MachineListView's constructor call 0x400d3f5a (its target patched): the list opens with no note */
+    "  jmp 0x400beeb2\n"
+    /* MachineListView's constructor call 0x400d3fc6 (its target patched): the list opens with no note */
     "  .globl us_open_thunk\n"
     "us_open_thunk:\n"
     "  clrb us+us_off_ch\n"
-    "  jmp 0x400def0a\n"
-    /* 0x4011f6bc's entry: us_loaded, then `lea %sp@(-12),%sp; moveal %sp@(16),%a1` re-emitted */
+    "  jmp 0x400def76\n"
+    /* 0x4011f728's entry: us_loaded, then `lea %sp@(-12),%sp; moveal %sp@(16),%a1` re-emitted */
     "  .globl us_load_thunk\n"
     "us_load_thunk:\n"
     "  jsr us_loaded\n"
     "  lea %sp@(-12),%sp\n"
     "  moveal %sp@(16),%a1\n"
-    "  jmp 0x4011f6c4\n");
+    "  jmp 0x4011f730\n");
 
 /* ---------------------------------------------------------------------------
  * Stepped list knobs (sfx-enum-knobs, 2026-10-18): which of 0021's knobs are lists, for 0029-sendfx-ui, which
@@ -3042,7 +3042,7 @@ US4 static int32_t md_list_open(const uint8_t *ctrl) {
   const uint32_t *n = *(const uint32_t *const *)(ctrl + 28);
   int32_t k;
   for (k = 0; k < 32 && (const uint8_t *)n != ctrl + 20; ++k, n = (const uint32_t *)n[0])
-    if (n[2] && *(const uint32_t *)n[2] == 0x401e5bf4u) return 1;
+    if (n[2] && *(const uint32_t *)n[2] == 0x401e5ea4u) return 1;
   return 0;
 }
 US4 int32_t us_live(void *ctrl) {

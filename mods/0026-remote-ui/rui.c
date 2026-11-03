@@ -15,7 +15,7 @@
  *           greet sends a frame and 36 <ticks>, and the screen shows it for that long while every key and knob stays
  *           stock's (none goes to the host); a navigation key or another non-playing key or a turn ends it early,
  *           transport and pads play under it. Never while the page is open.
- * Host -> Rytm through 0022's SysEx router (rui=1): 0x30..0x3F -> the 8 B mailbox 'RUIP' at 0x401b9e5c.
+ * Host -> Rytm through 0022's SysEx router (rui=1): 0x30..0x3F -> the 8 B mailbox 'RUIP' at 0x401ba100.
  *
  * Messages (F0 7D 52 54 <cmd> <ver 1> ... F7; rytm-teensy sim/protocol.py):
  *   host -> Rytm  38 1 <seq> <col0 0..15> <page0 0..7> <ncols 1..16> <npages 1..8> <packed>   a rectangle of
@@ -66,19 +66,19 @@ typedef void (*unlock_fn)(void *m);
 #define TX_LEVEL     (*(volatile int32_t *)0x413db258u)    /* the sender spins while level + n > 4091      */
 #define USB_POOL     (*(const volatile uint32_t *const volatile *)0x413db390u)  /* free requests, next +52 */
 #define TIMER        (*(volatile uint32_t *)0xfc07000cu)   /* DTCN0, the OS's free-running bus-clock count  */
-#define MBOX         ((volatile uint32_t *)0x401b9e5cu)    /* 'RUIP', rui_sysex                             */
-/* The Rytm's own text drawing, called at runtime (nothing of it copied): text_draw 0x400714e0 (bitmap, font, x, y,
+#define MBOX         ((volatile uint32_t *)0x401ba100u)    /* 'RUIP', rui_sysex                             */
+/* The Rytm's own text drawing, called at runtime (nothing of it copied): text_draw 0x4007154c (bitmap, font, x, y,
    align 0 left / 1 centre / 2 right, box 0 none / 1 inverted, width string, fmt, ...) [code + measured, design.md
-   section 9], as 0029's enum knobs and stock's PRE / POST draw call it; the font from text_font(ctx) 0x40071b7c, ctx
-   one of the 17 font objects at 0x417e381c + 8 i (vtable, font data; set up at boot by 0x4018947a) [code]; a bitmap
-   over our own 1 KB by bitmap_ctor 0x4006f9c2 (bitmap, w, h, pixels, mask) [code], the stock canvas's geometry. */
+   section 9], as 0029's enum knobs and stock's PRE / POST draw call it; the font from text_font(ctx) 0x40071be8, ctx
+   one of the 17 font objects at 0x417e381c + 8 i (vtable, font data; set up at boot by 0x40189646) [code]; a bitmap
+   over our own 1 KB by bitmap_ctor 0x4006fa2e (bitmap, w, h, pixels, mask) [code], the stock canvas's geometry. */
 typedef void (*tdraw_fn)(void *bmp, void *font, int32_t x, int32_t y, int32_t align, int32_t box, const char *w,
                          const char *fmt, ...);
 typedef void *(*font_fn)(void *ctx);
 typedef void (*bmctor_fn)(void *bmp, int32_t w, int32_t h, void *pixels, void *mask);
-#define TEXT_DRAW    ((tdraw_fn)0x400714e0u)
-#define TEXT_FONT    ((font_fn)0x40071b7cu)
-#define BITMAP_CTOR  ((bmctor_fn)0x4006f9c2u)
+#define TEXT_DRAW    ((tdraw_fn)0x4007154cu)
+#define TEXT_FONT    ((font_fn)0x40071be8u)
+#define BITMAP_CTOR  ((bmctor_fn)0x4006fa2eu)
 #define FONT_CTX(i)  ((void *)(0x417e381cu + 8u * (uint32_t)(i)))
 #define NFONT  17
 #define NTXT   64                                   /* text slots (3D) */
@@ -108,7 +108,7 @@ typedef void (*bmctor_fn)(void *bmp, int32_t w, int32_t h, void *pixels, void *m
 #define K_SMPL 0x32
 #define K_NO   0x45
 #define K_SCNE 0x13       /* 1052d: NO + SCNE / CHRO / PLAYMODE reload the pattern / track / kit (YES + them save) [measured,
-                             rytm-emu rui1052: 0x400af5e0 / 0x400af64a / 0x400af0d2 once each; panel.rs RYTM_KEYS] */
+                             rytm-emu rui1052: 0x400af64c / 0x400af6b6 / 0x400af13e once each; panel.rs RYTM_KEYS] */
 #define K_CHRO 0x12
 #define K_PG0  0x30       /* 1036: the page keys TRIG SRC SMPL FLTR AMP LFO 0x30..0x35 and FX 0x10 [panel.rs RYTM_KEYS] */
 #define K_FX   0x10
@@ -116,7 +116,7 @@ typedef void (*bmctor_fn)(void *bmp, int32_t w, int32_t h, void *pixels, void *m
 #define K_PUSH7 0x77
 #define K_DOWN 0x43       /* 1052d: DOWN [panel.rs RYTM_KEYS] */
 #define K_UP   0x42       /* 1036b: UP held + T1..T5: the Pi display's page (49 1) - no stock combo [measured] */
-#define LED_MUTEX ((void *)0x41920560u)   /* led_set 0x40095d2c / led_colour 0x40095f54 lock it around their sends */
+#define LED_MUTEX ((void *)0x41920560u)   /* led_set 0x40095d98 / led_colour 0x40095fc0 lock it around their sends */
 #define LED_NCOL  112     /* 34's colours: palette 0..111 (the OS animates 0x74..0x78 [measured]); 112.. refused */
 #ifndef ENC_IDX_OFF
 #define ENC_IDX_OFF 12    /* [measured] --turn 2:-3: +12 = 2, +16 = -3, +8 a time stamp, +20 FUNC */
@@ -255,9 +255,9 @@ static struct {
   uint32_t owed, adds, picks, opens, hints, nohost, notrack;
   uint32_t c_hello;                    /* commits at the port's first hello: a host that drew since has more */
 } pm __attribute__((section(".bss"), aligned(4)));
-/* 1040: stock's key handler, the call the ev_key site makes (0x400a47cc: jsr 0x400a02ca with (brain, ev), the event
-   built by 0x40071e10 [code, the stock image]); 0026 calls it once to give stock a caught TRK's press (TRK + pad) */
-#define STOCK_KEY ((int32_t (*)(void *, void *))0x400a02cau)
+/* 1040: stock's key handler, the call the ev_key site makes (0x400a4838: jsr 0x400a0336 with (brain, ev), the event
+   built by 0x40071e7c [code, the stock image]); 0026 calls it once to give stock a caught TRK's press (TRK + pad) */
+#define STOCK_KEY ((int32_t (*)(void *, void *))0x400a0336u)
 
 /* 1032: the sequencer link (below, "1032"). sq.mask / sq.on: the UI task writes them (from the host's 2E), the
    sequencer interrupt and the UI task read them (one word each). */
@@ -390,7 +390,7 @@ static uint32_t txsx_test_end, txsx_test_on;
    4E 01 <running 0/1> <stalled s> {<word: 5 x 7 bits>} x 9 (rytm-teensy host_link logs it). fp.test (tests, --poke):
    1 the UI task spins in rui_tick, 2 it sleeps there in a loop (blocked). */
 #define FP_TCB (*(volatile uint32_t *)0x42f67924u)   /* the running task's TCB [code, 0x40000418 / 0x4000044a] */
-#define FP_SLEEP ((void (*)(uint32_t))0x40098c18u)  /* task sleep (0021's US_SLEEP) */
+#define FP_SLEEP ((void (*)(uint32_t))0x40098c84u)  /* task sleep (0021's US_SLEEP) */
 static struct { volatile uint32_t blocks, tick_blk, ui_tcb, sent_blk, probes, test; } fp __attribute__((aligned(4)));
 static void fp_check(void);
 void rui_render_in(void) {
@@ -528,13 +528,13 @@ static void queue_key(uint32_t code, uint32_t down) {
  * Polled every tick (20 Hz, ~12 byte compares), sent through the same try-lock as the rest: a change goes out at the
  * next tick, or the tick after while the sender is busy (the shadow keeps what the host was last told). */
 /* the active kit's sound of track t, its machine byte: kit k's sound at 0x4125590d + 2531 k + 152 t (the trig's copy
-   source, 0x40120670), +104 the machine [measured, rytm-emu rui1025: kit 0 / kit 1's BD 0x15 / 0x1c there, and the
+   source, 0x401206dc), +104 the machine [measured, rytm-emu rui1025: kit 0 / kit 1's BD 0x15 / 0x1c there, and the
    SRC list's preview writes it as it does the live byte 0x8000ea00, which a kit load only moves at the track's next
    trig]; the active kit 0x800067b8 (an int, <= 127) */
 #define ACTIVE_KIT    (*(const volatile uint32_t *)0x800067b8u)
 #define MACHINE_OF(t) (*(const volatile uint8_t *)(0x4125590du + 2531u * (ACTIVE_KIT & 127u) + 152u * (uint32_t)(t) + 104u))
-#define ENGINE(m)     (((const volatile uint32_t *)0x4029037cu)[m])   /* machine_engine_table */
-/* track -> voice, 1027: the voice owner table 0x40290dd8 (voice v's track) = 00 04 01 05 08 06 0a 02 [measured], so BD 0,
+#define ENGINE(m)     (((const volatile uint32_t *)0x402906dcu)[m])   /* machine_engine_table */
+/* track -> voice, 1027: the voice owner table 0x40291138 (voice v's track) = 00 04 01 05 08 06 0a 02 [measured], so BD 0,
    SD 2, RS/CP 7, BT 1, LT 3, MT/HT 5, CH/OH 4, CY/CB 6 (1025's table was the panel order, wrong for SD..CY) */
 static const uint8_t mr_voice[12] = {0, 2, 7, 7, 1, 3, 5, 5, 4, 4, 6, 6};   /* BD SD RS CP BT LT MT HT CH OH CY CB */
 /* 0021's voice flags (ext.c us_flag_tab, machines 35..52; 0x7F: not one of its machines there; 1031: 52 MULTISAMPLE 0x30;
@@ -664,25 +664,25 @@ static int32_t mr_tick(void) {   /* 1: nothing left to send */
  * 3A x 0 gave the screen back), while host messages keep coming (1 s timeout), and while nothing covers the page
  * (another view stacked on the list - the machine list, a popup, TRK held - or the pattern selection): then stock's
  * screen, the frame back when the cover goes. The TRK + YES page and the splash take precedence.
- * The view list [measured, rytm-emu rui1026]: drawAll 0x40079086 draws ctrl's views from *(ctrl + 28) along node +0 up
+ * The view list [measured, rytm-emu rui1026]: drawAll 0x400790f2 draws ctrl's views from *(ctrl + 28) along node +0 up
  * to ctrl + 20, the view at node +8; on the SRC page they are MainScreenView, TransportView, PatternGridView,
- * KeyboardView, SynthPageView (vtable 0x401e34fc), PatternSelectionView (0x401cca04), HelpBubbleView, QuickPerformanceView,
- * SamplerLedView (0x40234cfc) - the last drawn. SMPL / FLTR swap the page view (SamplePageView / SoundPageView); the
+ * KeyboardView, SynthPageView (vtable 0x401e37ac), PatternSelectionView (0x401cccb4), HelpBubbleView, QuickPerformanceView,
+ * SamplerLedView (0x4023502c) - the last drawn. SMPL / FLTR swap the page view (SamplePageView / SoundPageView); the
  * machine list, TRK held, TEMPO, PERF add a view after SamplerLedView; a menu (GLOBAL, the SOUND menu) replaces the list.
  * PatternSelectionView's byte +0x7f holds the BANK keys held, a bit a key (BANK_E 0x10, BANK_H 0x80); its byte +0x84 is
  * set by a BANK key and cleared only when a pattern is picked, so a BANK tapped and left (its menu, BankSelectMenuView,
  * goes after ~3.5 s) kept it 1 for good: 1027d's cover on +0x84 then hid the view until a restart [measured, rytm-emu
  * mfxdev, sv_emu.py bank; hardware report 2026-11-03: 2B "on covered", 9 views, SamplerLedView on top]. */
 #define SEL_TRACK    (*(const volatile uint8_t *)0x41318982u)   /* the selected track (0021's US_SEL_TRACK) */
-#define VT_SYNTHPAGE 0x401e34fcu
-#define VT_PATSEL    0x401cca04u
-#define VT_SAMPLELED 0x40234cfcu
-#define VT_SCALEMENU 0x401d1e74u   /* 1038: ScaleMenuView, stacked on top while FUNC + PAGE's SCALE menu is open [measured] */
-#define VT_SAMPLEPAGE 0x401e3170u  /* 1045: SamplePageView, the SMPL page (its typeinfo "14SamplePageView" [code]) */
+#define VT_SYNTHPAGE 0x401e37acu
+#define VT_PATSEL    0x401cccb4u
+#define VT_SAMPLELED 0x4023502cu
+#define VT_SCALEMENU 0x401d2124u   /* 1038: ScaleMenuView, stacked on top while FUNC + PAGE's SCALE menu is open [measured] */
+#define VT_SAMPLEPAGE 0x401e3420u  /* 1045: SamplePageView, the SMPL page (its typeinfo "14SamplePageView" [code]) */
 #define DSPS_M 45     /* 1045: DSP SAMPLE (0021), its SMP P11 banked; 7h: on knob A of its SRC page, ENG on SMPL D */
 #define DSPS_P 10
 /* rui1027b: P1..P8 as the page itself shows them, by its own methods (the knob loop's): knob -> record id by the view's
-   vtable +0x9c (0x400d3544 on SynthPageView; 0 an unused knob), the value by vtable +0x54 (page_get_value 0x40038462,
+   vtable +0x9c (0x400d35b0 on SynthPageView; 0 an unused knob), the value by vtable +0x54 (page_get_value 0x40038462,
    lock -1: the sound's own value, not a p-lock) [code]. The kit word lags a turn by the bank's drain (~0.5..1.3 s while
    the knob moves [measured, rytm-emu rui1027: word 1 stayed 0x40 for 1.3 s of turning]); the page's value does not. */
 typedef int32_t (*pv_id_fn)(void *view, int32_t knob);
@@ -716,13 +716,13 @@ static struct {
    re-enumeration [inferred; 2B names it]) no longer blocks the view for good. */
 #define UNKNOWN_TICKS 60
 static const uint32_t sv_covers[] = {
-  0x401e5bf4u,   /* MachineListView (SRC twice) [measured] */
-  0x401e36f0u,   /* TrackSelectionView (TRK held) [measured] */
-  0x401d55dcu,   /* TempoMenuView (TEMPO) [measured] */
-  0x401d6e18u,   /* PopupWindow [code] */
-  0x401d6f84u,   /* TextWindow [code] */
-  0x401e70d4u,   /* SampleListView [code] */
-  0x40230d44u,   /* QuickPerformanceSelectionView [code] */
+  0x401e5ea4u,   /* MachineListView (SRC twice) [measured] */
+  0x401e39a0u,   /* TrackSelectionView (TRK held) [measured] */
+  0x401d588cu,   /* TempoMenuView (TEMPO) [measured] */
+  0x401d70c8u,   /* PopupWindow [code] */
+  0x401d7234u,   /* TextWindow [code] */
+  0x401e7384u,   /* SampleListView [code] */
+  0x40230ff4u,   /* QuickPerformanceSelectionView [code] */
   VT_SCALEMENU,  /* 1038: ScaleMenuView (FUNC + PAGE) [measured] */
 };
 /* 1041 (hardware report on rui1040: the SRC view came seconds late in MUTE, CHRO and SCENE pad mode, never in PERF):
@@ -732,9 +732,9 @@ static const uint32_t sv_covers[] = {
    screen in each pad mode equals the PLAY mode's, 0.2 / 0.6 / 1.7 s after the mode key and with a pad held [measured,
    sv_emu.py padmode]. 1027d counted an unlisted one as a cover for its first 3 s (the late view) and PerformanceView
    (1027's PERF, then taken for a screen) as a cover always (never). They are skipped, as if not stacked. */
-static const uint32_t sv_padviews[] = { 0x401e290cu, 0x401e10e4u, 0x401e2dacu, 0x401e2414u };
+static const uint32_t sv_padviews[] = { 0x401e2bbcu, 0x401e1394u, 0x401e305cu, 0x401e26c4u };
 /* 1042: a stock overlay - a menu, a popup window, a browser, a prompt - by its class name (the vtable's typeinfo at
-   vtable - 4, its name at typeinfo + 4: MAIN OS keeps RTTI [code: TempoMenuView 0x401d55dc -> "13TempoMenuView"]).
+   vtable - 4, its name at typeinfo + 4: MAIN OS keeps RTTI [code: TempoMenuView 0x401d588c -> "13TempoMenuView"]).
    Every class whose name ends in MenuView (but QuickMuteMenuView, the MUTE pad mode's view, 1041) or Window, and the
    browsers, managers, name editor and tap tempo. The probe of every stock key and FUNC + key the host's mask leaves to
    stock, with the page open [measured, rytm-emu rui1042, bk_emu.py popups]: TEMPO TempoMenuView, FUNC + TEMPO
@@ -994,10 +994,10 @@ static int32_t unpack_rect(const uint8_t *p, int32_t n, int32_t c0, int32_t p0, 
   return 1;
 }
 
-/* 7o: the Rytm's DIN OUT. 0x4008575e(len, data, port) is the OS's port switch: 3 DIN only [code: the OS's note-on calls it, port 1 = GLOBAL's
+/* 7o: the Rytm's DIN OUT. 0x400857ca(len, data, port) is the OS's port switch: 3 DIN only [code: the OS's note-on calls it, port 1 = GLOBAL's
    setting; 3 goes to the DIN sender 0x40001dea alone, without the USB mutex; it returns at once while MIDI is not up (0x419f28a8)]. The
    sender's 4 KB DMA ring masks interrupts while it writes and spins while full: DIN_FREE is that wait's own sum, read only. */
-#define DIN_SEND(n, m, port) ((void (*)(int32_t, const uint8_t *, int32_t))0x4008575eu)((n), (m), (port))
+#define DIN_SEND(n, m, port) ((void (*)(int32_t, const uint8_t *, int32_t))0x400857cau)((n), (m), (port))
 #define DIN_PENDING (*(const volatile uint32_t *)0x413da678u)
 static int32_t DIN_FREE(void) {
   uint32_t used = *(const volatile uint32_t *)0x413da670u - *(const volatile uint32_t *)0x413da67cu;
@@ -1457,13 +1457,13 @@ static void pg_tick(void) {
  *               rui=1; like every valid host message it also counts for the 1 s host timeout)
  * Rytm -> host  28 2 <track> <step | 7F> <status>   status 0 ok, 1 no step live-recorded on the track in the last 1 s,
  *               2 the pattern's lock slots full (nothing written), 3 not live recording / not a Sidecar track / track > 11
- * While the Rytm live-records (RECORD + PLAY), stock's live-record writer rec_trig 0x400b45e0 (this, track, note, vel,
- * step, micro, len, d7) [measured, rytm-emu rui1027: its only caller 0x400a13e2 is the UI task's record-event handler,
- * gated by rec_active 0x40036370(0x40181528()); a CHRO pad on BD at step 7 passed (0, 0x3c, 0x7f, 7, -9, -1, -1)] places
- * the trig, its note (track_note_set 0x400c070a), velocity, micro timing and length. 0026's detour at its entry notes
+ * While the Rytm live-records (RECORD + PLAY), stock's live-record writer rec_trig 0x400b464c (this, track, note, vel,
+ * step, micro, len, d7) [measured, rytm-emu rui1027: its only caller 0x400a144e is the UI task's record-event handler,
+ * gated by rec_active 0x40036370(0x401816f4()); a CHRO pad on BD at step 7 passed (0, 0x3c, 0x7f, 7, -9, -1, -1)] places
+ * the trig, its note (track_note_set 0x400c0776), velocity, micro timing and length. 0026's detour at its entry notes
  * (track, step, tick) first. A 28 1 within 20 ticks (1 s) of that sets the step's NOTE to <root> with track_note_set
  * and locks sound words 21..24 (P13..P16) to CHD, INV, SPR, VOI (value << 8, 8.8 as stored) with track_lock_set
- * 0x400c0520, the writer stock's live knob recording calls (live_lock_rec 0x400af6f6 -> 0x400af7ca [measured]), so the
+ * 0x400c058c, the writer stock's live knob recording calls (live_lock_rec 0x400af762 -> 0x400af836 [measured]), so the
  * live dense array, the change posts and the pattern's stored lock slots are stock's. Lock slots: stock's incremental
  * mirror update 0x4000940c refuses a new (type, track) when used + cost > 71 (cost 2 with the fine flag) and the lock
  * then lives only until the next save [code]; 0026 makes the same count first over the mirror's 72 slots (the lock
@@ -1476,14 +1476,14 @@ typedef void *(*trk_fn)(void *pat, int32_t track);
 typedef int32_t (*rec_fn)(void *);
 typedef void (*note_fn)(void *blk, int32_t step, int32_t note);
 typedef int32_t (*lock_fn)(void *blk, int32_t step, int32_t k, int32_t value, int32_t flag);
-#define PROJECT       ((vp_fn)0x4017f83eu)        /* project_singleton */
-#define PAT_ACTIVE    ((vpp_fn)0x400af040u)       /* the active pattern (as the lock wrapper 0x400a98ba gets it) */
-#define PAT_TRACK     ((trk_fn)0x400ab232u)       /* pattern_track */
-#define REC_STATE     ((vp_fn)0x40181528u)
+#define PROJECT       ((vp_fn)0x4017fa0au)        /* project_singleton */
+#define PAT_ACTIVE    ((vpp_fn)0x400af0acu)       /* the active pattern (as the lock wrapper 0x400a9926 gets it) */
+#define PAT_TRACK     ((trk_fn)0x400ab29eu)       /* pattern_track */
+#define REC_STATE     ((vp_fn)0x401816f4u)
 #define REC_ACTIVE    ((rec_fn)0x40036370u)       /* live recording on (both stock record paths test it) */
-#define NOTE_SET      ((note_fn)0x400c070au)      /* track_note_set: +0x80 + step, posts the change */
-#define LOCK_SET      ((lock_fn)0x400c0520u)      /* track_lock_set */
-#define LOCK_TYPE(k)  (((const int32_t *)0x401c59ccu)[k])   /* sound index -> stored lock type, voice tracks [code] */
+#define NOTE_SET      ((note_fn)0x400c0776u)      /* track_note_set: +0x80 + step, posts the change */
+#define LOCK_SET      ((lock_fn)0x400c058cu)      /* track_lock_set */
+#define LOCK_TYPE(k)  (((const int32_t *)0x401c5c7cu)[k])   /* sound index -> stored lock type, voice tracks [code] */
 #define PC_TICKS 20
 static struct {
   uint32_t tick[12];          /* st.ticks at the track's last live-recorded trig */
@@ -1571,9 +1571,9 @@ static void pc_tick(void) {
  *               (09's master step: 0x405c8c94 - 1, the counter holds the next step and moves one 24-PPQN tick before
  *               the tracks' steps fire [measured]: for display and resync; 2C is the exact one)
  * blk4: the audio block counter 0x419ca2ac (1500 a second, the one 0021's 60 s window reads) as 4 x 7 bits, MSB first.
- * Step ticks: a detour at trig_fire's entry (0x4009a9bc, (track, pattern, step, slot); called once per track per step,
- * trig or not, from the sequencer clock 0x4009b048, a software interrupt at level 2 [measured, rytm-emu: 221 calls =
- * 13 x 17 steps in 2 s; the clock 203/s at 127 BPM, its only exit 0x4009bf9e (movem, lea, rte) 610 / 3 s]) queues
+ * Step ticks: a detour at trig_fire's entry (0x4009aa28, (track, pattern, step, slot); called once per track per step,
+ * trig or not, from the sequencer clock 0x4009b0b4, a software interrupt at level 2 [measured, rytm-emu: 221 calls =
+ * 13 x 17 steps in 2 s; the clock 203/s at 127 BPM, its only exit 0x4009c00a (movem, lea, rte) 610 / 3 s]) queues
  * (block, track, step, length, speed) for the seq tracks; a detour at the clock's exit polls transport (0x405c8c90:
  * 0 stop, 1 play, 2 pause [measured]) and the active pattern (0x405c8d04) and sends what is queued, the 2D 01 / 03
  * first. That send obeys 0021's interrupt rules (no task holds the USB MIDI mutex, the sender not inside a SysEx, the
@@ -1594,7 +1594,7 @@ static void pc_tick(void) {
 #define SQ_BLK       (*(const volatile uint32_t *)0x419ca2acu)
 #define SQ_PATD(p)   ((const volatile uint8_t *)(0x407dd8e3u + 85760u * (uint32_t)(p)))   /* as trig_fire's base */
 #define SQ_NEXT      ((const volatile uint8_t *)0x412f3e91u)   /* BE word: the pattern after this one [measured] */
-#define SQ_TEMPO     (*(const volatile uint32_t *)0x40287c9cu)  /* 1/120 BPM [measured, re/subsystems/tempo.md] */
+#define SQ_TEMPO     (*(const volatile uint32_t *)0x40287ffcu)  /* 1/120 BPM [measured, re/subsystems/tempo.md] */
 #define SQ_MUTES     ((const volatile uint8_t *)0x407c23c3u)   /* BE word, bit t = track t [measured, SEQUENCER.md] */
 #define SQ_SOLOS     ((const volatile uint8_t *)0x407c23c5u)   /* 1049: BE word, bit t = track t soloed [measured, rytm-emu:
                                                                   CC 93 (Track Solo) 1 on SD's channel -> 0x0002, on BD's
@@ -1627,7 +1627,7 @@ static uint8_t *blk4(uint8_t *o, uint32_t b) {
 static uint8_t sq_cap(uint32_t v) { return (uint8_t)(v > 127 ? 127 : v); }
 
 /* the length the step wraps at: the track's (+0x2c5) when the pattern's scale mode byte (+85689) is 1 (per track),
-   else the pattern's (+85683, a word) [code: trig_fire 0x4009aa5a, the step loop] */
+   else the pattern's (+85683, a word) [code: trig_fire 0x4009aac6, the step loop] */
 static uint8_t sq_len(int32_t p, int32_t t) {
   const volatile uint8_t *d = SQ_PATD(p & 127);
   if (d[85689] == 1) return sq_cap(d[917 * t + 0x2c5]);
@@ -1649,7 +1649,7 @@ static void sq_push(int32_t t, int32_t step, uint8_t len, uint8_t spd) {
 static void sq_event(uint8_t kind, uint8_t a, uint8_t b, int32_t nargs, uint32_t blk);
 
 /* trig_fire's detour (C half): a seq track's step. trig_fire runs one step ahead (it schedules the step it is given,
-   the current step byte, for the track's next step boundary [code: the time (ticks - 1) x 900 000 at 0x4009b5c4]),
+   the current step byte, for the track's next step boundary [code: the time (ticks - 1) x 900 000 at 0x4009b630]),
    so the step that starts now is the byte before (0x405c8cea + t) [measured: with 0x04 trig reports of 6-OP FM on
    BD, 2D 01's play block = the first tick's]; called with play 0 / 2 too (STOP's reset): only while playing. */
 void sq_fire(int32_t t, int32_t p, int32_t step);
@@ -1791,31 +1791,31 @@ void sq_end(void) {
  * On a pinned track (a seq track, unless 2E's flags bit 2; and the 2E pin mask's tracks: the host's poly ones) the voice's
  * analog chain is a static path for the Sidecar's audio: its amp envelope held open, its filter envelope depth 0 and its
  * VCA at velocity 127, so an EMPTY Rytm track sounds and every note's envelope is the host's. A detour at the transport
- * entry 0x4007a538 (the control frame's sender: every block path calls it after the filter and amp consumers wrote the
- * frame [code, POLYPHONY.md 5.1]) rewrites, per voice v whose owner track (0x40290dd8[v], the amp consumer's own table
- * [code: 0x401098fe]) is pinned: the amp records +168+8v / +232+8v = 0000007f 00000000 (held at 127, rate 0 [measured:
+ * entry 0x4007a5a4 (the control frame's sender: every block path calls it after the filter and amp consumers wrote the
+ * frame [code, POLYPHONY.md 5.1]) rewrites, per voice v whose owner track (0x40291138[v], the amp consumer's own table
+ * [code: 0x4010996a]) is pinned: the amp records +168+8v / +232+8v = 0000007f 00000000 (held at 127, rate 0 [measured:
  * stock's held ATK 0 / DEC INF record; its second word stock's ATK-0 hold, mode 3], the first block 4000007f (stock's
  * trig record at ATK 0: the start command, a mode-B ramp; once); every stock retrig's
  * start command is masked by that; the filter record's first word +296+8v = 0 (stock's ENV 64: no envelope
  * [measured]); the track's velocity word 0x800067c4 + 2t = 0x7f00, which the amp consumer multiplies into the VCA words
- * +10/+26+2v every block [code: 0x401099c6; measured: VCA linear in velocity] (in a trig's own block the words are
+ * +10/+26+2v every block [code: 0x40109a32; measured: VCA linear in velocity] (in a trig's own block the words are
  * rescaled x 0x7f00 / vel, so a softer trig never dips the ringing notes). The host's 46 marks pinned tracks silent: the
- * amp records then carry stock's decay (00000080, 0xb0100000 | rate: the consumer's DEC case [code: 0x40109b82], the
- * rate its table 0x401ee36c at DEC 40) every block, closing the VCA (the open voice's hiss); not silent again: one
+ * amp records then carry stock's decay (00000080, 0xb0100000 | rate: the consumer's DEC case [code: 0x40109bee], the
+ * rate its table 0x401ee61c at DEC 40) every block, closing the VCA (the open voice's hiss); not silent again: one
  * start, then held. A voice that stops being pinned (the mask, an owner change of a shared voice, a hello) gets the
  * same decay until stock starts it again (a record with the start command). Shared voices follow their owner track.
  * OVR, FRQ, RES, the filter type, level, pan and sends stay stock's. */
-#define PIN_OWNER(v)  (((const volatile uint8_t *)0x40290dd8u)[v])
+#define PIN_OWNER(v)  (((const volatile uint8_t *)0x40291138u)[v])
 #define PIN_VEL       ((volatile uint16_t *)0x800067c4u)
-#define PIN_DECTAB    ((const uint32_t *)0x401ee36cu)   /* the consumer's DEC rates [code: 0x40109b82] */
-#define PIN_ATKTAB    ((const uint32_t *)0x401ee76cu)   /* its ATK rates [code: 0x40109ae2] */
+#define PIN_DECTAB    ((const uint32_t *)0x401ee61cu)   /* the consumer's DEC rates [code: 0x40109bee] */
+#define PIN_ATKTAB    ((const uint32_t *)0x401eea1cu)   /* its ATK rates [code: 0x40109b4e] */
 void pin_frame(uint8_t *f);
 void pin_frame(uint8_t *f) {
   uint32_t m = pin.mask, sil = pin.silent, now = 0, v, t0 = TIMER, dt;
   if ((uint32_t)f != 0x800063c0u) return;   /* the voices' frame only (other callers send test / calibration frames) */
   pin.calls++;
   if (!m && !pin.was && !pin.closing) return;
-  if (!pin.decay) {                    /* the amp consumer's own encodings [code: 0x40109ae2..0x40109b9c] */
+  if (!pin.decay) {                    /* the amp consumer's own encodings [code: 0x40109b4e..0x40109c08] */
     pin.decay = (PIN_DECTAB[40] & 0xfffffu) | 0xb0100000u;
     pin.attack = (PIN_ATKTAB[0] & 0xfffffu) | 0xb0000000u;
     pin.hold = (PIN_ATKTAB[0] & 0xfffffu) | 0x30000000u;
@@ -1876,7 +1876,7 @@ void pin_frame(uint8_t *f) {
  * the undo kind (1 clear, 2 paste: the kind the function was asked to undo), the held trig mask (src 1), else 0. Ops:
  * 1 COPY PAT, 2 PASTE PAT, 3 CLEAR PAT, 4 UNDO PAT, 5 COPY TRK, 6 PASTE TRK, 7 CLEAR TRK, 8 UNDO TRK, 9 COPY PAGE,
  * 10 PASTE PAGE, 11 CLEAR PAGE, 12 UNDO PAGE, 13 COPY TRIGS, 14 PASTE TRIGS, 15 CLEAR TRIGS; 1042: 16 RELOAD PAT
- * (0x400af5e0), 17 SAVE PAT (0x400ae588), 18 RELOAD TRK (0x400af64a), 19 SAVE TRK (0x400ae614) [measured, rytm-emu: each
+ * (0x400af64c), 17 SAVE PAT (0x400ae5f4), 18 RELOAD TRK (0x400af6b6), 19 SAVE TRK (0x400ae680) [measured, rytm-emu: each
  * function ran once for its menu item, FUNC + SCNE's PATTERN menu and FUNC + CHRO's TRACK menu; ok their d0, not a
  * success flag]. 2D 0C FILL <held 0/1>: the
  * FILL key (seen in ev_key before stock; stock keeps it). src 1: seq mode's own
@@ -1910,7 +1910,7 @@ void ed_report(int32_t op, uint32_t a1, uint32_t a2, uint32_t res) {
 
 /* the SCALE poll (UI tick): per track (+0x2c5 length, +0x2c7 speed index) and the pattern's (+85683 length, a BE word;
    +85690 speed; +85689 mode, 1 = per-track lengths; +85685 change length, a BE word: in that mode a queued pattern
-   starts at a multiple of it [code: 0x4009baae..0x4009bada, 0x4009bfa8]) of the working pattern. 2D 04:
+   starts at a multiple of it [code: 0x4009bb1a..0x4009bb46, 0x4009c014]) of the working pattern. 2D 04:
    <track 0..11 | 7F the pattern> <len lo7> <len hi7> <speed> <mode> [<chg lo7> <chg hi7>: the pattern's only] */
 static void sc_poll(void) {
   uint32_t p = sq.sw_from & 0x100 ? sq.sw_from & 0x7f : (uint32_t)SQ_PAT & 127;   /* the playing one (as 02) */
@@ -2147,7 +2147,7 @@ static struct {
 } ls __attribute__((section(".bss"), aligned(4)));
 #define LS_HELD_HI(o) (*(const volatile uint32_t *)((o) + 0x158u))
 #define LS_HELD_LO(o) (*(const volatile uint32_t *)((o) + 0x15cu))
-#define PAT_LEN       ((rec_fn)0x400c04b8u)   /* pattern_length(track pattern) */
+#define PAT_LEN       ((rec_fn)0x400c0524u)   /* pattern_length(track pattern) */
 #define CU_WT_M 46    /* WAVETABLE, GRANULAR, MULTISAMPLE (CU_WT / CU_GR / CU_MS below) */
 #define CU_GR_M 47
 #define CU_MS_M 52
@@ -2311,11 +2311,11 @@ static int32_t ls_lock(int32_t t, int32_t v, int32_t ix) {   /* 1045: ix the sou
 }
 
 /* ---- 1048: POLY CONFIG in stock's track menu (FUNC + CHRO) -------------------------------------------------------
- * The track menu (TrackMenuView, vtable 0x401ec0fc) is built once, at boot, by its constructor 0x400f9b38, called from
- * one site, 0x400cb5b8 (jsr; `this` in d6, also pushed) [code; measured, rytm-emu rui1048base cold boot: the break at
- * 0x400cb5be is reached once, a7 = 0x41bfad40 = the new view]. Its items are a vector of shared_ptr<MenuItem> at +4,
- * each built from four std::function objects (label, action, icon, empty) by menu_item_ctor 0x40072f50 and appended by
- * 0x40072786 (re/symbols.toml, 0012's and 0021's items the same way). After 0021's U1..U5 (its own detour in the
+ * The track menu (TrackMenuView, vtable 0x401ec3ac) is built once, at boot, by its constructor 0x400f9ba4, called from
+ * one site, 0x400cb624 (jsr; `this` in d6, also pushed) [code; measured, rytm-emu rui1048base cold boot: the break at
+ * 0x400cb62a is reached once, a7 = 0x41bfad40 = the new view]. Its items are a vector of shared_ptr<MenuItem> at +4,
+ * each built from four std::function objects (label, action, icon, empty) by menu_item_ctor 0x40072fbc and appended by
+ * 0x400727f2 (re/symbols.toml, 0012's and 0021's items the same way). After 0021's U1..U5 (its own detour in the
  * constructor's epilogue) the menu reads TRIGS SETUP, PAD SCALE, RELOAD TRACK, SAVE TRACK, U1 .. U5 [measured].
  * pm_menu_det (a detour at the caller's `lea %sp@(24),%sp; tstl %d6` after the constructor returned, registry) appends
  * POLY CONFIG last, the same way, with SAVE TRACK's std::function managers (their captures match: nothing for the label
@@ -2327,19 +2327,19 @@ static int32_t ls_lock(int32_t t, int32_t v, int32_t ix) {   /* 1045: ix the sou
  * action closes it) and the next tick opens the page on 30 page PG_POLY + track (with the page already open, aside
  * under the menu: the 30 again). Otherwise a popup says why (NO SIDECAR / SOUND TRACKS ONLY) and the menu stays. */
 struct pm_fn { void *storage; uint32_t pad; void *manager; void *invoker; };   /* std::function, 16 B */
-#define PM_ITEM_CTOR ((void (*)(void *, struct pm_fn *, struct pm_fn *, struct pm_fn *, struct pm_fn *, int32_t, int32_t))0x40072f50u)
-#define PM_APPEND     ((void (*)(void *, void *))0x40072786u)
-#define PM_FN_DTOR    ((void (*)(struct pm_fn *))0x401709c6u)
-#define PM_NEW        ((void *(*)(uint32_t))0x400829d4u)
-#define PM_STR        ((void (*)(void *, const char *, void *))0x401bcd4cu)
-#define PM_STR_DTOR   ((void (*)(void *))0x401bb29cu)
-#define PM_POPUP      ((void (*)(void *, void *))0x400766e8u)
-#define PM_SHOW       ((void (*)(void *, void *, int32_t))0x400793f6u)
-#define PM_SP_RELEASE ((void (*)(void *))0x40170a0cu)
-#define PM_MGR_LABEL  ((void *)0x400f9a38u)   /* SAVE TRACK's managers (re/symbols.toml) */
-#define PM_MGR_ACTION ((void *)0x400f9a8au)
-#define PM_MGR_ICON   ((void *)0x400f9ae6u)
-#define PM_SP_VT      0x401ccab4u             /* shared_ptr's control block vtable, as SAVE TRACK's popup */
+#define PM_ITEM_CTOR ((void (*)(void *, struct pm_fn *, struct pm_fn *, struct pm_fn *, struct pm_fn *, int32_t, int32_t))0x40072fbcu)
+#define PM_APPEND     ((void (*)(void *, void *))0x400727f2u)
+#define PM_FN_DTOR    ((void (*)(struct pm_fn *))0x40170b92u)
+#define PM_NEW        ((void *(*)(uint32_t))0x40082a40u)
+#define PM_STR        ((void (*)(void *, const char *, void *))0x401bcff0u)
+#define PM_STR_DTOR   ((void (*)(void *))0x401bb540u)
+#define PM_POPUP      ((void (*)(void *, void *))0x40076754u)
+#define PM_SHOW       ((void (*)(void *, void *, int32_t))0x40079462u)
+#define PM_SP_RELEASE ((void (*)(void *))0x40170bd8u)
+#define PM_MGR_LABEL  ((void *)0x400f9aa4u)   /* SAVE TRACK's managers (re/symbols.toml) */
+#define PM_MGR_ACTION ((void *)0x400f9af6u)
+#define PM_MGR_ICON   ((void *)0x400f9b52u)
+#define PM_SP_VT      0x401ccd64u             /* shared_ptr's control block vtable, as SAVE TRACK's popup */
 const char pm_text[] = "POLY CONFIG";        /* the item (pm_label, below) */
 static const char pm_t_none[] = "NO SIDECAR";
 static const char pm_t_track[] = "SOUND TRACKS ONLY";
@@ -2420,7 +2420,7 @@ __asm__(
     "  addq.l #4,%sp\n"
     "  lea 24(%sp),%sp\n"
     "  tst.l %d6\n"
-    "  jmp 0x400cb5c4\n"
+    "  jmp 0x400cb630\n"
     "  .align 2\n"
     "pm_label:\n"
     "  link.w %fp,#-4\n"
@@ -2429,7 +2429,7 @@ __asm__(
     "  pea -1(%fp)\n"
     "  pea pm_text\n"
     "  move.l %a2,-(%sp)\n"
-    "  jsr 0x401bcd4c\n"
+    "  jsr 0x401bcff0\n"
     "  lea 12(%sp),%sp\n"
     "  move.l %a2,%d0\n"
     "  move.l (%sp)+,%a2\n"
@@ -2570,7 +2570,7 @@ static void echo_text(int32_t e, char *o) {
 
 static void draw_txt(const struct txt *t, const char *str) {
   void *font = TEXT_FONT(FONT_CTX(t->font));
-  int32_t h = *(const uint16_t *)((const uint8_t *)font + 6);     /* font +4: (descent, height) [code, 0x40071506] */
+  int32_t h = *(const uint16_t *)((const uint8_t *)font + 6);     /* font +4: (descent, height) [code, 0x40071572] */
   int32_t d = *(const uint16_t *)((const uint8_t *)font + 4);
   int32_t y = 64 - h - t->y;                                       /* glass top -> the canvas's y (0 at the bottom) */
   if (y - d < 0) return;            /* below the screen: not drawn (the glyph writer clips x and y itself [code]) */
@@ -2634,14 +2634,14 @@ static void hdr_put(uint32_t *px, const uint8_t *keep) {
 static void draw_page(void *bmp, void *ctrl);
 static void draw_body(void *bmp, void *ctrl) {
   uint8_t keep[2 * HDR_COLS];
-  uint32_t *px = *(uint32_t **)((uint8_t *)bmp + 16);   /* canvas(+4 w, +8 h, +16 pixels) 0x4006f9c2 */
+  uint32_t *px = *(uint32_t **)((uint8_t *)bmp + 16);   /* canvas(+4 w, +8 h, +16 pixels) 0x4006fa2e */
   int32_t hdr = st.hdr_until && (int32_t)(st.hdr_until - st.ticks) > 0;
   if (hdr) hdr_save(px, keep);
   draw_page(bmp, ctrl);
   if (hdr && (st.active || st.splash_on || sv.show) && !(st.active && st.aside)) hdr_put(px, keep);
 }
 static void draw_page(void *bmp, void *ctrl) {
-  uint32_t *px = *(uint32_t **)((uint8_t *)bmp + 16);   /* canvas(+4 w, +8 h, +16 pixels) 0x4006f9c2 */
+  uint32_t *px = *(uint32_t **)((uint8_t *)bmp + 16);   /* canvas(+4 w, +8 h, +16 pixels) 0x4006fa2e */
   uint32_t c;
   int32_t i;
   (void)ctrl;
@@ -3168,8 +3168,8 @@ int32_t rui_sysex(const uint8_t *d, int32_t len) {
  * (>= 64). cu_steps answers 0021's ext_steps for them (0029's stepped list knobs): the chord knobs lists of 16 4 3 7,
  * LOOP 3 zones, RTRG 2 zones, INST all 128. */
 typedef int32_t (*cu_printf_fn)(void *str, const char *fmt, ...);
-#define CU_PRINTF  ((cu_printf_fn)0x40098602u)
-#define CU_REC(r)  ((uint32_t *)(0x401bf918u + 0x34u * (uint32_t)(r)))
+#define CU_PRINTF  ((cu_printf_fn)0x4009866eu)
+#define CU_REC(r)  ((uint32_t *)(0x401bfbc8u + 0x34u * (uint32_t)(r)))
 #define CU_DESC(r) ((uint32_t *)(0x419a4888u + 84u * (uint32_t)(r)))
 #define CUBOX      ((volatile uint32_t *)0x4001a3dcu)   /* 0021's us_cubox (.ush): 'CHRD', setup, steps */
 #define CU_IDS     ((volatile uint32_t *)0x413db5fcu)   /* sound_param_id_for_index's per-machine table: [m * 8 + index - 9] */
@@ -3435,7 +3435,7 @@ void cu_setup(int32_t m) {
   cu.setups++;
 }
 
-/* 1034: set_machine's entry (0x400bd14e, registry detour cu_setm_det): the SRC records as machine m's before it writes
+/* 1034: set_machine's entry (0x400bd1ba, registry detour cu_setm_det): the SRC records as machine m's before it writes
    the machine's defaults (sound_init_defaults reads them through the records) */
 void cu_prep(int32_t m, int32_t t) {
   if (!cu.init) return;
@@ -3446,7 +3446,7 @@ void cu_prep(int32_t m, int32_t t) {
      words would stutter, tape-stop, reverse and loop every hit. Noted here, written by cu_defs_tick once the choice stays
      (the machine list closed: its cursor's previews call set_machine too) */
   /* (only a choice made in the machine list: a kit / sound / project load that calls set_machine keeps its own words) */
-  if ((m == CU_LI || m == CU_CP || m == CU_MI) && (uint32_t)t < 12u && sv.top_vt == 0x401e5bf4u) {
+  if ((m == CU_LI || m == CU_CP || m == CU_MI) && (uint32_t)t < 12u && sv.top_vt == 0x401e5ea4u) {
     cu.dm = (uint8_t)m; cu.dt = (uint8_t)t; cu.dtick = st.ticks;
   }
 }
@@ -3502,10 +3502,10 @@ __asm__(
     "  addq.l #8,%sp\n"
     "  link.w %fp,#-40\n"            /* displaced */
     "  movem.l %d2-%d6/%a2-%a4,(%sp)\n"   /* displaced */
-    "  jmp 0x400bd156\n");
+    "  jmp 0x400bd1c2\n");
 
 /* 1036: the host's 48 (a touchscreen's pick of a source / table / instrument) in the UI task: P(k + 1) of track t as a
-   knob turn writes it - 0021's us_set: the live copy (SET_PARAM 0x4011f3fa, container index 9 + k) and kit_param_changed
+   knob turn writes it - 0021's us_set: the live copy (SET_PARAM 0x4011f466, container index 9 + k) and kit_param_changed
    (0x4003355c) on the KitBank with the parameter's record (sound_param_id_for_index 0x40007028(9 + k, machine)), whose
    drain writes the kit word and the project's copy (saved, kept over a power-off). The drain keeps a record of the
    track's machine only: on MULTISAMPLE / WAVETABLE / GRANULAR (1051: LIVE IN and CHOP, their page 2 too), whose SRC
@@ -3517,8 +3517,8 @@ __asm__(
 typedef int32_t (*spid_fn)(int32_t index, int32_t machine);
 typedef void (*setp_fn)(int32_t value, int32_t track, int32_t index);
 #define SPID       ((spid_fn)0x40007028u)
-#define SET_PARAM  ((setp_fn)0x4011f3fau)
-#define US_BANK    ((void *(*)(void))0x40194618u)
+#define SET_PARAM  ((setp_fn)0x4011f466u)
+#define US_BANK    ((void *(*)(void))0x401947e4u)
 #define US_COMMIT  ((void (*)(void *bank, int32_t track, int32_t record, int32_t value))0x4003355cu)
 static void wr_tick(void) {
   while (ux.wr_n) {   /* the replies first (in order) */
@@ -3554,7 +3554,7 @@ static void wr_tick(void) {
 }
 
 /* 1051: LIVE IN's / CHOP's page-2 defaults (cu_prep noted the choice): once the track still plays that machine and the
-   machine list has closed (MachineListView 0x401e5bf4 not on top), P9..P16 written as knob turns (us_set's way, as the
+   machine list has closed (MachineListView 0x401e5ea4 not on top), P9..P16 written as knob turns (us_set's way, as the
    host's 48: the live copy and kit_param_changed) from the shared records set up for it; a choice that went (NO, the
    cursor moved on) is dropped. */
 static void cu_defs_tick(void) {
@@ -3562,7 +3562,7 @@ static void cu_defs_tick(void) {
   const struct cu_knob *kn;
   if (!m) return;
   if (MACHINE_OF(t) != m) { if (st.ticks - cu.dtick > 4) cu.dm = 0; return; }
-  if (sv.top_vt == 0x401e5bf4u || st.ticks - cu.dtick < 2 || !(kn = cu_tab(m, 1))) return;
+  if (sv.top_vt == 0x401e5ea4u || st.ticks - cu.dtick < 2 || !(kn = cu_tab(m, 1))) return;
   cu_setup(m);
   for (k = 8; k < 16; ++k) {
     int32_t rec = SPID(9 + k, m), v = (int32_t)kn[k - 8].def << 8;
@@ -3582,9 +3582,9 @@ static void cu_defs_tick(void) {
                                                      hello
      49 1 3 <track> {<value 0..127> <label 4 B>} x 8 its P1..P8 (the kit words, the SRC page's knobs) and their short
                                                      names (the records'): on a change, a hello
-   The names: the machine table 0x401befa4 + 8 m (long, short; 0026's own for 46, 47, 52 by registry patch) [code]; the
+   The names: the machine table 0x401bf254 + 8 m (long, short; 0026's own for 46, 47, 52 by registry patch) [code]; the
    labels: the record (sound_param_id_for_index(9 + k, m)) +0x30 (its short name pointer, as cu_knob sets it). */
-#define MNAME(m)  (*(const char *const *)(0x401befa4u + 8u * (uint32_t)(m)))
+#define MNAME(m)  (*(const char *const *)(0x401bf254u + 8u * (uint32_t)(m)))
 static int32_t dp_ptr_ok(const char *p) { return (uint32_t)p >= 0x40000000u && (uint32_t)p < 0x44000000u; }
 static void dp_tick(void) {
   uint8_t m[56];
@@ -3739,8 +3739,8 @@ __asm__(
     "  movem.l %d2-%d4,(%sp)\n"
     "  jmp 0x400019ec\n");
 
-/* 1030: rec_trig's detour (0x400b45e0, registry): rui_rec_note(track, note, step) from the caller's arguments (this at
-   4(%sp), track 8, note 12, vel 16, step 20), then rec_trig's two displaced instructions and 0x400b45e6. d0/d1/a0/a1
+/* 1030: rec_trig's detour (0x400b464c, registry): rui_rec_note(track, note, step) from the caller's arguments (this at
+   4(%sp), track 8, note 12, vel 16, step 20), then rec_trig's two displaced instructions and 0x400b4652. d0/d1/a0/a1
    are scratch at a function's entry. */
 __asm__(
     "  .text\n"
@@ -3758,12 +3758,12 @@ __asm__(
     "1:\n"
     "  link.w %fp,#-48\n"
     "  moveq #12,%d0\n"
-    "  jmp 0x400b45e6\n");
+    "  jmp 0x400b4652\n");
 
-/* 1032: trig_fire's detour (0x4009a9bc, registry): sq_fire(track, pattern, step) from its arguments (track 4(%sp),
-   pattern 8, step 12, slot 16), then its two displaced instructions and 0x4009a9c4. d0/d1/a0/a1 are scratch at a
-   function's entry. The clock's exit (0x4009bf9e, registry): sq_end, then the displaced movem and lea, then the rte at
-   0x4009bfa6 (every register comes back from the frame, so sq_end may use the scratch ones). */
+/* 1032: trig_fire's detour (0x4009aa28, registry): sq_fire(track, pattern, step) from its arguments (track 4(%sp),
+   pattern 8, step 12, slot 16), then its two displaced instructions and 0x4009aa30. d0/d1/a0/a1 are scratch at a
+   function's entry. The clock's exit (0x4009c00a, registry): sq_end, then the displaced movem and lea, then the rte at
+   0x4009c012 (every register comes back from the frame, so sq_end may use the scratch ones). */
 __asm__(
     "  .text\n"
     "  .globl sq_fire_det, sq_end_det\n"
@@ -3776,13 +3776,13 @@ __asm__(
     "  lea 12(%sp),%sp\n"
     "  lea -88(%sp),%sp\n"
     "  move.l 96(%sp),%d0\n"
-    "  jmp 0x4009a9c4\n"
+    "  jmp 0x4009aa30\n"
     "  .align 2\n"
     "sq_end_det:\n"
     "  jsr sq_end\n"
     "  movem.l (%sp),%d0-%fp\n"
     "  lea 76(%sp),%sp\n"
-    "  jmp 0x4009bfa6\n");
+    "  jmp 0x4009c012\n");
 
 /* 1033: the edit wrappers (registry: a detour at each stock edit function's entry, 8 B displaced: its linkw and the
    instruction after it, nothing pc-relative). ed_X_det copies six argument words (the functions read two or three),
@@ -3814,7 +3814,7 @@ __asm__(
     "  rts\n"
     "ed_pcopy_orig:\n"
     "  .short 0x4e56,0xffdc,0x48d7,0x1c0c\n"
-    "  jmp 0x400abde8\n"
+    "  jmp 0x400abe54\n"
     "  .globl ed_ppaste_det\n"
     "  .align 2\n"
     "ed_ppaste_det:\n"
@@ -3838,7 +3838,7 @@ __asm__(
     "  rts\n"
     "ed_ppaste_orig:\n"
     "  .short 0x4e56,0xffd4,0x48d7,0x3c04\n"
-    "  jmp 0x400abffe\n"
+    "  jmp 0x400ac06a\n"
     "  .globl ed_pclear_det\n"
     "  .align 2\n"
     "ed_pclear_det:\n"
@@ -3862,7 +3862,7 @@ __asm__(
     "  rts\n"
     "ed_pclear_orig:\n"
     "  .short 0x4e56,0xffd8,0x48d7,0x3c0c\n"
-    "  jmp 0x400ac124\n"
+    "  jmp 0x400ac190\n"
     "  .globl ed_pundo_det\n"
     "  .align 2\n"
     "ed_pundo_det:\n"
@@ -3886,7 +3886,7 @@ __asm__(
     "  rts\n"
     "ed_pundo_orig:\n"
     "  .short 0x4e56,0xffe4,0x48d7,0x0c04\n"
-    "  jmp 0x400abec8\n"
+    "  jmp 0x400abf34\n"
     "  .globl ed_tcopy_det\n"
     "  .align 2\n"
     "ed_tcopy_det:\n"
@@ -3910,7 +3910,7 @@ __asm__(
     "  rts\n"
     "ed_tcopy_orig:\n"
     "  .short 0x4e56,0xffd8,0x48d7,0x3c0c\n"
-    "  jmp 0x400c2f04\n"
+    "  jmp 0x400c2f70\n"
     "  .globl ed_tpaste_det\n"
     "  .align 2\n"
     "ed_tpaste_det:\n"
@@ -3934,7 +3934,7 @@ __asm__(
     "  rts\n"
     "ed_tpaste_orig:\n"
     "  .short 0x4e56,0xffc4,0x48d7,0x3c7c\n"
-    "  jmp 0x400c475c\n"
+    "  jmp 0x400c47c8\n"
     "  .globl ed_tclear_det\n"
     "  .align 2\n"
     "ed_tclear_det:\n"
@@ -3958,7 +3958,7 @@ __asm__(
     "  rts\n"
     "ed_tclear_orig:\n"
     "  .short 0x4e56,0xffd4,0x48d7,0x3c1c\n"
-    "  jmp 0x400c4952\n"
+    "  jmp 0x400c49be\n"
     "  .globl ed_tundo_det\n"
     "  .align 2\n"
     "ed_tundo_det:\n"
@@ -3982,7 +3982,7 @@ __asm__(
     "  rts\n"
     "ed_tundo_orig:\n"
     "  .short 0x4e56,0xffd0,0x48d7,0x3c3c\n"
-    "  jmp 0x400c3810\n"
+    "  jmp 0x400c387c\n"
     "  .globl ed_gcopy_det\n"
     "  .align 2\n"
     "ed_gcopy_det:\n"
@@ -4006,7 +4006,7 @@ __asm__(
     "  rts\n"
     "ed_gcopy_orig:\n"
     "  .short 0x4e56,0xffd8,0x48d7,0x3c0c\n"
-    "  jmp 0x400c4628\n"
+    "  jmp 0x400c4694\n"
     "  .globl ed_gpaste_det\n"
     "  .align 2\n"
     "ed_gpaste_det:\n"
@@ -4030,7 +4030,7 @@ __asm__(
     "  rts\n"
     "ed_gpaste_orig:\n"
     "  .short 0x4e56,0xffb8,0x48d7,0x3cfc\n"
-    "  jmp 0x400c334a\n"
+    "  jmp 0x400c33b6\n"
     "  .globl ed_gclear_det\n"
     "  .align 2\n"
     "ed_gclear_det:\n"
@@ -4054,7 +4054,7 @@ __asm__(
     "  rts\n"
     "ed_gclear_orig:\n"
     "  .short 0x4e56,0xffc8,0x48d7,0x3cfc\n"
-    "  jmp 0x400c4456\n"
+    "  jmp 0x400c44c2\n"
     "  .globl ed_gundo_det\n"
     "  .align 2\n"
     "ed_gundo_det:\n"
@@ -4078,7 +4078,7 @@ __asm__(
     "  rts\n"
     "ed_gundo_orig:\n"
     "  .short 0x4e56,0xffc8,0x48d7,0x3cfc\n"
-    "  jmp 0x400c3602\n"
+    "  jmp 0x400c366e\n"
     "  .globl ed_rcopy_det\n"
     "  .align 2\n"
     "ed_rcopy_det:\n"
@@ -4102,7 +4102,7 @@ __asm__(
     "  rts\n"
     "ed_rcopy_orig:\n"
     "  .short 0x4e56,0xff84,0x48d7,0x3cfc\n"
-    "  jmp 0x400c4ad4\n"
+    "  jmp 0x400c4b40\n"
     "  .globl ed_rpaste_det\n"
     "  .align 2\n"
     "ed_rpaste_det:\n"
@@ -4126,7 +4126,7 @@ __asm__(
     "  rts\n"
     "ed_rpaste_orig:\n"
     "  .short 0x4e56,0xff90,0x41ee,0xffb8\n"
-    "  jmp 0x400c3972\n"
+    "  jmp 0x400c39de\n"
     /* 1042: RELOAD / SAVE PATTERN (the PATTERN menu, FUNC + SCNE), RELOAD / SAVE TRACK (the TRACK menu, FUNC + CHRO) */
     "  .globl ed_preload_det\n"
     "  .align 2\n"
@@ -4151,7 +4151,7 @@ __asm__(
     "  rts\n"
     "ed_preload_orig:\n"
     "  .short 0x4fef,0xfff4,0x48d7,0x0c04\n"
-    "  jmp 0x400af5e8\n"
+    "  jmp 0x400af654\n"
     "  .globl ed_psave_det\n"
     "  .align 2\n"
     "ed_psave_det:\n"
@@ -4175,7 +4175,7 @@ __asm__(
     "  rts\n"
     "ed_psave_orig:\n"
     "  .short 0x4fef,0xfff4,0x48d7,0x040c\n"
-    "  jmp 0x400ae590\n"
+    "  jmp 0x400ae5fc\n"
     "  .globl ed_treload_det\n"
     "  .align 2\n"
     "ed_treload_det:\n"
@@ -4199,7 +4199,7 @@ __asm__(
     "  rts\n"
     "ed_treload_orig:\n"
     "  .short 0x4fef,0xffe8,0x48d7,0x3c0c\n"
-    "  jmp 0x400af652\n"
+    "  jmp 0x400af6be\n"
     "  .globl ed_tsave_det\n"
     "  .align 2\n"
     "ed_tsave_det:\n"
@@ -4223,11 +4223,11 @@ __asm__(
     "  rts\n"
     "ed_tsave_orig:\n"
     "  .short 0x4fef,0xffe8,0x48d7,0x3c0c\n"
-    "  jmp 0x400ae61c\n"
+    "  jmp 0x400ae688\n"
     );
 
-/* 1033: the transport entry's detour (0x4007a538, registry: `lea %sp@(-20),%sp; moveq #1,%d0`, 6 B, nothing
-   pc-relative): pin_frame(frame) from its argument, then the two displaced instructions and 0x4007a53e. */
+/* 1033: the transport entry's detour (0x4007a5a4, registry: `lea %sp@(-20),%sp; moveq #1,%d0`, 6 B, nothing
+   pc-relative): pin_frame(frame) from its argument, then the two displaced instructions and 0x4007a5aa. */
 __asm__(
     "  .text\n"
     "  .globl pin_det\n"
@@ -4237,7 +4237,7 @@ __asm__(
     "  jsr pin_frame\n"
     "  addq.l #4,%sp\n"
     "  .short 0x4fef,0xffec,0x7001\n"
-    "  jmp 0x4007a53e\n");
+    "  jmp 0x4007a5aa\n");
 
 /* ---- 1052: the project slot reports (4B; rytm-teensy docs/superpowers/specs/2026-10-27-project-slot-keys-design.md) -----
  * The Sidecar keys a project's files by the Rytm's project slot (128 fixed slots, no ID inside a project: the slot is the
@@ -4245,7 +4245,7 @@ __asm__(
  * 7-bit bytes (hi = n >> 7, lo = n & 0x7f; 0 none):
  *   4B 1 00 <slot hi lo> <name>            ACTIVE: the active slot (0x405c8e4d, 0-based, -1 none) and the project's name
  *                                          (0x407c89d3, up to 15 characters): on a change, after each hello, every 5 s
- *   4B 1 01 <from hi lo> <to hi lo>        SAVE at save's entry (0x400b0738, slot >= 0): from the active slot then
+ *   4B 1 01 <from hi lo> <to hi lo>        SAVE at save's entry (0x400b07a4, slot >= 0): from the active slot then
  *   4B 1 02 <src hi lo> <dst hi lo>        PASTE (the paste's slot write): src the slot the last COPY (0x4003502c) took
  *   4B 1 03 / 04 / 05 <0 0> <slot hi lo>   CLEAR (the clear job's or the init job's slot write), DELETE (0x40034a54),
  *                                          RENAME (the rename job's slot write)
@@ -4254,19 +4254,19 @@ __asm__(
  *   4B 1 08 <first hi lo> <n> {<occ> <name 15>} x n   LIST: the slots' names (1052b), 8 a message, after the ACTIVE
  *                                          that follows a hello and after a LOST; occ 1 a project there, 0 none
  *   4B 1 09 <count hi lo> <0 0>            LIST END: the projects listed (0x3fff: the table not readable, no list)
- *   4B 1 0A <0 0> <slot hi lo>             LOAD: the active-slot setter 0x400fa694 called from LOAD PROJECT (the same
+ *   4B 1 0A <0 0> <slot hi lo>             LOAD: the active-slot setter 0x400fa700 called from LOAD PROJECT (the same
  *                                          slot too; 1052c: a save's or CREATE NEW's set filtered by its caller)
  * With no host (the port down, or no hello yet) the ring is drained into LOST: the host resyncs from the LIST.
  * The hooks (registry detours) run in the project job task [measured stacks]: they note three bytes in a ring under a TAS
  * lock (a second producer at once counts as LOST, never spins); pj_tick (UI task) sends through send()'s try-lock, events
  * first in order, the ACTIVE only when none waits. The hello's caps bit 2 says this build sends them. */
-#define PJ_ACTIVE (*(volatile int8_t *)0x405c8e4du)          /* signed, 0-based, -1 none; its one setter 0x400fa694 */
+#define PJ_ACTIVE (*(volatile int8_t *)0x405c8e4du)          /* signed, 0-based, -1 none; its one setter 0x400fa700 */
 #define PJ_NAME   ((const volatile uint8_t *)0x407c89d3u)    /* the active project's name (0021's PROJECT_NAME) */
 #define PJ_RET_RENAME 0x400519a8u   /* write-slot's callers, by their return address [code; measured in the research's  */
 #define PJ_RET_CLEAR  0x40051ae6u   /* break-point stacks and counts]: the rename job, the clear job (CLEAR, INIT NEW),  */
 #define PJ_RET_INIT   0x40051a74u   /* the init job (FUNC + PLAY), the paste (0x40035248's jsr), save's own write        */
 #define PJ_RET_PASTE  0x4003524cu
-#define PJ_RET_SAVE   0x400b082eu
+#define PJ_RET_SAVE   0x400b089au
 #define PJ_RET_SELF   0x40034f4au   /* write-slot's own call of itself (0x40034f46) */
 enum { PJ_OP_ACTIVE = 0, PJ_OP_SAVE, PJ_OP_PASTE, PJ_OP_CLEAR, PJ_OP_DELETE, PJ_OP_RENAME, PJ_OP_LOST, PJ_OP_WRITE,
        PJ_OP_LIST, PJ_OP_LIST_END, PJ_OP_LOAD };
@@ -4282,8 +4282,8 @@ enum { KT_SAVE = 0x41, KT_RELOAD, KT_RESTORE, KT_RELOAD_ALL };
    (0 empty or deleted), the name at +8 (16 B) [measured, rytm-emu rui1052: base, SAVE AS, PASTE, CLEAR, INIT, DELETE,
    RENAME each matched the card's slots]. Read only when the pointer is in DDR, aligned, and every flag 0 or 1. */
 #define PJ_TABLE_PTR (*(const volatile uint32_t *)0x419f2888u)   /* inferred (re/symbols.toml project_slot_table_ptr) */
-#define PJ_RET_LOADSITE 0x400b405eu   /* 1052c: 0x400aecc0's call from the LOAD PROJECT path (jsr at 0x400b405a) [measured] */
-#define PJ_RET_HELPER   0x400aecdeu   /* 1052d: the setter's call inside the helper 0x400aecc0 (jsr at 0x400aecd8) [code] */
+#define PJ_RET_LOADSITE 0x400b40cau   /* 1052c: 0x400aed2c's call from the LOAD PROJECT path (jsr at 0x400b40c6) [measured] */
+#define PJ_RET_HELPER   0x400aed4au   /* 1052d: the setter's call inside the helper 0x400aed2c (jsr at 0x400aed44) [code] */
 #define PJ_LIST_ROUNDS 2              /* 1052c: each LIST sent twice: the host acts only on two that agree */
 #define PJ_LIST_N 8
 #define PJ_RING  32
@@ -4338,18 +4338,18 @@ void pj_copy(int32_t slot) { pj.clip = (uint8_t)(slot >= 0 && slot < 128 ? slot 
 void pj_save(int32_t slot) {
   if (slot >= 0) pj_push(PJ_OP_SAVE, PJ_ACTIVE, slot);
 }
-/* 1052c/d: the setter reports LOAD only for the LOAD PROJECT path's call through the helper 0x400aecc0 (obj, slot) - a
+/* 1052c/d: the setter reports LOAD only for the LOAD PROJECT path's call through the helper 0x400aed2c (obj, slot) - a
    save's (SAVE, SAVE AS, SAVE TO set the slot too, without reloading it), CREATE NEW's and the other 6 sites (not
    driven) are filtered. Read from the setter's own stack (1052d, no global: nothing stale when the helper's check
    fails, nothing another task can overwrite between the helper and the setter): at the setter's entry (sp) is its
-   return address, 0x400aecde when the helper called it, and the helper (no frame, no saved registers [code]) has its
+   return address, 0x400aed4a when the helper called it, and the helper (no frame, no saved registers [code]) has its
    own return address at 8(sp), above the slot argument. ret: (sp); caller: 8(sp). */
 void pj_activate(int32_t slot, uint32_t ret, uint32_t caller) {
   if (slot >= 0 && ret == PJ_RET_HELPER && caller == PJ_RET_LOADSITE) pj_push(PJ_OP_LOAD, -1, slot);
 }
-/* 1052d: the kit functions' C halves (the UI task; kit_save also from 0x40103b62 / 0x40103f46 [code: callers not
-   driven]). kit_save 0x400b119c (project, index, flag): index clamped 0..127 as it does [code]; pre: the active kit
-   (0x800067b8) at its entry. kit_reload 0x400af0d2 (project) and the reload of every kit 0x400b131a (project): the
+/* 1052d: the kit functions' C halves (the UI task; kit_save also from 0x40103bce / 0x40103fb2 [code: callers not
+   driven]). kit_save 0x400b1208 (project, index, flag): index clamped 0..127 as it does [code]; pre: the active kit
+   (0x800067b8) at its entry. kit_reload 0x400af13e (project) and the reload of every kit 0x400b1386 (project): the
    active kit after. */
 void kt_saved(int32_t index, uint32_t pre) {
   pj_push(KT_SAVE, index < 0 ? 0 : index > 127 ? 127 : index, (int32_t)(pre & 127u));
@@ -4440,7 +4440,7 @@ static void pj_tick(void) {
 /* 1052: the detours (registry; displaced bytes re-emitted as words, as pin_det's). write-slot 0x40034e98 (lib, slot):
    `lea -32(sp),sp; moveq #127,d1` (6 B), its caller's return address at 0(sp); delete 0x40034a54 (lib, slot):
    `move.l d2,-(sp); moveq #-1,d0; move.l 12(sp),d2` (8 B); copy 0x4003502c (lib, slot): `link.w fp,#-28;
-   movem.l d2-d3/a2,(sp)` (8 B); save 0x400b0738 (project, slot, cb): `lea -48(sp),sp; movem.l d2-d4/a2-fp,(sp)` (8 B).
+   movem.l d2-d3/a2,(sp)` (8 B); save 0x400b07a4 (project, slot, cb): `lea -48(sp),sp; movem.l d2-d4/a2-fp,(sp)` (8 B).
    d0 / d1 / a0 / a1 are scratch at a function's entry; the C halves keep the rest. */
 __asm__(
     "  .text\n"
@@ -4474,17 +4474,17 @@ __asm__(
     "  jsr pj_save\n"
     "  addq.l #4,%sp\n"
     "  .short 0x4fef,0xffd0,0x48d7,0x7c1c\n"
-    "  jmp 0x400b0740\n"
+    "  jmp 0x400b07ac\n"
     "  .align 2\n"
-    "pj_act_det:\n"                 /* 1052b: the active-slot setter 0x400fa694 (slot): `mvs.b 0x405c8e4d,d1` (6 B) */
+    "pj_act_det:\n"                 /* 1052b: the active-slot setter 0x400fa700 (slot): `mvs.b 0x405c8e4d,d1` (6 B) */
     "  move.l 8(%sp),-(%sp)\n"     /* caller: the helper's return address (entry 8(sp)) */
     "  move.l 4(%sp),-(%sp)\n"     /* ret: the setter's return address (entry (sp)) */
     "  move.l 12(%sp),-(%sp)\n"    /* slot (entry 4(sp)) */
     "  jsr pj_activate\n"
     "  lea 12(%sp),%sp\n"
     "  .short 0x7339,0x405c,0x8e4d\n"
-    "  jmp 0x400fa69a\n"
-    /* 1052d: kit_save 0x400b119c `lea -60(sp),sp; movem.l d2-d7/a2-fp,(sp)` (8 B): the stock function runs (called with
+    "  jmp 0x400fa706\n"
+    /* 1052d: kit_save 0x400b1208 `lea -60(sp),sp; movem.l d2-d7/a2-fp,(sp)` (8 B): the stock function runs (called with
        its 3 arguments and one more copied), then kt_saved(index, the active kit at the entry) */
     "  .align 2\n"
     "kt_save_det:\n"
@@ -4506,8 +4506,8 @@ __asm__(
     "  rts\n"
     "kt_save_orig:\n"
     "  .short 0x4fef,0xffc4,0x48d7,0x7cfc\n"
-    "  jmp 0x400b11a4\n"
-    /* kit_reload 0x400af0d2 `lea -20(sp),sp; movem.l d2-d4/a2-a3,(sp)` (8 B) and the reload of every kit 0x400b131a
+    "  jmp 0x400b1210\n"
+    /* kit_reload 0x400af13e `lea -20(sp),sp; movem.l d2-d4/a2-a3,(sp)` (8 B) and the reload of every kit 0x400b1386
        `lea -28(sp),sp; movem.l d2-d4/a2-a5,(sp)` (8 B): the stock function (its argument and one more), then
        kt_reloaded(op) */
     "  .align 2\n"
@@ -4524,7 +4524,7 @@ __asm__(
     "  rts\n"
     "kt_reload_orig:\n"
     "  .short 0x4fef,0xffec,0x48d7,0x0c1c\n"
-    "  jmp 0x400af0da\n"
+    "  jmp 0x400af146\n"
     "  .align 2\n"
     "kt_all_det:\n"
     "  move.l 8(%sp),-(%sp)\n"
@@ -4539,5 +4539,5 @@ __asm__(
     "  rts\n"
     "kt_all_orig:\n"
     "  .short 0x4fef,0xffe4,0x48d7,0x3c1c\n"
-    "  jmp 0x400b1322\n"
+    "  jmp 0x400b138e\n"
     );

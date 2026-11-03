@@ -136,7 +136,7 @@ begin:
 	tst.l %d1
 	jne .L14
 	mov3q.l #1,(%a2)
-	move.l #1076432344,%a0
+	move.l #1076433208,%a0
 	mvz.b (%a0,%d0.l),%d0
 	move.l #-2147457084,%a0
 	moveq #127,%d1
@@ -195,14 +195,14 @@ fm4_view_is_fm4:
 	tst.l %d0
 	jge .L24
 	move.l 116(%a2),-(%sp)
-	jsr 1074489554
+	jsr 1074489662
 	move.l %d0,-(%sp)
 	move.l 120(%a2),-(%sp)
-	jsr 1074423646
+	jsr 1074423754
 	lea (12,%sp),%sp
 .L25:
 	move.l %d0,-(%sp)
-	jsr 1074514544
+	jsr 1074514652
 	addq.l #4,%sp
 	moveq #35,%d1
 	cmp.l %d0,%d1
@@ -215,7 +215,7 @@ fm4_view_is_fm4:
 .L24:
 	move.l %d0,-(%sp)
 	move.l 104(%a2),-(%sp)
-	jsr 1074455700
+	jsr 1074455808
 	addq.l #8,%sp
 	jra .L25
 .L26:
@@ -1189,7 +1189,7 @@ fm4_page_record:
 	rts
 .L92:
 	move.l %d2,-(%sp)
-	jsr 1074787700
+	jsr 1074787808
 	move.l 20(%sp),%d1
 	addq.l #1,%d1
 	mvz.w %d1,%d1
@@ -1226,7 +1226,7 @@ fm4_page_title:
 	rts
 .L95:
 	move.l %d2,-(%sp)
-	jsr 1074787700
+	jsr 1074787808
 	addq.l #4,%sp
 	move.l %d0,%a0
 	move.l (%a0),%d0

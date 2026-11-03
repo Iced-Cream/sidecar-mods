@@ -5,9 +5,9 @@
 
 TAG: a build whose base tools/emu/us_base.sh TAG made (rytm-emu fw/AR173_us_TAG.syx, sections/us_TAG.snap). Every
 run DTEMU_STRICT=1 with --usb-host --usb-midi-real (the firmware's own USB MIDI sender and request pool), PLAY pressed
-at the start. Each test checks, per 0.5 s of emulated time: the UI renders (0x400a2aaa, 20 Hz: >= 9 a window), the
-sequencer steps (0x40120c38, the step counter 0x8000e570's writer [measured: +1 a 16th while playing, never while
-stopped]), and that keys pressed late still reach the UI (0x400a02ca, the key dispatch).
+at the start. Each test checks, per 0.5 s of emulated time: the UI renders (0x400a2b16, 20 Hz: >= 9 a window), the
+sequencer steps (0x40120ca4, the step counter 0x8000e570's writer [measured: +1 a 16th while playing, never while
+stopped]), and that keys pressed late still reach the UI (0x400a0336, the key dispatch).
 
     restart  the USB host browns out and comes back four times (rytm-emu --usb-host-gone: VBUS off, no bus, then a
              fresh enumeration), in the middle of the 0x20 report stream (SysEx) and of 0029's ASK cycle
@@ -24,7 +24,7 @@ import sys
 
 ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 EMU = os.environ.get("RYTM_EMU", "../rytm-emu")
-RENDER, STEP, KEYS, LOCK = 0x400a2aaa, 0x40120c38, 0x400a02ca, 0x40002914
+RENDER, STEP, KEYS, LOCK = 0x400a2b16, 0x40120ca4, 0x400a0336, 0x40002914
 BASE = 7400   # M instructions: us_base.sh's snapshot clock
 FAILS = []
 

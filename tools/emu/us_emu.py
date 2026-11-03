@@ -173,7 +173,7 @@ def walk_list(at, downs, confirm=True):
 
 
 def rec(r):
-    return 0x401bf918 + 0x34 * r
+    return 0x401bfbc8 + 0x34 * r
 
 
 def elek_sym(e, name):
@@ -219,12 +219,12 @@ def t_exciter(e):
 def t_variants(e):
     """(Task 3) 0014's variants list BT IMPROVED only: machines 35..39 (the "2" variants) stay unlisted for the user slots."""
     s = e.run("variants", 10, save=True)
-    m = e.peek(s, 0x401bf1c0, 12)   # {home track, voice mask} of machines 34..39
+    m = e.peek(s, 0x401bf470, 12)   # {home track, voice mask} of machines 34..39
     v = e.params.get("0014-hidden-machines", {}).get("variants", 0)   # us1 1, hwus1 0 (BT IMPROVED unlisted)
     want = (bytes.fromhex("0402") if v else bytes(2)) + b"\xff" * 10   # 0021 lists 35..39 itself (home -1, every voice)
     check(f"variants: 34 BT IMPROVED {'04 02' if v else '00 00 (variants=0)'}, 35..39 ff ff (0021's user slots)", m == want,
           m.hex())
-    f = e.peek(s, 0x401bf1d2, 2)    # 43 FUNC. GEN.
+    f = e.peek(s, 0x401bf482, 2)    # 43 FUNC. GEN.
     check("variants: 43 FUNC. GEN. unlisted (funcgen=0)", f == b"\0\0", f.hex())
 
 
@@ -437,7 +437,7 @@ def t_labels(e):
 
 def t_unused(e):
     """(1026) A knob the 1A does not name is unused once the 1A is in: on SRC its entry in the machine page table
-    (0x40287cc8 + 36 m + 4 + 4 k, what the SRC view draws and edits) is record 0, as stock machines with fewer knobs
+    (0x40288028 + 36 m + 4 + 4 k, what the SRC view draws and edits) is record 0, as stock machines with fewer knobs
     have, so it draws stock's unused box and
     its turn does nothing; on page 2 (SMPL, a slot with params) likewise (ext_page_record answers record 0). Named knobs
     keep their records and turn as before."""
@@ -455,10 +455,10 @@ def t_unused(e):
                                                          NP_KNOBS + p2 + empty)], length_after=20)
     s, t = select_u1_with(e, "unused", [P.meta_messages(1, 7, P.ST_READY, P.FLAG_PARAMS, "UN TEST", "UNT", "UN PAGE 2",
                                                        NP_KNOBS + p2 + empty)], turns)
-    tab = [e.u32(s, 0x40287ccc + 36 * 35 + 4 * k) for k in range(8)]
+    tab = [e.u32(s, 0x4028802c + 36 * 35 + 4 * k) for k in range(8)]
     check("unused: U1's SRC page records: P1..P4 and P8 records 334.., P5..P7 record 0", tab == [334, 335, 336, 337,
           0, 0, 0, 341], str(tab))
-    stock0 = [e.u32(s, 0x40287ccc + 36 * m + 4 * k) for m in range(35) for k in range(8)].count(0)
+    stock0 = [e.u32(s, 0x4028802c + 36 * m + 4 * k) for m in range(35) for k in range(8)].count(0)
     check("unused: (stock machines leave unused knobs at record 0 the same way)", stock0 > 0, str(stock0))
     k0, k1 = kit(s0), kit(s)
     print(f"  BD's P1..P16 before {k0}, after {k1}")
@@ -735,7 +735,7 @@ def t_menu(e):
     check("menu: the 1E comes straight after 10 <project> (spec 2.1)", i > 0 and e.sent[i - 1][4] == 0x10 and
           e.sent[i - 1][5:-1] == proj, f"{e.sent[i - 1].hex() if i else None}, project {proj}")
     print("  look at build/emu/%s/menu-answer.png: the popup READY" % e.tag)
-    pop, slp = sym("us_popup"), ret_of_call("us_wait", 0x40098c18)   # slp: us_wait's 10 ms steps
+    pop, slp = sym("us_popup"), ret_of_call("us_wait", 0x40098c84)   # slp: us_wait's 10 ms steps
     early = [x for x in ev if x[1] != "usb" or x[0] < t]
     e.run("menu-none", t + 440, early, count=[pop])
     check("menu: without the Teensy no 1E goes out (the installed list never came), and the popup is up within 2.2 s "
@@ -826,23 +826,23 @@ def t_stale(e):
     ev2, t2 = walk_list(t + 100, UI["downs"]["u1"], confirm=False)
     ev += ev2 + [(t2, "press", "GLOBAL"), (t2 + 150, "press", "NO")]
     t2 += 400
-    s = e.run("stale-left", t2, ev, save=True, count=[0x400dea82])
+    s = e.run("stale-left", t2, ev, save=True, count=[0x400deaee])
     ch = e.peek(s, sym("us") + sym("us_off_ch"), 1)[0]
-    check("stale: list left by GLOBAL - U1 stays on BD, no close (0x400dea82 0), the note gone with the list, no defaults",
-          e.peek(s, 0x8000ea00, 1)[0] == 35 and e.counts.get(0x400dea82) == 0 and ch == 0 and kit16(e, s)[8:] == base[8:],
-          f"close {e.counts.get(0x400dea82)}, ch {ch}, {kit16(e, s)}")
+    check("stale: list left by GLOBAL - U1 stays on BD, no close (0x400deaee 0), the note gone with the list, no defaults",
+          e.peek(s, 0x8000ea00, 1)[0] == 35 and e.counts.get(0x400deaee) == 0 and ch == 0 and kit16(e, s)[8:] == base[8:],
+          f"close {e.counts.get(0x400deaee)}, ch {ch}, {kit16(e, s)}")
     ev2, t3 = walk_list(t2, 0)   # SRC SRC, YES at once
-    s = e.run("stale", t3 + 200, ev + ev2, save=True, count=[0x400dea82, 0x400def0a])
+    s = e.run("stale", t3 + 200, ev + ev2, save=True, count=[0x400deaee, 0x400def76])
     got = kit16(e, s)
-    check("stale: reopened and YES with no move - the list opened (0x400def0a) and closed (0x400dea82), BD's sample "
-          "words untouched (no defaults from the old note)", e.counts.get(0x400def0a) == 2 and e.counts.get(0x400dea82) == 1
+    check("stale: reopened and YES with no move - the list opened (0x400def76) and closed (0x400deaee), BD's sample "
+          "words untouched (no defaults from the old note)", e.counts.get(0x400def76) == 2 and e.counts.get(0x400deaee) == 1
           and got[8:] == base[8:] and e.peek(s, sym("us") + sym("us_off_ch"), 1)[0] == 0,
-          f"open {e.counts.get(0x400def0a)}, close {e.counts.get(0x400dea82)}, {got} (base {base})")
+          f"open {e.counts.get(0x400def76)}, close {e.counts.get(0x400deaee)}, {got} (base {base})")
 
 
 def t_sound(e):
     """(Task 11 review I1) The SOUND menu's MACHINE item (FUNC + FLTR, RIGHT): a step onto U1 is a choice - stock resets
-    P1..P8 on every step (0x400bcbac), U1's 1A defaults go on P1..P16 and its fp on word 0; no note for the machine list."""
+    P1..P8 on every step (0x400bcc18), U1's 1A defaults go on P1..P16 and its fp on word 0; no note for the machine list."""
     ev, t = meta_events(100, [u1_fp(FP_A)])
     ev.append((t, "usb", P.slots([5, 0, 0, 0, 0], 0)))
     ev += [(t + 100, "press", "FUNC:300M"), (t + 120, "press", "FLTR")]
@@ -851,11 +851,11 @@ def t_sound(e):
         ev.append((t, "press", "RIGHT"))
         t += UI["step_M"]
     ev.append((t + 100, "press", "NO"))
-    s = e.run("sound", t + 400, ev, save=True, count=[0x400bcbac, 0x400bed62, 0x4011f6bc])
+    s = e.run("sound", t + 400, ev, save=True, count=[0x400bcc18, 0x400bedce, 0x4011f728])
     got = kit16(e, s)
     n = UI["sound_rights_to_u1"]
-    check(f"sound: {n} RIGHTs - {n} steps through 0x400bed62, stock resets P1..P8 on each (0x400bcbac {n}), no load",
-          e.counts.get(0x400bed62) == n and e.counts.get(0x400bcbac) == n and e.counts.get(0x4011f6bc) == 0,
+    check(f"sound: {n} RIGHTs - {n} steps through 0x400bedce, stock resets P1..P8 on each (0x400bcc18 {n}), no load",
+          e.counts.get(0x400bedce) == n and e.counts.get(0x400bcc18) == n and e.counts.get(0x4011f728) == 0,
           str({hex(a): c for a, c in e.counts.items()}))
     check("sound: U1 on BD with its 1A current - P1..P16 are its defaults, word 0 its fp in both copies, no note for the list",
           e.peek(s, 0x8000ea00, 1)[0] == 35 and got == CH_WANT and e.peek(s, sym("us") + sym("us_off_ch"), 1)[0] == 0
@@ -873,23 +873,23 @@ def kit_menu(at, downs):
 
 
 def t_load(e):
-    """(Task 11 review M1) U1 chosen with no Teensy, the kit saved, then reloaded (a load: 0x4011f6bc once, not on the
+    """(Task 11 review M1) U1 chosen with no Teensy, the kit saved, then reloaded (a load: 0x4011f728 once, not on the
     save): when U1's 1A arrives, BD keeps the loaded values - the load dropped the waiting choice (us_loaded)."""
     ev, t = walk_list(100, UI["downs"]["u1"])
     s = e.run("load-chosen", t, ev, save=True)
     check("load: U1 chosen with no 1A - BD waits (pslot 1)", pslots(e, s)[:1] == [1], str(pslots(e, s)))
     ev2, t2 = kit_menu(t, 2)   # SAVE KIT: the kit list (K001 selected), its name, YES saves
     ev2 += [(t2 + 200, "press", "YES"), (t2 + 400, "press", "YES")]
-    s = e.run("load-saved", t2 + 1000, ev + ev2, save=True, count=[0x4011f6bc])
-    check("load: SAVE KIT is no load (0x4011f6bc 0) - BD still waits", e.counts.get(0x4011f6bc) == 0 and
-          pslots(e, s)[:1] == [1], f"{e.counts.get(0x4011f6bc)}, {pslots(e, s)}")
+    s = e.run("load-saved", t2 + 1000, ev + ev2, save=True, count=[0x4011f728])
+    check("load: SAVE KIT is no load (0x4011f728 0) - BD still waits", e.counts.get(0x4011f728) == 0 and
+          pslots(e, s)[:1] == [1], f"{e.counts.get(0x4011f728)}, {pslots(e, s)}")
     ev3, t3 = kit_menu(t2 + 1000, 0)   # RELOAD
     ev3 += [(t3 + 200, "press", "YES")]   # its confirmation, if it asks
-    s = e.run("load-reloaded", t3 + 800, ev + ev2 + ev3, save=True, count=[0x4011f6bc])
+    s = e.run("load-reloaded", t3 + 800, ev + ev2 + ev3, save=True, count=[0x4011f728])
     kept = kit16(e, s)
-    check("load: RELOAD KIT - one load (0x4011f6bc 1), BD on U1 from the kit, nothing waits",
-          e.counts.get(0x4011f6bc) == 1 and e.peek(s, 0x8000ea00, 1)[0] == 35 and pslots(e, s)[:1] == [0],
-          f"{e.counts.get(0x4011f6bc)}, machine {e.peek(s, 0x8000ea00, 1)[0]}, {pslots(e, s)}")
+    check("load: RELOAD KIT - one load (0x4011f728 1), BD on U1 from the kit, nothing waits",
+          e.counts.get(0x4011f728) == 1 and e.peek(s, 0x8000ea00, 1)[0] == 35 and pslots(e, s)[:1] == [0],
+          f"{e.counts.get(0x4011f728)}, machine {e.peek(s, 0x8000ea00, 1)[0]}, {pslots(e, s)}")
     ev4, t4 = meta_events(t3 + 800, u1_meta())
     ev4.append((t4, "usb", P.slots([5, 0, 0, 0, 0], 0)))
     s = e.run("load", t4 + 400, ev + ev2 + ev3 + ev4, save=True)
@@ -1175,10 +1175,10 @@ def t_tagkeep(e):
           f"{word0(e, s2)} {kit16(e, s2)[1]} {e.cstr(s2, sym('us_l1'))}")
     ev2, t3 = kit_menu(t2 + 500, 0)   # RELOAD KIT
     ev2 += [(t3 + 200, "press", "YES")]
-    s3 = e.run("tagkeep", t3 + 800, ev + ev2, snap=s, start=e.clock + t, save=True, count=[0x4011f6bc])
+    s3 = e.run("tagkeep", t3 + 800, ev + ev2, snap=s, start=e.clock + t, save=True, count=[0x4011f728])
     check("tagkeep: RELOAD KIT (one load) - word 0 FP_A from the saved kit, not the slot's FP_B; P2 back to the saved",
-          e.counts.get(0x4011f6bc) == 1 and word0(e, s3) == (FP_A, FP_A) and kit16(e, s3)[1] != 99,
-          f"{e.counts.get(0x4011f6bc)} {word0(e, s3)} {kit16(e, s3)[1]}")
+          e.counts.get(0x4011f728) == 1 and word0(e, s3) == (FP_A, FP_A) and kit16(e, s3)[1] != 99,
+          f"{e.counts.get(0x4011f728)} {word0(e, s3)} {kit16(e, s3)[1]}")
 
 
 def t_tag14(e):

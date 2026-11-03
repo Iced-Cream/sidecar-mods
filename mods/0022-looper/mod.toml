@@ -35,13 +35,13 @@ slots = 0
 # pad or LED hook - the looper is unreachable and [YES]/key_dispatch is stock (user, 2026-10-15:
 # the looper needs another key combo).
 keys = 1
-# sfx: 1 (needs slots = 1) also passes SENDFX NAMES/STATE/LABELS (21, 22, 24) to 0029-sendfx-ui's mailbox (0x401b9e54,
+# sfx: 1 (needs slots = 1) also passes SENDFX NAMES/STATE/LABELS (21, 22, 24) to 0029-sendfx-ui's mailbox (0x401ba0f8,
 # cave23), and the looper's reports never wait on USB (a try-lock of the MIDI mutex, as 0026);
 # 0 (default): the router byte for byte as before.
 sfx = 0
-# rui: 1 (needs sfx = 1) also passes the remote UI's 0x30..0x3F to 0026-remote-ui's mailbox (0x401b9e5c, cave23);
+# rui: 1 (needs sfx = 1) also passes the remote UI's 0x30..0x3F to 0026-remote-ui's mailbox (0x401ba100, cave23);
 # 0 (default): the router byte for byte as before.
 rui = 0
 # fxin: 1 (needs rui = 1) also takes FX IN (26) for 0030-fx-in: writes 0030's switch in cave23's last 6 B
-# (0x401b9e64 'FXI1' / 'FXI0', 0x401b9e68 the request count); 0 (default): the router byte for byte as before.
+# (0x401ba108 'FXI1' / 'FXI0', 0x401ba10c the request count); 0 (default): the router byte for byte as before.
 fxin = 0

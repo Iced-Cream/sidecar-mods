@@ -268,7 +268,7 @@ def t_juno(e):
     b = evs(r, "v2b")
     print(f"  2Bs: {[(hex(x['state']), x['views'], x['vt']) for x in b[-4:]]} ({len(b)})")
     check("juno: 1027d's 2B: the last says on, committed, shown (bits 0, 2, 6), top view SamplerLedView, 9 views",
-          bool(b) and b[-1]["state"] == 0x45 and b[-1]["vt"] == "40234cfc" and b[-1]["views"] == 9, b[-1:] if b else None)
+          bool(b) and b[-1]["state"] == 0x45 and b[-1]["vt"] == "4023502c" and b[-1]["views"] == 9, b[-1:] if b else None)
 
 
 def t_knob(e):
@@ -300,7 +300,7 @@ def t_list(e):
           ref["oled"] != r["frame"], diff(r["oled"], ref["oled"]))
     b = evs(r, "v2b")
     check("list: a 2B names the machine list on top (MachineListView 401e5bf4, covered: bit 1)",
-          any(x["vt"] == "401e5bf4" and x["state"] & 2 for x in b), b[-3:])
+          any(x["vt"] == "401e5ea4" and x["state"] & 2 for x in b), b[-3:])
     check("list: the view stays on (covered), no 29 0", s["on"] == 1 and s["covered"] == 1 and
           not [x for x in evs(r, "v29") if not x["on"]], (s, evs(r, "v29")))
     r = e.run("listno", 2000, ev + [(1500, "press", "NO")], snap=J)
@@ -423,7 +423,7 @@ def t_padmode(e):
         check(f"padmode {mode or 'PLAY'}: the stock SRC page (no host) is the PLAY mode's", ref["oled"] == base,
               diff(ref["oled"], base))
         check(f"padmode {mode or 'PLAY'}: the last 2B: on, committed, shown (0x45), top SamplerLedView",
-              bool(b) and b[-1]["state"] == 0x45 and b[-1]["vt"] == "40234cfc", b[-1:])
+              bool(b) and b[-1]["state"] == 0x45 and b[-1]["vt"] == "4023502c", b[-1:])
     r = e.run("pm-perf-trk", 1600, pre + [(600, "press", "PERF"), (1000, "press", "SRC"), (1300, "press", "TRK", 600)],
               snap=J)
     s = e.sv(r["snap"][0])
@@ -504,13 +504,13 @@ def t_bank(e):
     b = evs(r, "v2b")
     print(f"  2Bs: {[(hex(x['state']), x['views'], x['vt']) for x in b[-4:]]} ({len(b)})")
     check("bank: the bank menu covers the view (a 2B: covered, BankSelectMenuView on top)",
-          any(x["vt"] == "401ccccc" and x["state"] & 2 for x in b), b[-4:])
+          any(x["vt"] == "401ccf7c" and x["state"] & 2 for x in b), b[-4:])
     s = e.sv(r["snap"][0])
     check("bank: after the menu the view is not covered and shows the host's frame", s["covered"] == 0 and s["show"] == 1,
           s)
     check("bank: the panel shows the host's frame byte for byte", r["oled"] == r["frame"], diff(r["oled"], r["frame"]))
     check("bank: the last 2B says on, committed, shown (0x45), SamplerLedView on top, 9 views",
-          bool(b) and b[-1]["state"] == 0x45 and b[-1]["vt"] == "40234cfc" and b[-1]["views"] == 9, b[-1:])
+          bool(b) and b[-1]["state"] == 0x45 and b[-1]["vt"] == "4023502c" and b[-1]["views"] == 9, b[-1:])
     h = e.run("bankheld", 1200, [(500, "press", "BANK_E", 1500)], snap=J)
     s = e.sv(h["snap"][0])
     check("bank: BANK_E held: covered (stock's screen), as before", s["covered"] == 1 and s["show"] == 0, s)
@@ -535,7 +535,7 @@ def t_popups(e):
         b = evs(r, "v2b")
         s = e.sv(r["snap"][0])
         check(f"popups {n}: a toast covered the view (PopupWindow 401d6e18)",
-              any(x["vt"] == "401d6e18" and x["state"] & 2 for x in b), [(hex(x["state"]), x["views"], x["vt"]) for x in b])
+              any(x["vt"] == "401d70c8" and x["state"] & 2 for x in b), [(hex(x["state"]), x["views"], x["vt"]) for x in b])
         check(f"popups {n}: after it the host's frame, not covered, 9 views", s["covered"] == 0 and s["show"] == 1 and
               r["oled"] == r["frame"] and bool(b) and b[-1]["views"] == 9 and b[-1]["state"] == 0x45, (s, b[-1:]))
 

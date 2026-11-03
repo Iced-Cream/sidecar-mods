@@ -163,7 +163,7 @@ def assemble(mod, claims, params=None):
     # Only claimed sections are copied into the image. A section the stub declares
     # but no claim places still links, at an address the linker picks, and its code
     # would then point at memory nobody reserved - found 2026-09-27, when 0010's
-    # .kab linked to 0x40139c74 and the build passed.
+    # .kab linked to 0x40139e40 and the build passed.
     claimed = {c.get("section", ".text") for c in claims}
     hdr = run(["m68k-elf-objdump", "-h", elf]).splitlines()
     for i, line in enumerate(hdr):

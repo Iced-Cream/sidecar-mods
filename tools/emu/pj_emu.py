@@ -468,9 +468,9 @@ def t_nohost(e):
     check("nohost: the LIST = the card now (slot 1 only)", li == ({1: "PRESETS"}, 1), li)
 
 
-# the active-slot setter 0x400fa694's callers: the helper 0x400aecc0 (from these 9 jsr sites) and the boot's 0x400fb2d2
-SETTER, HELPER = 0x400FA694, 0x400AECC0
-SITES = (0x40094DFE, 0x400A2342, 0x400A3688, 0x400A377E, 0x400B077A, 0x400B0842, 0x400B1116, 0x400B3D6C, 0x400B405A)
+# the active-slot setter 0x400fa700's callers: the helper 0x400aed2c (from these 9 jsr sites) and the boot's 0x400fb33e
+SETTER, HELPER = 0x400FA700, 0x400AED2C
+SITES = (0x40094E6A, 0x400A23AE, 0x400A36F4, 0x400A37EA, 0x400B07E6, 0x400B08AE, 0x400B1182, 0x400B3DD8, 0x400B40C6)
 
 
 def site_counts(e):
@@ -478,7 +478,7 @@ def site_counts(e):
 
 
 def t_setters(e):
-    """1052c: which of 0x400aecc0's call sites each panel operation drives (break-point counts), and the LOADs the host
+    """1052c: which of 0x400aed2c's call sites each panel operation drives (break-point counts), and the LOADs the host
     sees: a LOAD only from the load paths (a same-slot set that does not reload the project is filtered)."""
     cs = SITES + (SETTER, HELPER)
     runs = {}
@@ -512,9 +512,9 @@ def t_setters(e):
           runs["fplay_active"])
 
 
-# 1052d: the kit functions and their measured callers (break points): kit_save 0x400b119c (YES + KIT 0x400cd562, SAVE KIT
-# 0x400dd69a), kit_reload 0x400af0d2 (NO + KIT 0x400cd4ae, the KIT menu's RELOAD 0x400dd5de), every kit 0x400b131a
-KIT_FNS = (0x400B119C, 0x400AF0D2, 0x400B131A, 0x400CD562, 0x400DD69A, 0x400CD4AE, 0x400DD5DE)
+# 1052d: the kit functions and their measured callers (break points): kit_save 0x400b1208 (YES + KIT 0x400cd5ce, SAVE KIT
+# 0x400dd706), kit_reload 0x400af13e (NO + KIT 0x400cd51a, the KIT menu's RELOAD 0x400dd64a), every kit 0x400b1386
+KIT_FNS = (0x400B1208, 0x400AF13E, 0x400B1386, 0x400CD5CE, 0x400DD706, 0x400CD51A, 0x400DD64A)
 KMENU = ["NO*4", "F+PLAYMODE", "w:200", "UP*3"]   # the KIT menu (FUNC + PLAY MODE), its top: RELOAD, LOAD, SAVE KIT ...
 
 

@@ -31,17 +31,17 @@ open (a detour at the UART8 panel writer rewrites stock's trig LED colours as th
 1027: the SRC view: on the stock SRC page of a Sidecar track the host's frame over it, every key and knob stock's (29
 view on / off, 2A the page's values); the 33s' voice bytes by the voice owner table. 1030: the chord write-back (28 1
 <track> <root> <CHD> <INV> <SPR> <VOI>, 13 B): the step live recording last wrote on a Sidecar track gets NOTE = root and
-P13..P16 locks by stock's writers (a detour at live_rec_trig 0x400b45e0 notes the step); 28 2 <track> <step> <status> back;
+P13..P16 locks by stock's writers (a detour at live_rec_trig 0x400b464c notes the step); 28 2 <track> <step> <status> back;
 0022's router passes 28 with rui=1.
 1031: 6-OP FM's SMPL E..H as CHD INV SPR VOI (the host's chord texts, stepped lists) and the MULTISAMPLE machine (52,
 voice flag 0x30) listed on every track with its labels, through 0021's us_cubox; 0029's lists gain 'beyond the end reads
 entry 0'.
 1032 (seq): the sequencer link for the Sidecar sequencer: the host's 2E marks seq tracks; 2C step ticks stamped with the
-audio block counter (detours at trig_fire 0x4009a9bc and the sequencer clock's exit 0x4009bf9e, sent from that interrupt
+audio block counter (detours at trig_fire 0x4009aa28 and the sequencer clock's exit 0x4009c00a, sent from that interrupt
 by 0021's rules), 2D transport / pattern / switch / mutes / rec / tempo / seq mode / position; seq mode (a seq track
 selected, GRID REC on): T1..T16, PAGE and the encoders under a held trig go to the host, which owns the trig LEDs (34)
 and the PAGE LEDs (2F); live record writes nothing on a seq track. 0022's router passes 2E / 2F with rui=1.
-1033 (seq2): the analog pin (Mod B: a detour at the voice frame sender 0x4007a538 holds a pinned track's voice open -
+1033 (seq2): the analog pin (Mod B: a detour at the voice frame sender 0x4007a5a4 holds a pinned track's voice open -
 amp records held, filter envelope 0, VCA at velocity 127 - so an empty seq track sounds; 2E's pin mask, 46 closes a
 silent one), the stock edit functions wrapped (14 detours) and reported (2D 0A, with seq mode's own trig / page
 gestures), SCALE (2D 04), pattern dirty (2D 0B), FILL (2D 0C); FUNC + PAGE stock's in seq mode; 0022's router passes 46.
@@ -78,15 +78,15 @@ Sidecar modifier: UP + TRIG / LFO / FX / YES as TRK's (kept), UP + SRC the sourc
 STOP / PLAY the steps' copy / paste / clear (trig + FUNC kept); stock's UP + key free where bound [measured]. Emulator only.
 1047: UP + AMP -> 30 page 3 (the INSERT page's OUT view). Emulator only.
 1048: POLY CONFIG, the last item of stock's track menu (FUNC + CHRO), appended by a detour after TrackMenuView's
-constructor call (0x400cb5be) as stock builds its items; YES with a host that has drawn: the menu closes and the page
+constructor call (0x400cb62a) as stock builds its items; YES with a host that has drawn: the menu closes and the page
 opens on 30 page 0x20 + track (the host's POLY CONFIG page); else a popup (NO SIDECAR / SOUND TRACKS ONLY). Emulator only.
 1052: the project slot reports (4B; the hello's caps bit 2): the active slot with its name, and the project manager's
 SAVE / PASTE / CLEAR / DELETE / RENAME of a slot (detours at write-slot 0x40034e98, delete 0x40034a54, copy 0x4003502c,
-save 0x400b0738), so the Sidecar keys a project's files by slot and copies / trashes them with it. 4C the next free
+save 0x400b07a4), so the Sidecar keys a project's files by slot and copies / trashes them with it. 4C the next free
 opcode. 1052b: LIST / LIST END (all 128 slots' names from the project manager's header table, after each hello and
-LOST), LOAD (the active-slot setter 0x400fa694), the ring drained into LOST while no host. 1052c: LOAD only from LOAD
+LOST), LOAD (the active-slot setter 0x400fa700), the ring drained into LOST while no host. 1052c: LOAD only from LOAD
 PROJECT (the setter's detour reads its caller from the stack), each LIST sent twice. 1052d: the kit reports (4C SAVE /
-RELOAD / RELOAD ALL: detours at kit_save 0x400b119c, kit_reload 0x400af0d2, 0x400b131a); NO + SCNE / CHRO / PLAYMODE
+RELOAD / RELOAD ALL: detours at kit_save 0x400b1208, kit_reload 0x400af13e, 0x400b1386); NO + SCNE / CHRO / PLAYMODE
 under a page is stock's reload (NO kept back to its release or the next key); YES the host's while FUNC or a page trig
 is down, UP / DOWN while FUNC is (until the host's next mask); send() waits while a stock dump's SysEx is under way (bounded: 2 s with the flag never seen clear, the audio interrupt
 watching its gaps); 4D reports dropped key presses. Emulator only.

@@ -4,7 +4,7 @@ title   = "elekloader: core-ar2 (boot copier + hook bus) and the 128 KB DDR area
 
 enabled = false
 
-# core-ar2 hooks the UI loop's key dispatch call (0x400a47cc) for ev_key; 0022's keys=1
+# core-ar2 hooks the UI loop's key dispatch call (0x400a4838) for ev_key; 0022's keys=1
 # patches the same call's operand (looper_key). Use ev_key instead (design.md).
 excludes_params = ["0022-looper:keys"]
 

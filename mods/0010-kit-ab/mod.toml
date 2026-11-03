@@ -18,7 +18,7 @@ after each press. A press on a kit with no edits is a plain reload and arms
 nothing.
 
 Repoints both single-kit reload calls and their popups' text: the key handler's
-NO + PLAY (0x400cd4ae, "KIT %d RELOADED!") and kit_reload_key (0x400dd5de, "KIT
+NO + PLAY (0x400cd51a, "KIT %d RELOADED!") and kit_reload_key (0x400dd64a, "KIT
 RELOADED!"). The stash, one 0x9e3-byte kit, comes from the firmware's heap on
 the first press. The restore copies it back and applies it exactly as stock's
 reload applies the saved kit, including kit_mark(working, 0), whose meaning is

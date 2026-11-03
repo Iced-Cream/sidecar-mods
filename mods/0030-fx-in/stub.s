@@ -12,7 +12,7 @@
 	.error	"fxin_ob reads the reverb at fx_delay_out - 256"
 	.endif
 fxin_ob:
-	move.l	0x401b9e64,%d0
+	move.l	0x401ba108,%d0
 	cmp.l	#0x46584931,%d0
 	bne.w	2f
 	lea	-12(%sp),%sp
@@ -106,7 +106,7 @@ try_send:
 fxin_tick:
 	link.w %fp,#-44
 	movem.l #1036,(%sp)
-	move.w 1075551848,%d2
+	move.w 1075552524,%d2
 	move.l 1094562388,%d1
 	move.l %d1,-32(%fp)
 	mov3q.l #1,%d1
@@ -130,10 +130,10 @@ fxin_tick:
 	cmp.l -32(%fp),%d1
 	jeq .L19
 	move.l #1180191025,%a0
-	cmp.l 1075551844.l,%a0
+	cmp.l 1075552520.l,%a0
 	jne .L19
 	move.l #1180191024,%a1
-	move.l %a1,1075551844
+	move.l %a1,1075552520
 .L19:
 	move.b %d0,st+3
 	mvz.w st,%d1
@@ -151,7 +151,7 @@ fxin_tick:
 	jsr memcpy
 	lea (12,%sp),%sp
 	move.l #1180191025,%a0
-	cmp.l 1075551844.l,%a0
+	cmp.l 1075552520.l,%a0
 	seq %d0
 	mov3q.l #7,-(%sp)
 	move.l %d3,-(%sp)
@@ -181,7 +181,7 @@ fxin_tick:
 	move.l #stem_voice,%d2
 .L27:
 	mvz.b (%a0,%d2.l),%d0
-	add.l #1076432344,%d0
+	add.l #1076433208,%d0
 	move.l %d0,%a2
 	mvz.b (%a2),%d0
 	lea lfo_track_array,%a2

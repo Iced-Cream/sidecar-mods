@@ -4,9 +4,9 @@ title   = "Sidecar send FX: the reporter (sound index 0 per track, FX words 0/29
 
 enabled = false
 
-# Its cave is 0002-euclid-accents' block at the head of `cave` (0x402cc920); 0021 excludes 0002,
+# Its cave is 0002-euclid-accents' block at the head of `cave` (0x402ccc80); 0021 excludes 0002,
 # so every user-slot build (us1, hwus1) leaves it free (its end, 0x402ccd7c.., holds 0021's .ust). Its detour is 0006-comp-preview's site
-# (0x401213a0, the audio interrupt right after fx_generate); 0021 excludes 0006 too.
+# (0x4012140c, the audio interrupt right after fx_generate); 0021 excludes 0006 too.
 excludes = ["0002-euclid-accents", "0006-comp-preview"]
 
 # re-only | built | hardware-verified | retracted

@@ -6,8 +6,8 @@ the UI task wait on the host more than once, and a +Drive folder scrolls with no
 
 TAG: a build with 0023 (sfxui-bl), whose base tools/emu/us_base.sh TAG made. Every run under DTEMU_STRICT=1. The
 walk: FUNC+SMPL, DOWN (the slot list), FUNC+YES (the sample browser at the +Drive root: Factory, incoming, SIDECAR).
-Counted: sleep_us 0x40098c18 (the UI's wait), 0023's td_ask (the 0D), the wrappers td_resolve / td_count, the row
-drawer 0x400e5f28. Cache state read from td_cache (folder, parent, total, received, valid, failed, t_ask, t_fail).
+Counted: sleep_us 0x40098c84 (the UI's wait), 0023's td_ask (the 0D), the wrappers td_resolve / td_count, the row
+drawer 0x400e5f94. Cache state read from td_cache (folder, parent, total, received, valid, failed, t_ask, t_fail).
 """
 import os
 import sys
@@ -15,8 +15,8 @@ import sys
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import us_emu as U          # noqa: E402
 P = U.P
-SLEEP_US = 0x40098c18
-ROW = 0x400e5f28
+SLEEP_US = 0x40098c84
+ROW = 0x400e5f94
 OPEN = [(100, "press", "FUNC:200M"), (150, "press", "SMPL"), (400, "press", "DOWN"), (500, "press", "FUNC:200M"),
         (550, "press", "YES")]
 

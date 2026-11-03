@@ -9,16 +9,16 @@ eh_magic:
 eh_ticks:
         .long   0                       | ev_tick calls (core-ar2, ~20 Hz)
 eh_loops:
-        .long   0                       | passes of the UI message loop (0x400a4684)
+        .long   0                       | passes of the UI message loop (0x400a46f0)
 
 | ev_tick handler: void f(ctrl), C convention (d0-d1/a0-a1 free)
 eh_tick:
         addq.l  #1, eh_ticks
         rts
 
-| detour from 0x400a4684 (jmp eh_loop over `pea 0x41943f54`): count, replay the pea,
-| rejoin at 0x400a468a. No register is touched.
+| detour from 0x400a46f0 (jmp eh_loop over `pea 0x41943f54`): count, replay the pea,
+| rejoin at 0x400a46f6. No register is touched.
 eh_loop:
         addq.l  #1, eh_loops
         pea     0x41943f54
-        jmp     0x400a468a
+        jmp     0x400a46f6

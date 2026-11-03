@@ -5,12 +5,12 @@
  * functions about each entry's id [measured, OS 1.73; design.md]. Teensy ids
  * are 0x7E000000 | kind << 23 | folder << 12 | entry (kind 1: a file); folder
  * 0 is TEENSY itself. Four functions are wrapped:
- *   readdir  0x4007c048  Teensy folders served here; after the +Drive root's
+ *   readdir  0x4007c0b4  Teensy folders served here; after the +Drive root's
  *                        last entry, one more: TEENSY
- *   resolve  0x40080498  Teensy ids -> a fake node (bit 0 of byte 0: folder),
+ *   resolve  0x40080504  Teensy ids -> a fake node (bit 0 of byte 0: folder),
  *                        outside the node cache, which release ignores
- *   exists   0x40080766  Teensy ids exist
- *   size     0x400808a4, 0x4008084a  Teensy files: their size
+ *   exists   0x400807d2  Teensy ids exist
+ *   size     0x40080910, 0x400808b6  Teensy files: their size
  * Nothing here writes to the card.
  */
 #include <stdint.h>
@@ -42,10 +42,10 @@ struct node { uint8_t b0, b1; uint16_t pad; uint32_t f4, f8, f12; uint8_t rest[1
 
 /* The Teensy's listings (milestone 2). The browser fills a folder in one go
  * (readdir until the end, in the UI task); the first readdir of a Teensy folder
- * asks the Teensy for it and sleeps in 10 ms steps (sleep_us, 0x40098c18: a
+ * asks the Teensy for it and sleeps in 10 ms steps (sleep_us, 0x40098c84: a
  * DMA-timer wait that blocks only the calling task, measured in rytm-emu) until
  * the answer is complete, at most ~400 ms. One folder is cached at a time, up
- * to kCap entries, in a buffer from the firmware's allocator (0x400829d4).
+ * to kCap entries, in a buffer from the firmware's allocator (0x40082a40).
  *   Rytm -> Teensy  F0 7D 52 54 0D <folder hi> <lo> F7
  *   Teensy -> Rytm  F0 7D 52 54 0E <folder hi lo> <parent hi lo> <first hi lo>
  *                   <total hi lo> { <kind> <id hi lo> <size 4 x 7 bits, high
@@ -53,14 +53,14 @@ struct node { uint8_t b0, b1; uint16_t pad; uint32_t f4, f8, f12; uint8_t rest[1
  * kind 1: a subfolder (id: its folder number), 0: a file (id: its position).
  * Teensy folder numbers are the Teensy index's (0: /Samples = TEENSY). The
  * Teensy's SysEx reaches 0e_handler through 0022's router, which calls the
- * hook in the mailbox at 0x401b9a74 (magic 'TDRV') when it is there. The mailbox
+ * hook in the mailbox at 0x401b9d18 (magic 'TDRV') when it is there. The mailbox
  * is 12 B since 2026-10-10: magic, td_hook (0E listings, 14 pool tables; MIDI
  * task) and td_pool_tab (0021's pool knobs read the project's pool table through
  * it, UI task; 0021 reads the third word only after the magic, and both are built
  * from one tree). */
 #define kCap 512
-#define SLEEP_US ((void (*)(uint32_t))0x40098c18u)
-#define NEW ((void *(*)(uint32_t))0x400829d4u)
+#define SLEEP_US ((void (*)(uint32_t))0x40098c84u)
+#define NEW ((void *(*)(uint32_t))0x40082a40u)
 typedef void (*void_fn)(void);
 typedef void (*send_fn)(int32_t len, const uint8_t *data);
 /* At least n free USB requests (free list 0x413db390, next at +52): else the
@@ -317,12 +317,12 @@ TD int32_t td_count(uint32_t id) {
 /* ---------------------------------------------------------------------------
  * Milestone 3: LOAD TO PROJ on TEENSY files adds them to the Teensy's pool (the
  * "static" list, streamed from its card) instead of the Rytm's memory ("flex").
- * The load job (lambda 0x400ea710) runs per ticked entry [measured, OS 1.73]:
- *   slot = 0x400b81c4(...)                  a free sample slot (< 0: memory full)
- *   ref  = 0x4007e62c(model, index)         16-byte file reference (via
- *                                           0x4007fa6e(id, ...)), struct return
- *   ok   = 0x400b712e(manager, &ref, slot)  load; counted for "N SAMPLES LOADED"
- * The job's call of 0x4007e62c (0x400ea7b4) goes to td_ref_entry - not the
+ * The load job (lambda 0x400ea77c) runs per ticked entry [measured, OS 1.73]:
+ *   slot = 0x400b8230(...)                  a free sample slot (< 0: memory full)
+ *   ref  = 0x4007e698(model, index)         16-byte file reference (via
+ *                                           0x4007fada(id, ...)), struct return
+ *   ok   = 0x400b719a(manager, &ref, slot)  load; counted for "N SAMPLES LOADED"
+ * The job's call of 0x4007e698 (0x400ea820) goes to td_ref_entry - not the
  * function itself, which the browser also calls per visible row. For a Teensy
  * file it sends 0F <folder hi lo> <file hi lo> to the Teensy and returns a
  * marked reference. The load function itself is wrapped (td_load_entry): a
@@ -331,11 +331,11 @@ TD int32_t td_count(uint32_t id) {
  * it into the slot (it does that first, so a project could save it).
  *
  * Milestone 4 guards [review, 2026-10-08; design.md]:
- *   0x4007c5d4  id -> path: Teensy ids have none (0), at once - not after a
+ *   0x4007c640  id -> path: Teensy ids have none (0), at once - not after a
  *               walk of the fake node
- *   0x4007fff4  a reference's check: Teensy ids are not found (-1), so the
- *               stock loaders (the slot browser 0x400e37fe, ..) pass them over
- *   0x400ea646  CREATE DIR's mkdir: refused (-1, "ERROR") when the folder's
+ *   0x40080060  a reference's check: Teensy ids are not found (-1), so the
+ *               stock loaders (the slot browser 0x400e386a, ..) pass them over
+ *   0x400ea6b2  CREATE DIR's mkdir: refused (-1, "ERROR") when the folder's
  *               path is "" - inside TEENSY, which has none; else it made the
  *               folder in the +Drive's root
  * ------------------------------------------------------------------------- */
@@ -395,7 +395,7 @@ __asm__(
     "td_readdir_stock:\n"
     "  lea %sp@(-24),%sp\n"
     "  moveml %d2-%d5/%a2-%a3,%sp@\n"
-    "  jmp 0x4007c050\n"
+    "  jmp 0x4007c0bc\n"
     "  .globl td_resolve_entry\n"
     "td_resolve_entry:\n"
     "  jmp td_resolve\n"
@@ -403,7 +403,7 @@ __asm__(
     "td_resolve_stock:\n"
     "  lea %sp@(-16),%sp\n"
     "  moveml %d2-%d3/%a2-%a3,%sp@\n"
-    "  jmp 0x400804a0\n"
+    "  jmp 0x4008050c\n"
     "  .globl td_exists_entry\n"
     "td_exists_entry:\n"
     "  jmp td_exists\n"
@@ -411,7 +411,7 @@ __asm__(
     "td_exists_stock:\n"
     "  movel %d2,%sp@-\n"
     "  movel %sp@(8),%d1\n"
-    "  jmp 0x4008076c\n"
+    "  jmp 0x400807d8\n"
     "  .globl td_size_entry\n"
     "td_size_entry:\n"
     "  jmp td_size\n"
@@ -419,7 +419,7 @@ __asm__(
     "td_size_stock:\n"
     "  lea %sp@(-32),%sp\n"
     "  moveml %d2-%d5/%a2,%sp@\n"
-    "  jmp 0x400808ac\n"
+    "  jmp 0x40080918\n"
     /* No real folder or file named TEENSY (any case) in the +Drive's root: it
        would list as a second TEENSY beside the Teensy's (review MEDIUM 6;
        Transfer's mkdir /TEENSY/x made one, as on stock). td_tname(a0 = a name):
@@ -445,7 +445,7 @@ __asm__(
     "4:\n"
     "  moveq #-1,%d0\n"
     "  rts\n"
-    /* 0x4007b3b0(parent, name, node, ..) -> 0, -1: every new entry in a folder
+    /* 0x4007b41c(parent, name, node, ..) -> 0, -1: every new entry in a folder
        (mkdir, file create, rename, move): none named TEENSY in the root (id 2) */
     "  .globl td_link_entry\n"
     "td_link_entry:\n"
@@ -458,11 +458,11 @@ __asm__(
     "5:\n"
     "  lea %sp@(-56),%sp\n"
     "  moveml %d2-%d7/%a2-%fp,%sp@\n"
-    "  jmp 0x4007b3b8\n"
-    /* 0x4007c170(path) -> 0, -1: mkdir. Refused for /TEENSY and anything under
+    "  jmp 0x4007b424\n"
+    /* 0x4007c1dc(path) -> 0, -1: mkdir. Refused for /TEENSY and anything under
        it: Transfer's mkdir makes each level in turn, and stock mkdir reads the
        name at a stale offset when the parent is missing [measured: stock 1.73,
-       mkdir /factory/x/y, a wild read at 0x4007c1d2] */
+       mkdir /factory/x/y, a wild read at 0x4007c23e] */
     "  .globl td_mkdir_entry\n"
     "td_mkdir_entry:\n"
     "  movel %sp@(4),%d0\n"
@@ -479,7 +479,7 @@ __asm__(
     "7:\n"
     "  linkw %fp,#-24\n"
     "  moveml %d2-%d3/%a2-%a3,%sp@\n"
-    "  jmp 0x4007c178\n"
+    "  jmp 0x4007c1e4\n"
     "  .globl td_count_entry\n"
     "td_count_entry:\n"
     "  jmp td_count\n"
@@ -488,8 +488,8 @@ __asm__(
     "  movel %a2,%sp@-\n"
     "  movel %d2,%sp@-\n"
     "  tstl 0x41843c70\n"
-    "  jmp 0x40080854\n"
-    /* 0x4007e62c(model, index), the reference returned through a0: Teensy files
+    "  jmp 0x400808c0\n"
+    /* 0x4007e698(model, index), the reference returned through a0: Teensy files
        get a marked one (td_ref), the rest stock's */
     "  .globl td_ref_entry\n"
     "td_ref_entry:\n"
@@ -507,10 +507,10 @@ __asm__(
     "1:\n"
     "  linkw %fp,#-16\n"
     "  moveal %fp@(8),%a1\n"
-    "  jmp 0x4007e634\n"
+    "  jmp 0x4007e6a0\n"
     "  .section .td3,\"ax\"\n"
     "  .align 2\n"
-    /* 0x4007c5d4(id, .., buffer) -> path or 0 */
+    /* 0x4007c640(id, .., buffer) -> path or 0 */
     "  .globl td_path_entry\n"
     "td_path_entry:\n"
     "  movel %sp@(4),%d0\n"
@@ -522,8 +522,8 @@ __asm__(
     "1:\n"
     "  lea %sp@(-324),%sp\n"
     "  moveml %d2-%d7/%a2-%fp,%sp@\n"
-    "  jmp 0x4007c5dc\n"
-    /* 0x4007fff4(&ref, out) -> 1..4 found, -1 not */
+    "  jmp 0x4007c648\n"
+    /* 0x40080060(&ref, out) -> 1..4 found, -1 not */
     "  .globl td_check_entry\n"
     "td_check_entry:\n"
     "  movel %sp@(4),%d0\n"
@@ -538,8 +538,8 @@ __asm__(
     "1:\n"
     "  lea %sp@(-24),%sp\n"
     "  moveml %d2/%a2-%fp,%sp@\n"
-    "  jmp 0x4007fffc\n"
-    /* CREATE DIR (invoker 0x400ea54a): mkdir(path) -> 0 made. a4 is the
+    "  jmp 0x40080068\n"
+    /* CREATE DIR (invoker 0x400ea5b6): mkdir(path) -> 0 made. a4 is the
        invoker's, its +4 the folder's path */
     "  .globl td_mkdir_guard\n"
     "td_mkdir_guard:\n"
@@ -552,7 +552,7 @@ __asm__(
     "  moveq #-1,%d0\n"
     "  rts\n"
     "2:\n"
-    "  jmp 0x4007c170\n");
+    "  jmp 0x4007c1dc\n");
 
 /* ---------------------------------------------------------------------------
  * The project's Teensy pool in the stock slot list (2026-10-09; research:
@@ -561,16 +561,16 @@ __asm__(
  * stock slot list ("0:OFF", "1:name", "2:---", ..). Six of the list's and the
  * slot browser's calls come here (registry patches); on that track they answer
  * with the Teensy pool instead of the Rytm's sample slots:
- *   0x400e3c54  row label, slot empty?       td_empty: the pool slot's
- *   0x400e3cae  row label, slot name         td_name_entry: its name
- *   0x400e44ba  YES: slot empty?             td_empty (empty: the browser)
- *   0x400e45e8  YES/FUNC+YES: new browser    td_browse_entry: slot | 0x1000
- *   0x400e38c8  the browser's slot file      td_slotref_entry: none for
+ *   0x400e3cc0  row label, slot empty?       td_empty: the pool slot's
+ *   0x400e3d1a  row label, slot name         td_name_entry: its name
+ *   0x400e4526  YES: slot empty?             td_empty (empty: the browser)
+ *   0x400e4654  YES/FUNC+YES: new browser    td_browse_entry: slot | 0x1000
+ *   0x400e3934  the browser's slot file      td_slotref_entry: none for
  *                                            | 0x1000 (opens at the root)
- *   0x400e60ac  a row's ">N" mark            td_mark_entry: a TEENSY file's
+ *   0x400e6118  a row's ">N" mark            td_mark_entry: a TEENSY file's
  *                                            pool slot
  * Picking a TEENSY file in such a browser reaches td_load_entry (the load,
- * 0x400b712e) with slot | 0x1000: td_assign sends 10 <project> and
+ * 0x400b719a) with slot | 0x1000: td_assign sends 10 <project> and
  * 12 <slot> <f hi lo> <e hi lo>, and puts the file in the table at once. The
  * Teensy keeps the pool (slot N = line N-1 of its pool file) and pushes the
  * table: 14 <replace> <count> {<slot> <f hi lo> <e hi lo> <13 name bytes>};
@@ -671,7 +671,7 @@ TD5 int td_hook(const uint8_t *d, int32_t len) {
   return d[4] == 0x14 ? td_pool_sysex(d, len) : td_sysex(d, len);
 }
 
-/* 0x400b8126(acc, i) on the list's two call sites: is slot i empty? */
+/* 0x400b8192(acc, i) on the list's two call sites: is slot i empty? */
 int32_t td_empty_stock(void *acc, int32_t i);
 TD5 int32_t td_empty(void *acc, int32_t i) {
   struct pslot *s;
@@ -738,7 +738,7 @@ TD5 int32_t td_assign(const uint32_t *ref, uint32_t slot) {
 __asm__(
     "  .section .td5,\"ax\"\n"
     "  .align 2\n"
-    /* 0x400b712e(manager, &ref, slot): a pool slot's pick (slot | 0x1000) is
+    /* 0x400b719a(manager, &ref, slot): a pool slot's pick (slot | 0x1000) is
        td_assign's; a marked reference is loaded already, another Teensy one
        fails (0) */
     "  .globl td_load_entry\n"
@@ -767,14 +767,14 @@ __asm__(
     "3:\n"
     "  linkw %fp,#-28\n"
     "  moveml %d2-%d4/%a2,%sp@\n"
-    "  jmp 0x400b7136\n"
-    /* 0x400b8126(acc, i): stock's own first instructions, then back in */
+    "  jmp 0x400b71a2\n"
+    /* 0x400b8192(acc, i): stock's own first instructions, then back in */
     "  .globl td_empty_stock\n"
     "td_empty_stock:\n"
     "  moveq #127,%d1\n"
     "  movel %sp@(8),%d0\n"
-    "  jmp 0x400b812c\n"
-    /* 0x400b80ae(acc, i), the std::string out in a0: the pool's name, or stock */
+    "  jmp 0x400b8198\n"
+    /* 0x400b811a(acc, i), the std::string out in a0: the pool's name, or stock */
     "  .globl td_name_entry\n"
     "td_name_entry:\n"
     "  movel %a0,%sp@-\n"
@@ -784,19 +784,19 @@ __asm__(
     "  moveal %sp@+,%a0\n"
     "  tstl %d0\n"
     "  jne 1f\n"
-    "  jmp 0x400b80ae\n"
+    "  jmp 0x400b811a\n"
     "1:\n"
-    "  subql #4,%sp\n"               /* the allocator byte 0x401bcd4c wants */
+    "  subql #4,%sp\n"               /* the allocator byte 0x401bcff0 wants */
     "  movel %a0,%sp@-\n"
     "  pea %sp@(4)\n"
     "  movel %d0,%sp@-\n"
     "  movel %a0,%sp@-\n"
-    "  jsr 0x401bcd4c\n"
+    "  jsr 0x401bcff0\n"
     "  lea %sp@(12),%sp\n"
     "  movel %sp@+,%d0\n"
     "  addql #4,%sp\n"
     "  rts\n"
-    /* 0x400e37fe(browser, slot): the pool's slots marked */
+    /* 0x400e386a(browser, slot): the pool's slots marked */
     "  .globl td_browse_entry\n"
     "td_browse_entry:\n"
     "  jsr td_pool_ctx\n"
@@ -806,15 +806,15 @@ __asm__(
     "  oril #0x1000,%d0\n"
     "  movel %d0,%sp@(8)\n"
     "2:\n"
-    "  jmp 0x400e37fe\n"
-    /* 0x400b7228(project, slot), the 16-byte file reference out in a0: none
-       (-1, as 0x4027c1e8) for a pool slot */
+    "  jmp 0x400e386a\n"
+    /* 0x400b7294(project, slot), the 16-byte file reference out in a0: none
+       (-1, as 0x4027c548) for a pool slot */
     "  .globl td_slotref_entry\n"
     "td_slotref_entry:\n"
     "  movel %sp@(8),%d0\n"
     "  andil #0x1000,%d0\n"
     "  jne 3f\n"
-    "  jmp 0x400b7228\n"
+    "  jmp 0x400b7294\n"
     "3:\n"
     "  moveq #-1,%d0\n"
     "  movel %d0,%a0@\n"
@@ -823,14 +823,14 @@ __asm__(
     "  clrl %a0@(12)\n"
     "  movel %a0,%d0\n"
     "  rts\n"
-    /* 0x400b8348(accessor, reference by value): a TEENSY file's pool slot */
+    /* 0x400b83b4(accessor, reference by value): a TEENSY file's pool slot */
     "  .globl td_mark_entry\n"
     "td_mark_entry:\n"
     "  movel %sp@(8),%d0\n"
     "  andil #0xFF800000,%d0\n"
     "  cmpil #0x7E800000,%d0\n"
     "  jeq 4f\n"
-    "  jmp 0x400b8348\n"
+    "  jmp 0x400b83b4\n"
     "4:\n"
     "  jsr td_pool_ctx\n"
     "  tstl %d0\n"

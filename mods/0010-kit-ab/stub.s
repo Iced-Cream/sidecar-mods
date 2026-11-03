@@ -23,14 +23,14 @@
         .equ    KIT_SIZE,       0x9e3
         .equ    WORKING,        352               | the working kit, in the project
         .equ    PROJECT_READY,  40                | project vtable: false and reload does nothing
-        .equ    STOCK_MSG,      0x402578ae        | "KIT RELOADED!", kit_reload_key's
-        .equ    STOCK_MSG_KEY,  0x40255ea6        | "KIT %d RELOADED!", NO + PLAY's
-        .equ    FROM_KEY,       0x400cd4b4        | the return address from NO + PLAY's call
+        .equ    STOCK_MSG,      0x40257bde        | "KIT RELOADED!", kit_reload_key's
+        .equ    STOCK_MSG_KEY,  0x402561d6        | "KIT %d RELOADED!", NO + PLAY's
+        .equ    FROM_KEY,       0x400cd520        | the return address from NO + PLAY's call
 
         .text
 
         | ------------------------------------------------------------------
-        | kit_ab_toggle(project): in place of kit_reload, called at 0x400dd5de.
+        | kit_ab_toggle(project): in place of kit_reload, called at 0x400dd64a.
         | The popup that follows prints kab_msg, which this fills.
         |
         | a2 the project, a3 its working kit, a4 kit_working_data, a5 this mod's

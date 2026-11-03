@@ -853,7 +853,7 @@ def t_fetchrace(e):
 # ---- 1052d: the user's key rules under a page (NO + a reload key; YES's timing)
 CATCH = (0x40, 0x41, 0x42, 0x43, 0x44, 0x45, 0x84, 0x30, 0x31, 0x32, 0x33, 0x34, 0x35, 0x10, 0xB0, 0xB4, 0xB5, 0xB1, 0x81,
          0x82, 0x86)   # rytm-teensy core/ui/remote.cpp kCatchKeys (a voice / status page)
-RELOAD_PAT, RELOAD_TRK, RELOAD_KIT, SAVE_KIT = 0x400AF5E0, 0x400AF64A, 0x400AF0D2, 0x400B119C
+RELOAD_PAT, RELOAD_TRK, RELOAD_KIT, SAVE_KIT = 0x400AF64C, 0x400AF6B6, 0x400AF13E, 0x400B1208
 
 
 def mask37(keys):
@@ -888,7 +888,7 @@ def held_keys(e, snap):
 
 def t_noreload(e):
     """1052d (the user): on a page that catches NO (kCatchKeys), NO held + PLAYMODE / SCNE / CHRO is stock's reload of
-    the kit / pattern / track (kit_reload, 0x400af5e0, 0x400af64a once) and the host sees neither key; NO alone is still
+    the kit / pattern / track (kit_reload, 0x400af64c, 0x400af6b6 once) and the host sees neither key; NO alone is still
     the page's back (31 NO down / up, at its release, no reload); NO held + LEFT (another caught key): the host gets NO
     down, LEFT down / up, NO up in that order. No key stuck in 0026's books."""
     cnt = []

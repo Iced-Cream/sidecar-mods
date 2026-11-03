@@ -28,7 +28,7 @@ check, evs, sx = S.check, S.evs, S.sx
 LIVE_LOCKS_BD = 0x407e0774        # pc_emu.py: live locks +5674 t + 88 step + 2 k [measured]
 ST_PAT = 0x405c8f38               # pc_emu.py: bank pattern i's stored copy at + 13101 (i + 1), +0x2091 the lock slots
 DIALOGS = ["YES@2600M", "NO@3000M", "NO@3400M", "NO@3800M"]   # us_base.sh's cold-boot answers
-B_REC_P1 = 0x401bf918 + 0x34 * 398          # the shared SRC record P1 (398): +0x0c max, +0x14 the fine flag
+B_REC_P1 = 0x401bfbc8 + 0x34 * 398          # the shared SRC record P1 (398): +0x0c max, +0x14 the fine flag
 REC_FINE = B_REC_P1 + 0x14
 DOWNS = dict(wt=25, gr=26, ms=31, ds=24, fm=20, jn=21)   # us_ui.json: DSP SAMPLE 24, WAVETABLE 25, GRANULAR 26, (1051: LIVE IN 27, CHOP 28, 7o: MIDI 29,) DAISYSP 30, MULTISAMP last
 MACH = dict(wt=46, gr=47, ms=52, ds=45, fm=40, jn=41)
@@ -505,7 +505,7 @@ def t_scale(e):
     sv = e.peek(r["snap"][0], e.sym("sv") + 88, 4).hex()
     print(f"  top view {sv}; keys to the host {[(x['code'], x['down']) for x in evs(r, 'key')]}")
     check("scale: (control) the page open shows the host's frame", a["oled"] == bytes(fb), S.diff(a["oled"], bytes(fb)))
-    check("scale: FUNC + PAGE with the page open: stock's SCALE menu on top (ScaleMenuView 401d1e74)", sv == "401d1e74", sv)
+    check("scale: FUNC + PAGE with the page open: stock's SCALE menu on top (ScaleMenuView 401d1e74)", sv == "401d2124", sv)
     check("scale: the screen is stock's SCALE menu, as on a Rytm whose page never opened", r["oled"] == ref["oled"] and
           r["oled"] != bytes(fb), S.diff(r["oled"], ref["oled"]))
     check("scale: PAGE never reached the host", 0x84 not in [x["code"] for x in evs(r, "key")], evs(r, "key"))
@@ -527,21 +527,21 @@ HOST_KEYS = [0x40, 0x41, 0x42, 0x43, 0x44, 0x45, 0x84, 0x30, 0x31, 0x32, 0x33, 0
 # the stock overlays the host's mask leaves reachable with the page open: (name, keys, the overlay's vtable) [measured,
 # rytm-emu rui1042: each one's top view on a Rytm whose page never opened]
 POPUPS = [
-    ("tempo", [(1200, "press", "TEMPO")], "401d55dc"),                                          # TempoMenuView
-    ("taptempo", [(1200, "press", "FUNC", 1000), (1300, "press", "TEMPO", 800)], "401d54c0"),    # TapTempoView
-    ("ptnmode", [(1200, "press", "FUNC", 400), (1300, "press", "BANK_A")], "401d6e18"),          # PopupWindow PTN: ...
-    ("copy", [(1200, "press", "FUNC", 400), (1300, "press", "RECORD")], "401d6e18"),             # PopupWindow COPY PATTERN
-    ("fix", [(1200, "press", "FUNC", 400), (1300, "press", "FIX")], "40234b90"),                 # FixSetupMenuView
-    ("click", [(1200, "press", "FUNC", 400), (1300, "press", "RTRG")], "401cd758"),              # MetronomeMenuView
-    ("sound", [(1200, "press", "FUNC", 400), (1300, "press", "MUTE")], "401e8df8"),              # SoundMenuView
-    ("song", [(1200, "press", "FUNC", 400), (1300, "press", "PERF")], "401d2694"),               # SongMenuView
-    ("pattern", [(1200, "press", "FUNC", 400), (1300, "press", "SCNE")], "401e6294"),            # PatternMenuView
-    ("track", [(1200, "press", "FUNC", 400), (1300, "press", "CHRO")], "401ec0fc"),              # TrackMenuView
-    ("browser", [(1200, "press", "FUNC", 400), (1300, "press", "PUSH_LEVEL")], "401d2904"),      # SoundBrowser
+    ("tempo", [(1200, "press", "TEMPO")], "401d588c"),                                          # TempoMenuView
+    ("taptempo", [(1200, "press", "FUNC", 1000), (1300, "press", "TEMPO", 800)], "401d5770"),    # TapTempoView
+    ("ptnmode", [(1200, "press", "FUNC", 400), (1300, "press", "BANK_A")], "401d70c8"),          # PopupWindow PTN: ...
+    ("copy", [(1200, "press", "FUNC", 400), (1300, "press", "RECORD")], "401d70c8"),             # PopupWindow COPY PATTERN
+    ("fix", [(1200, "press", "FUNC", 400), (1300, "press", "FIX")], "40234ec0"),                 # FixSetupMenuView
+    ("click", [(1200, "press", "FUNC", 400), (1300, "press", "RTRG")], "401cda08"),              # MetronomeMenuView
+    ("sound", [(1200, "press", "FUNC", 400), (1300, "press", "MUTE")], "401e90a8"),              # SoundMenuView
+    ("song", [(1200, "press", "FUNC", 400), (1300, "press", "PERF")], "401d2944"),               # SongMenuView
+    ("pattern", [(1200, "press", "FUNC", 400), (1300, "press", "SCNE")], "401e6544"),            # PatternMenuView
+    ("track", [(1200, "press", "FUNC", 400), (1300, "press", "CHRO")], "401ec3ac"),              # TrackMenuView
+    ("browser", [(1200, "press", "FUNC", 400), (1300, "press", "PUSH_LEVEL")], "401d2bb4"),      # SoundBrowser
     ("save", [(1150, "press", "FUNC", 250), (1200, "press", "SCNE"), (1400, "press", "DOWN"), (1550, "press", "YES")],
-     "401d6e18"),                                                     # PATTERN menu, SAVE PATTERN: PopupWindow SAVED
+     "401d70c8"),                                                     # PATTERN menu, SAVE PATTERN: PopupWindow SAVED
     ("songname", [(1100, "press", "FUNC", 400), (1200, "press", "PERF"), (1500, "press", "DOWN"), (1600, "press", "DOWN"),
-                  (1700, "press", "YES")], "401d6af4", 2400),               # SONG menu, SAVE: NameView (the name prompt)
+                  (1700, "press", "YES")], "401d6da4", 2400),               # SONG menu, SAVE: NameView (the name prompt)
 ]
 
 
@@ -582,7 +582,7 @@ def t_popups(e):
     # TEMPO's UP edits the tempo as stock (+0.1 BPM a press; knobs A..H and LEVEL do not, stock 1.73 in rytm-emu); NO
     # closes the menu: the host's frame, the page still open
     tk = [(1200, "press", "TEMPO"), (1500, "press", "UP"), (1700, "press", "UP")]
-    tempo = lambda x: int.from_bytes(e.peek(x["snap"][0], 0x40287c9c, 4), "big")   # noqa: E731
+    tempo = lambda x: int.from_bytes(e.peek(x["snap"][0], 0x40287ffc, 4), "big")   # noqa: E731
     a = e.run("pop-tempo-knob", 2200, opened + tk, sends=sends)
     b = e.run("pop-tempo-knob-ref", 2200, tk)
     print(f"  tempo word: page {tempo(a)}, stock {tempo(b)}; keys to the host {evs(a, 'key')[:3]}")
@@ -654,7 +654,7 @@ def t_tbldef(e):
 
 
 # ---- 1045: DSP SAMPLE's SMP banked (word 19, P11: index << 8 | bank << 5, the SAMPLES pool's 8 banks) -------------
-REC = lambda r: 0x401bf918 + 0x34 * r   # noqa: E731  (a parameter record: +0x04 index, +0x0c max, +0x14 fine)
+REC = lambda r: 0x401bfbc8 + 0x34 * r   # noqa: E731  (a parameter record: +0x04 index, +0x0c max, +0x14 fine)
 REC_SMP = 441          # DSP SAMPLE's own word-19 record since 1045 (was stock's 41; TUN, word 17, is stock's 39)
 P_SMP = 10             # P11 = word 19 (sound index 9 + 10)
 
@@ -685,7 +685,7 @@ def t_dspknob(e):
         b2 = [x["vt"] for x in evs(r, "v2b")]
         print(f"  {d}: word 19 {w:#06x}, tops {sorted(set(b2))}")
         check(f"dspknob {d}: one index a detent, bank C kept ({want:#06x})", w == want, hex(w))
-        check(f"dspknob {d}: stock's SAMPLE SLOT list never opened (no SampleListView on top)", "401e70d4" not in b2, b2)
+        check(f"dspknob {d}: stock's SAMPLE SLOT list never opened (no SampleListView on top)", "401e7384" not in b2, b2)
     rs = e.peek(sn[0], REC(REC_SMP), 0x34)
     r41 = e.peek(sn[0], REC(41), 0x34)
     r39 = e.peek(sn[0], REC(39), 0x28)
@@ -965,7 +965,7 @@ def t_latehost(e):
 
 # 1048: POLY CONFIG, the track menu's last item (FUNC + CHRO; TRIGS SETUP, PAD SCALE, RELOAD TRACK, SAVE TRACK, U1..U5,
 # POLY CONFIG [measured]). The menu opens on its first item; nine DOWNs reach the tenth.
-VT_TRACKMENU, VT_POPUP = "401ec0fc", "401d6e18"
+VT_TRACKMENU, VT_POPUP = "401ec3ac", "401d70c8"
 TO_POLY = [(1000, "press", "FUNC", 300), (1050, "press", "CHRO")] + [(1600 + 200 * i, "press", "DOWN") for i in range(9)]
 PM = ("owed", "adds", "picks", "opens", "hints", "nohost", "notrack")
 

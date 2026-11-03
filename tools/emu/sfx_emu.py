@@ -29,14 +29,14 @@ FREE_SLOT = 14               # led.img's A01 uses lock slots 0..13 [measured]
 
 
 def hook_addr(e):
-    """Where to count sfx_hook's calls: its cave entry (0x402cc920), or with 0025 in elekloader's area (dtboot counts
-    only inside the OS image) the detour site 0x401213a0, which runs once a call."""
+    """Where to count sfx_hook's calls: its cave entry (0x402ccc80), or with 0025 in elekloader's area (dtboot counts
+    only inside the OS image) the detour site 0x4012140c, which runs once a call."""
     import json
     m = json.load(open(os.path.join(e.out, "manifest.json")))
     for d in m.get("detours", []):
         if d.get("entry") == "sfx_hook":
             return d["addr"] if d.get("elek") else d["target"]
-    return 0x402cc920
+    return 0x402ccc80
 
 
 def lockslot(typ, track, steps):
@@ -402,11 +402,11 @@ def t_reload(e):
     ev.append((yes2, "press", "YES"))
     start = e.clock + t + 1200
     end = yes2 + 2000
-    e.run("reload-run", end, ev, snap=s, start=start, count=[0x400af0d2, 0x400b131a], extra=["--every", "5M"],
+    e.run("reload-run", end, ev, snap=s, start=start, count=[0x400af13e, 0x400b1386], extra=["--every", "5M"],
           env={"DTBOOT_PEEK": "8000e5b0"})
     rows = sfx_rows(e, "reload-run")
-    U.check("reload: RELOAD KIT ran once (0x400af0d2), RELOAD ALL once (0x400b131a)",
-            e.counts.get(0x400af0d2) == 1 and e.counts.get(0x400b131a) == 1, str(e.counts))
+    U.check("reload: RELOAD KIT ran once (0x400af13e), RELOAD ALL once (0x400b1386)",
+            e.counts.get(0x400af13e) == 1 and e.counts.get(0x400b1386) == 1, str(e.counts))
     pre = [v for w, tr, v in rows if w < start + yes1]
     U.check("reload: the edits were reported before the reload (BD and FX values other than the saved ones)",
             any(v != (SFX_S[0],) for v in pre if len(v) == 1) and any(v != tuple(SFX_S[1]) for v in pre if len(v) == 6),
@@ -518,7 +518,7 @@ def t_kitswitch(e):
 
 
 def t_nokit(e):
-    """(2026-10-30, the user's key) SAVE KIT, SEND FX 1 / 2 knob edits on the FX track, NO + KIT (0x400cd4ae ->
+    """(2026-10-30, the user's key) SAVE KIT, SEND FX 1 / 2 knob edits on the FX track, NO + KIT (0x400cd51a ->
     kit_reload) from that page, stopped; then PLAY, edits, NO + KIT again: each reload sends 4C RELOAD (0026) and the
     SENDFX reports carry the saved FX words from then on, none reverting."""
     ev, t = U.kit_menu(100, 2)
@@ -531,11 +531,11 @@ def t_nokit(e):
     ev += [(nk1, "press", "NO:80M"), (nk1 + 20, "press", "PLAYMODE"), (play, "press", "PLAY")] + edits(play + 300)
     ev += [(nk2, "press", "NO:80M"), (nk2 + 20, "press", "PLAYMODE")]
     start = e.clock + t + 1200
-    e.run("nokit-run", end, ev, snap=s, start=start, count=[0x400cd4ae, 0x400af0d2], extra=["--every", "5M"],
+    e.run("nokit-run", end, ev, snap=s, start=start, count=[0x400cd51a, 0x400af13e], extra=["--every", "5M"],
           env={"DTBOOT_PEEK": "8000e5b0"})
     kr = [m for m in e.sent if len(m) >= 7 and m[4] == 0x4c and m[6] == 2]
-    U.check("nokit: NO + KIT twice - the stock combo's kit_reload call (0x400cd4ae) twice, 4C RELOAD twice",
-            e.counts.get(0x400cd4ae) == 2 and e.counts.get(0x400af0d2) == 2 and len(kr) == 2,
+    U.check("nokit: NO + KIT twice - the stock combo's kit_reload call (0x400cd51a) twice, 4C RELOAD twice",
+            e.counts.get(0x400cd51a) == 2 and e.counts.get(0x400af13e) == 2 and len(kr) == 2,
             f"{e.counts}, {[m.hex() for m in kr]}")
     rows = [(w, v) for w, tr, v in sfx_rows(e, "nokit-run") if tr == 12]
     want = tuple(SFX_S[1])

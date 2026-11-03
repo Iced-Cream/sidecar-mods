@@ -33,7 +33,7 @@ KIT = 0x4125590d            # resident kit k, track t: + 2531 k + 152 t (the liv
 POOL = 0x41313c47           # sound pool entry i: + 152 i
 MACH, TAG = 0x68, 0x6e      # machine byte, tag (+0x6e / +0x6f, 14 bits)
 FP_A, FP_B, FP_C = U.FP_A, U.FP_B, P.plugin_fp("rytm.third")
-RENDER = 0x400a2aaa         # frz_emu: the UI renders (20 Hz)
+RENDER = 0x400a2b16         # frz_emu: the UI renders (20 Hz)
 
 
 def kit(k, t):
@@ -162,11 +162,11 @@ def t_load(e):
     yes = ev[-1][0]   # the load's last key (LOAD PROJECT's YES)
     play = t          # PLAY at the end of proj_keys' wait (5000M after that YES)
     ev.append((play, "press", "PLAY"))
-    s4, rows = run(e, "load", play + 400, ev, snap=s3, start=clk, card=c, count=[0x4011f6bc])
-    loads = e.counts.get(0x4011f6bc, 0)
+    s4, rows = run(e, "load", play + 400, ev, snap=s3, start=clk, card=c, count=[0x4011f728])
+    loads = e.counts.get(0x4011f728, 0)
     ps = [x for x in prints(rows) if x[1]]
     after = [x for x in ps if x[1]["entries"]]
-    U.check(f"load: LOAD PROJECT ({name!r}) ran a load (0x4011f6bc {loads})", loads >= 1)
+    U.check(f"load: LOAD PROJECT ({name!r}) ran a load (0x4011f728 {loads})", loads >= 1)
     U.check("load: after the load a 25 lists LOADSET again, from the card, seq moved from the wiped one",
             bool(after) and after[0][1]["entries"] == WANT3 and after[0][1]["seq"] != wiped_seq,
             desc(after[0][1] if after else None))
@@ -198,11 +198,11 @@ def t_change(e):
     sq = ps[0][1]["seq"] if ps else None
     ev, t3 = U.kit_menu(100, 0)   # RELOAD
     ev += [(t3 + 200, "press", "YES")]
-    s3, rows = run(e, "change-reload", t3 + 800, ev, snap=s, start=e.clock + t2 + 400, count=[0x4011f6bc])
+    s3, rows = run(e, "change-reload", t3 + 800, ev, snap=s, start=e.clock + t2 + 400, count=[0x4011f728])
     ps = [p for p in prints(rows) if p[1]]
     U.check("change: RELOAD KIT (BD back as saved, untagged) - a load, then a 25 with n 0 and seq moved again",
-            e.counts.get(0x4011f6bc, 0) >= 1 and bool(ps) and ps[-1][1]["entries"] == [] and ps[-1][1]["seq"] != sq,
-            f"loads {e.counts.get(0x4011f6bc)}, {desc(ps[-1][1] if ps else None)}")
+            e.counts.get(0x4011f728, 0) >= 1 and bool(ps) and ps[-1][1]["entries"] == [] and ps[-1][1]["seq"] != sq,
+            f"loads {e.counts.get(0x4011f728)}, {desc(ps[-1][1] if ps else None)}")
 
 
 def t_trunc(e):

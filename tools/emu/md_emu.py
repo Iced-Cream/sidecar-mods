@@ -107,8 +107,8 @@ def rec_names(e, s, recs=None):
 
 
 def src_row(e, s):
-    """Machine 42's SRC page row (0x40287cc8 + 36 m: name, 8 records)."""
-    b = e.peek(s, 0x40287ccc + 36 * 42, 32)
+    """Machine 42's SRC page row (0x40288028 + 36 m: name, 8 records)."""
+    b = e.peek(s, 0x4028802c + 36 * 42, 32)
     return [int.from_bytes(b[i:i + 4], "big") for i in range(0, 32, 4)]
 
 
@@ -125,7 +125,7 @@ def t_list(e):
     ev, t = U.walk_list(100, DOWNS_MD, confirm=False)
     s = e.run("list-preview", t + 300, ev, save=True)
     check("list: the cursor is on machine 42", e.peek(s, 0x8000ea00, 1)[0] == 42, str(e.peek(s, 0x8000ea00, 1)[0]))
-    check("list: 42's names are MD / MD", (e.cstr(s, e.u32(s, 0x401bf0f4)), e.cstr(s, e.u32(s, 0x401bf0f8))) == ("MD", "MD"))
+    check("list: 42's names are MD / MD", (e.cstr(s, e.u32(s, 0x401bf3a4)), e.cstr(s, e.u32(s, 0x401bf3a8))) == ("MD", "MD"))
     got = kit16(e, s)
     check("list: previewing converts nothing: no tag, P9..P11 not ENGINE TYPE LEV 0 0 100", tag_kit(e, s) == 0 and
           got[8:11] != [0, 0, 100], f"tag {tag_kit(e, s):#x} {got}")
@@ -305,9 +305,9 @@ def t_kit(e):
     ev2 += [(t2 + 200, "press", "YES"), (t2 + 400, "press", "YES")]
     ev3, t3 = U.kit_menu(t2 + 1000, 0)
     ev3 += [(t3 + 200, "press", "YES")]
-    s2 = e.run("kit-reload", t3 + 800, ev2 + ev3, snap=s1, start=e.clock + t + 800, save=True, count=[0x4011f6bc])
-    check("kit: SAVE KIT, RELOAD: one load, the words as saved, the tag and the marker kept", e.counts.get(0x4011f6bc) == 1 and kit16(e, s2) == edited and
-          tag_kit(e, s2) == MD_TAG and marker(e, s2), f"{e.counts.get(0x4011f6bc)} {kit16(e, s2)} {tag_kit(e, s2):#x}")
+    s2 = e.run("kit-reload", t3 + 800, ev2 + ev3, snap=s1, start=e.clock + t + 800, save=True, count=[0x4011f728])
+    check("kit: SAVE KIT, RELOAD: one load, the words as saved, the tag and the marker kept", e.counts.get(0x4011f728) == 1 and kit16(e, s2) == edited and
+          tag_kit(e, s2) == MD_TAG and marker(e, s2), f"{e.counts.get(0x4011f728)} {kit16(e, s2)} {tag_kit(e, s2):#x}")
     ev4, t4 = U.sound_manager(50, True, load=False)
     s3 = e.run("kit-store", t4 + 100, ev4, snap=s2, start=e.clock + t + 800 + t3 + 800, save=True)
     check("kit: the pool's entry 1 holds the tag", int.from_bytes(e.peek(s3, 0x41313cb5, 2), "big") == MD_TAG, e.peek(s3, 0x41313cb5, 2).hex())
@@ -378,7 +378,7 @@ def t_old(e):
     s2, c = S.poke_boot(e, "old", old_sound(1, OLD), snap=s, start=e.clock + t)
     rec0 = e.peek(s2, REC_PROJ, 162)
     w0 = e.peek(s2, KIT, 32)
-    s3 = e.run("old-play", 500, [(100, "press", "BD"), (300, "press", "SRC")], snap=s2, start=4400, card=c, save=True, count=[0x4011f6bc])
+    s3 = e.run("old-play", 500, [(100, "press", "BD"), (300, "press", "SRC")], snap=s2, start=4400, card=c, save=True, count=[0x4011f728])
     check("old: the kit words and the project record are bit-identical after the boot, ticks and a trig", e.peek(s3, KIT, 32) == w0 and
           e.peek(s3, REC_PROJ, 162) == rec0 and tag_kit(e, s3) == 0)
     tr = [x for x in U.trigs(e) if x.get("machine") == 0x40]
@@ -408,10 +408,10 @@ def t_kitload(e):
     check("kitload: the kit saved old", tag_kit(e, s2) == 0 and kit16(e, s2)[:2] == [12, 11], f"{tag_kit(e, s2):#x} {kit16(e, s2)}")
     ev, t3 = U.kit_menu(50, 0)
     ev += [(t3 + 200, "press", "YES"), (t3 + 300, "press", "BD")]
-    s3 = e.run("kitload", t3 + 800, ev, snap=s2, start=e.clock + t + t2 + 1000, save=True, count=[0x4011f6bc])
+    s3 = e.run("kitload", t3 + 800, ev, snap=s2, start=e.clock + t + t2 + 1000, save=True, count=[0x4011f728])
     tr = [x for x in U.trigs(e) if x.get("machine") == 0x40]
-    check("kitload: one load, tag 0, the words as stored, trigs tag 0", e.counts.get(0x4011f6bc) == 1 and tag_kit(e, s3) == 0 and kit16(e, s3)[:2] == [12, 11] and
-          bool(tr) and all(x["tag"] == 0 for x in tr), f"{e.counts.get(0x4011f6bc)} {tag_kit(e, s3):#x} {kit16(e, s3)} {tr[-1:]}")
+    check("kitload: one load, tag 0, the words as stored, trigs tag 0", e.counts.get(0x4011f728) == 1 and tag_kit(e, s3) == 0 and kit16(e, s3)[:2] == [12, 11] and
+          bool(tr) and all(x["tag"] == 0 for x in tr), f"{e.counts.get(0x4011f728)} {tag_kit(e, s3):#x} {kit16(e, s3)} {tr[-1:]}")
 
 
 def t_convert(e):

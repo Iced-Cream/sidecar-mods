@@ -6,7 +6,7 @@ enabled = false
 
 # 0020-dmach replaces the same page-2 lookups (0x4003795a, 0x4003793c,
 # 0x40007028); 0002-euclid-accents detours param_value_text's entry
-# (0x400a85e0), which 0021 patches to reach ext_pvt: never in one image.
+# (0x400a864c), which 0021 patches to reach ext_pvt: never in one image.
 # 0006-comp-preview and 0013-voice-dac: their caves (cave4, cave9, cave3, cave5) hold the user slots (R6, the user's decision of 2026-10-10).
 # 0009-main-rms: its cave (cave7's head) holds the machine choice's hooks (.us5, Task 11 review; the user's decision of 2026-10-10).
 # 0004-lfo-rnd: it packs its settings into sound index 0, which held the user slots' sound tag until 2026-10-16 and is

@@ -22,24 +22,24 @@
         | routine copies every track's into hpf_track for the audio interrupt.
         |
         | Three detours, and a fourth in the timing build:
-        |   route_all     0x401212b6  the route mask store: every voice off main
-        |   vs_main       0x40121364  after the receive buffer fills: the filter,
+        |   route_all     0x40121322  the route mask store: every voice off main
+        |   vs_main       0x401213d0  after the receive buffer fills: the filter,
         |                             in place, and the sum
-        |   vs_alt        0x4011fde2  the same on the interrupt's other path
-        |   dac_menu_add  0x400d901c  the menu's item list: DAC SUM after USB TO MAIN
-        |   t_emit        0x40121396  timing only: the timing words, before USB
+        |   vs_alt        0x4011fe4e  the same on the interrupt's other path
+        |   dac_menu_add  0x400d9088  the menu's item list: DAC SUM after USB TO MAIN
+        |   t_emit        0x40121402  timing only: the timing words, before USB
         | and, for the HPF page and knob, chained behind 0004's gates where 0004
         | is built and standing alone where it is not:
-        |   hpf_page_info 0x400ff592  page_info's out-of-range return: page 13
+        |   hpf_page_info 0x400ff5fe  page_info's out-of-range return: page 13
         |   hpf_cycle     0x4003ab86  the page key's cycle: FILTER's page 2 only
         |                             while DAC SUM is on
         |   hpf_get       0x4003846a  page_get_value: the dial, id 5
         |   hpf_delta     0x400378bc  param_apply_delta: the knob, id 5
-        |   hpf_text      0x400a85f8  param_value_text: the popup, id 5
+        |   hpf_text      0x400a8664  param_value_text: the popup, id 5
         | and for keeping the value:
         |   hpf_save      0x40008492  sound_save, after its memset: slot 42
         |   hpf_load      0x4000826a  sound_load, after its clear: the live bytes
-        |   hpf_refresh   0x400a2aae  the screen's idle tick: hpf_track
+        |   hpf_refresh   0x400a2b1a  the screen's idle tick: hpf_track
         | and for keeping DAC SUM with the project:
         |   dac_load      0x40007660  projectGlobals_t's load, after its version check
         |   dac_save      0x40007bb0  projectGlobals_t's save, before its last fields
@@ -54,13 +54,13 @@
         .equ    FRAMES,         32
         .equ    VCA_L,          0x800063ca  | uint16 per physical voice
         .equ    VCA_R,          0x800063da
-        .equ    SLOT_MAP,       0x401ef1d0  | physical voice -> receive slot, longs
-        .equ    VOICE_OWNER,    0x40290dd8  | physical voice -> owning track, bytes
+        .equ    SLOT_MAP,       0x401ef480  | physical voice -> receive slot, longs
+        .equ    VOICE_OWNER,    0x40291138  | physical voice -> owning track, bytes
         .equ    MAIN_OFF,       0x8000ed6c  | per-track main-disable bits, or
         .equ    MAIN_OFF_G,     0x8000ee58  | the global set when MAIN_OFF < 0
 
         | The output ring: four slots of 32 frames at 0x80000000 + idx * 2048,
-        | idx at OUT_IDX, 16 channels a frame. The PRE consumer at 0x4010eb26
+        | idx at OUT_IDX, 16 channels a frame. The PRE consumer at 0x4010eb92
         | writes channels 12 and 13 as (acc >> 8), logical, so a word shifted
         | left 8 is its Q31 value again.
         .equ    OUT_RING,       0x80000000
@@ -68,13 +68,13 @@
         .equ    OUT_PRE,        48          | channel 12's byte offset in a frame
         .equ    OUT_STRIDE,     64
 
-        .equ    ROUTE_RESUME,   0x401212bc
-        .equ    MAIN_RESUME,    0x4012136c        | after `lea 0x4013f56c,%a0`
-        .equ    MAIN_LEA,       0x4013f56c
-        .equ    ALT_FILL,       0x4010e944        | the other path's fill
-        .equ    ALT_RESUME,     0x4011fde8
-        .equ    FX_SENDS,       0x4010e650        | the timing build's emitter
-        .equ    EMIT_RESUME,    0x401213a0
+        .equ    ROUTE_RESUME,   0x40121328
+        .equ    MAIN_RESUME,    0x401213d8        | after `lea 0x4013f738,%a0`
+        .equ    MAIN_LEA,       0x4013f738
+        .equ    ALT_FILL,       0x4010e9b0        | the other path's fill
+        .equ    ALT_RESUME,     0x4011fe54
+        .equ    FX_SENDS,       0x4010e6bc        | the timing build's emitter
+        .equ    EMIT_RESUME,    0x4012140c
         .equ    DTCN0,          0xfc07000c        | DMA timer 0, about 130 MHz
         .equ    MUP_INT,        0x8000fbde        | compressor MUP's integer part, CC 81
         .equ    T_SLOT,         8 + 4 * 7         | voice slot 7, the timing build's channel
@@ -82,19 +82,19 @@
         .equ    COEF,           64                | (cL, cR) per slot, and a spare word
         .equ    ATAB,           132               | a per slot
 
-        | AudioRoutingMenuView's item list, 0x400d8cb6. Each item is four
+        | AudioRoutingMenuView's item list, 0x400d8d22. Each item is four
         | std::function objects on the stack - label, an empty one, the value
         | drawer, the value changer - a 0x54-byte MenuItem, and an append
         | through the view's vtable +8. The label and drawer take USB OUT's
         | managers: its lambdas capture nothing, as those do. The changer
         | captures the view, for the redraw, and has a manager of its own.
-        .equ    MENU_ITEM_CTOR, 0x40072f50
-        .equ    MGR_LABEL,      0x400d8aca
-        .equ    MGR_DRAW,       0x400d8b1c
-        .equ    MENU_RESUME,    0x400d9022
-        .equ    TEXT_WIDTH,     0x40071b86        | (font, -1, std::string *) -> px
-        .equ    MENU_FONT,      0x4027a6c8
-        .equ    VIEW_INVALIDATE, 0x40078514       | (view + 56), as 0x400d9038 does
+        .equ    MENU_ITEM_CTOR, 0x40072fbc
+        .equ    MGR_LABEL,      0x400d8b36
+        .equ    MGR_DRAW,       0x400d8b88
+        .equ    MENU_RESUME,    0x400d908e
+        .equ    TEXT_WIDTH,     0x40071bf2        | (font, -1, std::string *) -> px
+        .equ    MENU_FONT,      0x4027aa28
+        .equ    VIEW_INVALIDATE, 0x40078580       | (view + 56), as 0x400d90a4 does
 
         .if     P_K < 1 || P_K > 16384
         .error  "0013-voice-dac: k must be 1 .. 16384"
@@ -111,20 +111,20 @@
         .equ    OFF_POLE,       0x7fff7fff        | hpf_pole[0], OFF: 1 - 2^-16
         .equ    VOICE_TRACKS,   12
         .equ    PROJ_TRACKSEL,  48                | as 0000-shared's
-        .equ    VIEW_INVALIDATE, 0x40078514
-        .equ    PAGE_DEFAULT,   0x401ec570        | page_info's answer above 11
+        .equ    VIEW_INVALIDATE, 0x40078580
+        .equ    PAGE_DEFAULT,   0x401ec820        | page_info's answer above 11
         .equ    CYCLE_RESUME,   0x4003ab8c
         .equ    GET_RESUME,     0x40038472
         .equ    DELTA_RESUME,   0x400378c2
-        .equ    DELTA_CALL,     0x400b68d2
-        .equ    TEXT_RESUME,    0x400a8600
-        .equ    TEXT_CALL,      0x400ff556
+        .equ    DELTA_CALL,     0x400b693e
+        .equ    TEXT_RESUME,    0x400a866c
+        .equ    TEXT_CALL,      0x400ff5c2
         .equ    OFF_SLOT42,     0x1c + 2 * 42     | stored record: spare slot 42
-        .equ    SAVE_MAP,       0x401c59cc        | sound_slot_map, the displaced lea
+        .equ    SAVE_MAP,       0x401c5c7c        | sound_slot_map, the displaced lea
         .equ    SAVE_RESUME,    0x40008498
-        .equ    LOAD_MAP,       0x401c5a74        | its inverse, the displaced lea
+        .equ    LOAD_MAP,       0x401c5d24        | its inverse, the displaced lea
         .equ    LOAD_RESUME,    0x40008270
-        .equ    IDLE_RESUME,    0x400a2ab6
+        .equ    IDLE_RESUME,    0x400a2b22
         | DAC SUM in the project's globals (projectGlobalsStorage_v2_t, loaded
         | by 0x4000763c and saved by 0x40007a5c; stored bytes 12..24 are
         | touched by neither). ProjectGlobals is the project's member at +236;
@@ -181,12 +181,12 @@ route_all:
         | on-chip SRAM: the data cache is write-through over DRAM (ACR0), so a
         | DRAM buffer cost a store through to memory and a line fill per read.
         | Two entries, one on each of the interrupt's paths:
-        |   vs_main  0x40121364  after the fill and 0009's hook, over `moveq
+        |   vs_main  0x401213d0  after the fill and 0009's hook, over `moveq
         |                        #5,%d1` and the first four bytes of `lea
-        |                        0x4013f56c,%a0`, both re-emitted after
-        |   vs_alt   0x4011fde2  the other path (0x4011fd96), over its `jsr
-        |                        0x4010e944`, the fill, re-emitted first
-        | Both paths have run the PRE consumer (0x4010ede2) for this interrupt's
+        |                        0x4013f738,%a0`, both re-emitted after
+        |   vs_alt   0x4011fe4e  the other path (0x4011fe02), over its `jsr
+        |                        0x4010e9b0`, the fill, re-emitted first
+        | Both paths have run the PRE consumer (0x4010ee4e) for this interrupt's
         | output slot by then; the sum is added to that slot. vs_body keeps
         | every register.
         |
@@ -210,7 +210,7 @@ route_all:
         | whatever their coefficients; the filter runs only for pairs of slots
         | with an HPF engaged, so the worst case is every pair. timing = 1
         | measures it. MACSR is held at 0xa0 - fractional, saturating on
-        | overflow, as stock's PRE consumer sets it (0x4010ede8) - and restored
+        | overflow, as stock's PRE consumer sets it (0x4010ee54) - and restored
         | after; the accumulators are left clear, as stock's loops leave them.
         | ------------------------------------------------------------------
         .align  2
@@ -479,7 +479,7 @@ filter_single:
         |                   >> 15 (65535 is full scale)
         |   frames 3 mod 4  0xc3, how many side-frames reached full scale
         | each held at 0xffff. t_end keeps the words, and t_emit - detoured after
-        | the FX sends and before USB (0x40121396), on the main path only -
+        | the FX sends and before USB (0x40121402), on the main path only -
         | writes this block's over slot 7, which only USB, and the sampler,
         | read after the sends: a timing build is for timing. If the Mac loops
         | the Rytm's USB audio back, the words return into MAIN as clicks
@@ -532,7 +532,7 @@ t_end:
         rts
 
         | t_emit: reached by a jmp over `addql #4,%sp; movel %d2,%sp@` and the
-        | first half of `jsr 0x4010e650`, all re-emitted.
+        | first half of `jsr 0x4010e6bc`, all re-emitted.
         .align  2
 t_emit:
         addq.l  #4,%sp                            | displaced
@@ -596,7 +596,7 @@ hpf_hz:
         .word   1000
 
         | ------------------------------------------------------------------
-        | page_info's answer for ids above 11, `movel #0x401ec570,%d0` before its
+        | page_info's answer for ids above 11, `movel #0x401ec820,%d0` before its
         | rts: page 13 answers the HPF page. Reached with d0 the page id, from the
         | range compare 0004 rejoins at when it is built.
         | ------------------------------------------------------------------
@@ -707,7 +707,7 @@ hpf_get:
         jmp     GET_RESUME
 
         | ------------------------------------------------------------------
-        | param_apply_delta for id 5, the knob: over `jsr 0x400b68d2`, where 0004's
+        | param_apply_delta for id 5, the knob: over `jsr 0x400b693e`, where 0004's
         | gate rejoins, with a2@(116) already pushed as its argument. The frame
         | holds d2/d3/a2 above that; 24(%sp) is the id, 28(%sp) the delta in 8.8,
         | a2 the view. A step a whole unit of delta, clamped; stock never sees
@@ -743,7 +743,7 @@ hpf_delta:
 
         | ------------------------------------------------------------------
         | param_value_text for id 5, the popup: over `movel %d4,%sp@-` and the
-        | first half of `jsr 0x400ff556`, where 0004's gate rejoins. The frame
+        | first half of `jsr 0x400ff5c2`, where 0004's gate rejoins. The frame
         | holds d2-d4/a2-a3; d4 is the id, d3 the output buffer. OFF, or the
         | cutoff: whole hertz, "20Hz" .. "920Hz", then "1.0kHz".
         | ------------------------------------------------------------------
@@ -807,7 +807,7 @@ hpf_text:
 
         | ------------------------------------------------------------------
         | sound_save, after its memset of the stored parameter block, over
-        | `lea 0x401c59cc,%a0`: a2 the stored record, a3 the live sound. Slot 42
+        | `lea 0x401c5c7c,%a0`: a2 the stored record, a3 the live sound. Slot 42
         | (+0x70), which stock zeroes and never reads, carries the HPF as
         | (tag << 8) | step, or 0 when the live sound has no tag. d0/d1 and a0
         | are set again straight after.
@@ -826,7 +826,7 @@ hpf_save:
 
         | ------------------------------------------------------------------
         | sound_load, after it clears the live parameter array, over `lea
-        | 0x401c5a74,%a0`: a2 the live sound, a3 the stored record. The live tag
+        | 0x401c5d24,%a0`: a2 the live sound, a3 the stored record. The live tag
         | and step from slot 42, or the tag cleared, so a sound saved without
         | an HPF - or by stock, which zeroes the slot - reads OFF rather than
         | whatever the object held. d0/d1 and a0 are set again straight after.
@@ -846,7 +846,7 @@ hpf_load:
         jmp     LOAD_RESUME
 
         | ------------------------------------------------------------------
-        | The screen's idle tick (0x400a2aaa, about 20 a second, UI context),
+        | The screen's idle tick (0x400a2b16, about 20 a second, UI context),
         | past its link, over `moveml %d2/%a2-%a4,%sp@` and the first half of
         | `moveal %fp@(8),%a2`, both re-emitted. Every voice track's HPF step,
         | from the sound its active kit holds, into hpf_track, so the audio

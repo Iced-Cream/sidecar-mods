@@ -5,7 +5,7 @@ flag 0x30), labelled by 0026 (cu_tick, cu_setup, cu_steps through 0021's us_cubo
     RYTM_EMU=... .venv/bin/python tools/emu/cu_emu.py TAG TEST [TEST ...]|all     exit 0 when every check passes
 
 TAG: a rui build (0021 slots=1, 0026, 0029) with its base from tools/emu/us_base.sh TAG. Every run under DTEMU_STRICT=1
-(pc_emu.py's Emu). Screens: build/emu/<TAG>/pc_cu_*.png. Records: 0x401bf918 + 0x34 r (+0x28 long name, +0x2c group, +0x30
+(pc_emu.py's Emu). Screens: build/emu/<TAG>/pc_cu_*.png. Records: 0x401bfbc8 + 0x34 r (+0x28 long name, +0x2c group, +0x30
 short name), descriptors 0x419a4888 + 84 r (+32 the value text). The kit's P1..P16 of track t: 0x41255933 + 152 t + 2 k
 (kit 0). Value texts as the host's (rytm-teensy core/poly.cpp value_text, sim/protocol.py chord_value_text).
 """
@@ -26,7 +26,7 @@ KIT = 0x41255933
 
 
 def rec(r):
-    return 0x401bf918 + 0x34 * r
+    return 0x401bfbc8 + 0x34 * r
 
 
 def u32(e, s, a):

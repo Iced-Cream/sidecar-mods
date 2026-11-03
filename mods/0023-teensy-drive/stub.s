@@ -14,7 +14,7 @@ td_readdir_entry:
 td_readdir_stock:
   lea %sp@(-24),%sp
   moveml %d2-%d5/%a2-%a3,%sp@
-  jmp 0x4007c050
+  jmp 0x4007c0bc
   .globl td_resolve_entry
 td_resolve_entry:
   jmp td_resolve
@@ -22,7 +22,7 @@ td_resolve_entry:
 td_resolve_stock:
   lea %sp@(-16),%sp
   moveml %d2-%d3/%a2-%a3,%sp@
-  jmp 0x400804a0
+  jmp 0x4008050c
   .globl td_exists_entry
 td_exists_entry:
   jmp td_exists
@@ -30,7 +30,7 @@ td_exists_entry:
 td_exists_stock:
   movel %d2,%sp@-
   movel %sp@(8),%d1
-  jmp 0x4008076c
+  jmp 0x400807d8
   .globl td_size_entry
 td_size_entry:
   jmp td_size
@@ -38,7 +38,7 @@ td_size_entry:
 td_size_stock:
   lea %sp@(-32),%sp
   moveml %d2-%d5/%a2,%sp@
-  jmp 0x400808ac
+  jmp 0x40080918
 td_tname:
   lea td_teensy,%a1
 1:
@@ -71,7 +71,7 @@ td_link_entry:
 5:
   lea %sp@(-56),%sp
   moveml %d2-%d7/%a2-%fp,%sp@
-  jmp 0x4007b3b8
+  jmp 0x4007b424
   .globl td_mkdir_entry
 td_mkdir_entry:
   movel %sp@(4),%d0
@@ -88,7 +88,7 @@ td_mkdir_entry:
 7:
   linkw %fp,#-24
   moveml %d2-%d3/%a2-%a3,%sp@
-  jmp 0x4007c178
+  jmp 0x4007c1e4
   .globl td_count_entry
 td_count_entry:
   jmp td_count
@@ -97,7 +97,7 @@ td_count_stock:
   movel %a2,%sp@-
   movel %d2,%sp@-
   tstl 0x41843c70
-  jmp 0x40080854
+  jmp 0x400808c0
   .globl td_ref_entry
 td_ref_entry:
   movel %a0,%sp@-
@@ -114,7 +114,7 @@ td_ref_entry:
 1:
   linkw %fp,#-16
   moveal %fp@(8),%a1
-  jmp 0x4007e634
+  jmp 0x4007e6a0
   .section .td3,"ax"
   .align 2
   .globl td_path_entry
@@ -128,7 +128,7 @@ td_path_entry:
 1:
   lea %sp@(-324),%sp
   moveml %d2-%d7/%a2-%fp,%sp@
-  jmp 0x4007c5dc
+  jmp 0x4007c648
   .globl td_check_entry
 td_check_entry:
   movel %sp@(4),%d0
@@ -143,7 +143,7 @@ td_check_entry:
 1:
   lea %sp@(-24),%sp
   moveml %d2/%a2-%fp,%sp@
-  jmp 0x4007fffc
+  jmp 0x40080068
   .globl td_mkdir_guard
 td_mkdir_guard:
   movel %a4@(4),%d0
@@ -155,7 +155,7 @@ td_mkdir_guard:
   moveq #-1,%d0
   rts
 2:
-  jmp 0x4007c170
+  jmp 0x4007c1dc
 
 	  .section .td5,"ax"
   .align 2
@@ -185,12 +185,12 @@ td_load_entry:
 3:
   linkw %fp,#-28
   moveml %d2-%d4/%a2,%sp@
-  jmp 0x400b7136
+  jmp 0x400b71a2
   .globl td_empty_stock
 td_empty_stock:
   moveq #127,%d1
   movel %sp@(8),%d0
-  jmp 0x400b812c
+  jmp 0x400b8198
   .globl td_name_entry
 td_name_entry:
   movel %a0,%sp@-
@@ -200,14 +200,14 @@ td_name_entry:
   moveal %sp@+,%a0
   tstl %d0
   jne 1f
-  jmp 0x400b80ae
+  jmp 0x400b811a
 1:
   subql #4,%sp
   movel %a0,%sp@-
   pea %sp@(4)
   movel %d0,%sp@-
   movel %a0,%sp@-
-  jsr 0x401bcd4c
+  jsr 0x401bcff0
   lea %sp@(12),%sp
   movel %sp@+,%d0
   addql #4,%sp
@@ -221,13 +221,13 @@ td_browse_entry:
   oril #0x1000,%d0
   movel %d0,%sp@(8)
 2:
-  jmp 0x400e37fe
+  jmp 0x400e386a
   .globl td_slotref_entry
 td_slotref_entry:
   movel %sp@(8),%d0
   andil #0x1000,%d0
   jne 3f
-  jmp 0x400b7228
+  jmp 0x400b7294
 3:
   moveq #-1,%d0
   movel %d0,%a0@
@@ -242,7 +242,7 @@ td_mark_entry:
   andil #0xFF800000,%d0
   cmpil #0x7E800000,%d0
   jeq 4f
-  jmp 0x400b8348
+  jmp 0x400b83b4
 4:
   jsr td_pool_ctx
   tstl %d0
@@ -333,7 +333,7 @@ td_alloc:
 	rts
 .L18:
 	pea 16384.w
-	jsr 1074276820
+	jsr 1074276928
 	addq.l #4,%sp
 	tst.l %d0
 	jeq .L17
@@ -722,7 +722,7 @@ td_ensure:
 	jra .L70
 .L79:
 	pea 10000.w
-	jsr 1074367512
+	jsr 1074367620
 	addq.l #4,%sp
 	tst.b td_cache+8.l
 	jeq .L78
@@ -1110,7 +1110,7 @@ td_pool_tab:
 	tst.l td_pool
 	jne .L154
 	pea 2304.w
-	jsr 1074276820
+	jsr 1074276928
 	addq.l #4,%sp
 	tst.l %d0
 	jeq .L153
@@ -1587,7 +1587,7 @@ td_readdir_entry:
 td_readdir_stock:
   lea %sp@(-24),%sp
   moveml %d2-%d5/%a2-%a3,%sp@
-  jmp 0x4007c050
+  jmp 0x4007c0bc
   .globl td_resolve_entry
 td_resolve_entry:
   jmp td_resolve
@@ -1595,7 +1595,7 @@ td_resolve_entry:
 td_resolve_stock:
   lea %sp@(-16),%sp
   moveml %d2-%d3/%a2-%a3,%sp@
-  jmp 0x400804a0
+  jmp 0x4008050c
   .globl td_exists_entry
 td_exists_entry:
   jmp td_exists
@@ -1603,7 +1603,7 @@ td_exists_entry:
 td_exists_stock:
   movel %d2,%sp@-
   movel %sp@(8),%d1
-  jmp 0x4008076c
+  jmp 0x400807d8
   .globl td_size_entry
 td_size_entry:
   jmp td_size
@@ -1611,7 +1611,7 @@ td_size_entry:
 td_size_stock:
   lea %sp@(-32),%sp
   moveml %d2-%d5/%a2,%sp@
-  jmp 0x400808ac
+  jmp 0x40080918
 td_tname:
   lea td_teensy,%a1
 1:
@@ -1644,7 +1644,7 @@ td_link_entry:
 5:
   lea %sp@(-56),%sp
   moveml %d2-%d7/%a2-%fp,%sp@
-  jmp 0x4007b3b8
+  jmp 0x4007b424
   .globl td_mkdir_entry
 td_mkdir_entry:
   movel %sp@(4),%d0
@@ -1661,7 +1661,7 @@ td_mkdir_entry:
 7:
   linkw %fp,#-24
   moveml %d2-%d3/%a2-%a3,%sp@
-  jmp 0x4007c178
+  jmp 0x4007c1e4
   .globl td_count_entry
 td_count_entry:
   jmp td_count
@@ -1670,7 +1670,7 @@ td_count_stock:
   movel %a2,%sp@-
   movel %d2,%sp@-
   tstl 0x41843c70
-  jmp 0x40080854
+  jmp 0x400808c0
   .globl td_ref_entry
 td_ref_entry:
   movel %a0,%sp@-
@@ -1687,7 +1687,7 @@ td_ref_entry:
 1:
   linkw %fp,#-16
   moveal %fp@(8),%a1
-  jmp 0x4007e634
+  jmp 0x4007e6a0
   .section .td3,"ax"
   .align 2
   .globl td_path_entry
@@ -1701,7 +1701,7 @@ td_path_entry:
 1:
   lea %sp@(-324),%sp
   moveml %d2-%d7/%a2-%fp,%sp@
-  jmp 0x4007c5dc
+  jmp 0x4007c648
   .globl td_check_entry
 td_check_entry:
   movel %sp@(4),%d0
@@ -1716,7 +1716,7 @@ td_check_entry:
 1:
   lea %sp@(-24),%sp
   moveml %d2/%a2-%fp,%sp@
-  jmp 0x4007fffc
+  jmp 0x40080068
   .globl td_mkdir_guard
 td_mkdir_guard:
   movel %a4@(4),%d0
@@ -1728,7 +1728,7 @@ td_mkdir_guard:
   moveq #-1,%d0
   rts
 2:
-  jmp 0x4007c170
+  jmp 0x4007c1dc
 
 	  .section .td5,"ax"
   .align 2
@@ -1758,12 +1758,12 @@ td_load_entry:
 3:
   linkw %fp,#-28
   moveml %d2-%d4/%a2,%sp@
-  jmp 0x400b7136
+  jmp 0x400b71a2
   .globl td_empty_stock
 td_empty_stock:
   moveq #127,%d1
   movel %sp@(8),%d0
-  jmp 0x400b812c
+  jmp 0x400b8198
   .globl td_name_entry
 td_name_entry:
   movel %a0,%sp@-
@@ -1773,14 +1773,14 @@ td_name_entry:
   moveal %sp@+,%a0
   tstl %d0
   jne 1f
-  jmp 0x400b80ae
+  jmp 0x400b811a
 1:
   subql #4,%sp
   movel %a0,%sp@-
   pea %sp@(4)
   movel %d0,%sp@-
   movel %a0,%sp@-
-  jsr 0x401bcd4c
+  jsr 0x401bcff0
   lea %sp@(12),%sp
   movel %sp@+,%d0
   addql #4,%sp
@@ -1794,13 +1794,13 @@ td_browse_entry:
   oril #0x1000,%d0
   movel %d0,%sp@(8)
 2:
-  jmp 0x400e37fe
+  jmp 0x400e386a
   .globl td_slotref_entry
 td_slotref_entry:
   movel %sp@(8),%d0
   andil #0x1000,%d0
   jne 3f
-  jmp 0x400b7228
+  jmp 0x400b7294
 3:
   moveq #-1,%d0
   movel %d0,%a0@
@@ -1815,7 +1815,7 @@ td_mark_entry:
   andil #0xFF800000,%d0
   cmpil #0x7E800000,%d0
   jeq 4f
-  jmp 0x400b8348
+  jmp 0x400b83b4
 4:
   jsr td_pool_ctx
   tstl %d0
@@ -1906,7 +1906,7 @@ td_alloc:
 	rts
 .L18:
 	pea 16384.w
-	jsr 1074276820
+	jsr 1074276928
 	addq.l #4,%sp
 	tst.l %d0
 	jeq .L17
@@ -2295,7 +2295,7 @@ td_ensure:
 	jra .L70
 .L79:
 	pea 10000.w
-	jsr 1074367512
+	jsr 1074367620
 	addq.l #4,%sp
 	tst.b td_cache+8.l
 	jeq .L78
@@ -2682,7 +2682,7 @@ td_pool_tab:
 	tst.l td_pool
 	jne .L154
 	pea 2304.w
-	jsr 1074276820
+	jsr 1074276928
 	addq.l #4,%sp
 	tst.l %d0
 	jeq .L153
