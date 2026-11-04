@@ -37,7 +37,7 @@ Two core-ar2 fields, approved 2026-11-04 (the only core resources the companion 
 
 | field | scope | bits | holds |
 |---|---|---|---|
-| `sc_proj` | project | 32 | the project's ID, which names its folder of records on the Pi (`/.rytm/store/<id>/`). Given at the first `ev_project` that finds it 0 (CREATE NEW, a project saved without the companion). SAVE PROJECT AS copies it: the two projects then share a folder. Records are versions and are never overwritten, so neither loses one; a KEEP from one would drop the other's, so the companion sends no KEEP yet |
+| `sc_proj` | project | 32 | the project's ID, which names its folder of records on the Pi (`/.rytm/store/<id>/`). Given at the first `ev_project` that finds it 0 (CREATE NEW, a project saved without the companion). SAVE PROJECT AS copies it: the two projects then share a folder. Records are versions and are never overwritten, so neither loses one; a KEEP from one would drop the other's, so the companion sends no KEEP (decided 2026-11-04: deferred). Without KEEP a project's folder only grows, up to kv's 1024 records, after which writes are refused (status 3, full); a later KEEP needs a save hook in core-ar2 (core has only a load event) and its own ID per saved copy |
 | `sc_phand` | pattern | 16 | a record handle per pattern (0 none), for a mod that keeps a pattern's data on the Pi (a lock table). Copy and paste of a pattern carry it (core) |
 
 The session: at every USB port-up and project change the companion sends `51 01 00 HELLO <project 5>`, up to 3 times
