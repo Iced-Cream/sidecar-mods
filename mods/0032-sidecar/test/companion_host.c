@@ -25,6 +25,8 @@ volatile uint32_t h_txsx, h_timer = 12345, h_blk = 1000;
 #define SC_RAND_A   h_timer
 #define SC_RAND_B   h_blk
 #define SC_PAT(p)   ((void *)(uintptr_t)(0x1000u + (uint32_t)(p)))
+uint8_t h_name[16];
+#define SC_NAME     h_name
 
 /* clock.c's */
 volatile uint32_t h_play;

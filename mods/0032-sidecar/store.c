@@ -18,6 +18,9 @@
  *   READ / WRITE       one request at a time from a queue of SC_NQ, sent from ev_tick; answers in the MIDI task
  *                      (sc_store_host, the router's direct entry for 51), the callback in the next ev_tick. A request
  *                      waits while the link is closed; once sent it times out after SC_TIMEOUT ticks.
+ *   NAME <project 5> <len> <name>   the project's name (16 bytes at 0x407c89d3, as 0021 read it [measured there:
+ *                      follows LOAD and SAVE AS NEW]), polled each tick: sent once the link opens (each new epoch)
+ *                      and when it changes and has held SC_NAME_STABLE ticks. The Pi keeps it for its log and pages.
  *   lock ops 10..15    sc_link_send queues a whole op (the Pi answers none): sent in order, before the requests.
  * The cache: SC_NC records of up to SC_CMAX bytes, by (scope, handle), filled by every read and write that fits. A
  * handle names one version that never changes, so a cached record is never stale: a read that hits it needs no Pi.
@@ -43,10 +46,12 @@ STORE_FIELD(sc_phand);
 #define SC_RAND_A   (*(volatile uint32_t *)0xfc07000cu)         /* DTCN0, the bus-clock count */
 #define SC_RAND_B   (*(const volatile uint32_t *)0x419ca2acu)   /* the audio block counter */
 #define SC_PAT(p)   ((void *)(0x407dd8e3u + 85760u * (uint32_t)(p)))   /* live pattern p (core-ar2's pattern item) */
+#define SC_NAME     ((const volatile uint8_t *)0x407c89d3u)     /* the project's name, 16 bytes (0021's PROJECT_NAME) */
 #endif
+#define SC_NAME_STABLE 10              /* ticks a changed name must hold before it goes (a name being typed) */
 
 enum { RQ_FREE = 0, RQ_QUEUED, RQ_SENT, RQ_DONE };
-enum { OP_HELLO = 0x00, OP_READ = 0x01, OP_WRITE = 0x02, OP_ACK = 0x40, OP_DATA = 0x41, OP_WRITTEN = 0x42,
+enum { OP_HELLO = 0x00, OP_READ = 0x01, OP_WRITE = 0x02, OP_NAME = 0x04, OP_ACK = 0x40, OP_DATA = 0x41, OP_WRITTEN = 0x42,
        OP_STATUS = 0x7f };
 #define ST_TIMEOUT 0x7e                /* the companion's own: no answer */
 
@@ -75,6 +80,8 @@ static struct {
   volatile uint32_t records;           /* the Pi's records in this project, from its HELLO answer */
   uint32_t proj, rand, gen, opened, hello_owed, tries, hello_t, ticks, was_up, seq, txsx_n, cn;
   struct { uint32_t used, scope, handle, n; uint8_t d[SC_CMAX]; } c[SC_NC];
+  uint8_t name[16], name_sent[16];     /* the stock name as last polled; as last sent */
+  uint32_t name_stable, name_owed, name_epoch, names;
   uint8_t lq[SC_LQ];                   /* lock ops: {len, body...} */
   uint32_t lh, lt;
   uint32_t hellos, acks, reqs, done, errors, timeouts, hits, lock_ops, lock_drops, bad;   /* diagnostics */
@@ -356,6 +363,33 @@ void sc_store_tick(void *ctrl) {
     o[3] = (uint8_t)(p >> 7 & 0x7f); o[4] = (uint8_t)(p & 0x7f); o[5] = 0xf7;
     if (sc_send(m, 13)) { scl.tries++; scl.hello_t = scl.ticks; scl.hellos++; }
     if (scl.tries >= SC_HELLO_TRIES) scl.hello_owed = 0;
+  }
+  {                                    /* the name: polled; owed at a new epoch and after a change that held */
+    uint32_t i, same = 1;
+    for (i = 0; i < 16; ++i) {
+      uint8_t c = SC_NAME[i];
+      if (c != scl.name[i]) { scl.name[i] = c; same = 0; }
+    }
+    if (!same) scl.name_stable = 0;
+    else if (scl.name_stable < SC_NAME_STABLE) scl.name_stable++;
+    if (scl.epoch && scl.epoch != scl.name_epoch) scl.name_owed = 1;
+    if (scl.name_stable >= SC_NAME_STABLE)
+      for (i = 0; i < 16; ++i) if (scl.name[i] != scl.name_sent[i]) scl.name_owed = 1;
+  }
+  if (scl.epoch && scl.name_owed) {
+    uint8_t m[8 + 6 + 16], *o = sc_head(m, OP_NAME);
+    uint32_t p = scl.proj, n = 0, i;
+    o[0] = (uint8_t)(p >> 28 & 0x0f); o[1] = (uint8_t)(p >> 21 & 0x7f); o[2] = (uint8_t)(p >> 14 & 0x7f);
+    o[3] = (uint8_t)(p >> 7 & 0x7f); o[4] = (uint8_t)(p & 0x7f);
+    while (n < 16 && scl.name[n]) { o[6 + n] = scl.name[n] & 0x7f; n++; }
+    o[5] = (uint8_t)n;
+    o[6 + n] = 0xf7;
+    if (sc_send(m, (int32_t)(7 + 6 + n + 1))) {
+      for (i = 0; i < 16; ++i) scl.name_sent[i] = scl.name[i];
+      scl.name_owed = 0;
+      scl.name_epoch = scl.epoch;
+      scl.names++;
+    }
   }
   while (scl.epoch && scl.lt != scl.lh) {   /* the lock ops, in order */
     uint8_t m[8 + SC_LMAX], *o = sc_head(m, scl.lq[(scl.lt + 1) % SC_LQ]);

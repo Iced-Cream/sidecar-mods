@@ -21,7 +21,7 @@
 extern "C" {
 extern volatile uint32_t h_port_state, h_play, h_blk, h_txsx;
 extern volatile int8_t h_pat_idx;
-extern uint8_t h_speed[13], h_prev[13], h_patd[85760];
+extern uint8_t h_speed[13], h_prev[13], h_patd[85760], h_name[16];
 extern const volatile uint32_t* h_pool;
 typedef void (*sc_store_cb)(int32_t status, int32_t n, uint32_t handle, void* ctx);
 int sc_store_host(const uint8_t* d, int32_t len);
@@ -70,7 +70,8 @@ struct MemBackend : kv::Backend {
 
 // ---- the Pi
 static std::vector<std::vector<uint8_t>> g_rytm_out;   // everything the companion sent, in order
-static std::vector<std::vector<uint8_t>> g_answers;    // the store's answers, not yet given to the companion
+static std::vector<std::vector<uint8_t>> g_answers;
+static std::vector<std::string> g_names;            // the NAMEs the Pi got    // the store's answers, not yet given to the companion
 static bool g_pi_deaf = false;                          // the Pi takes nothing (a timeout)
 static MemBackend g_mem;
 static kv::Store g_store(&g_mem);
@@ -87,6 +88,7 @@ extern "C" void h_midi_send(int32_t n, const uint8_t* m) {
   if (g_pi_deaf || n < 6) return;
   if (m[4] == kv::kCmd) {                              // as kv::link::from_host
     if (locks::is_lock_op(m[6])) { locks::sysex(m, n); return; }
+    if (m[6] == kv::kOpName) { g_names.emplace_back((const char*)m + 13, (size_t)m[12]); return; }   // the control core's
     if (m[6] == kv::kOpHello) locks::reset();
     g_svc.sysex(m, n);
   } else if (m[4] == clock::kTickCmd || m[4] == clock::kStateCmd) {
@@ -126,6 +128,7 @@ int main() {
   clock::on_state(on_state);
 
   // ---- the project ID: given at the first ev_project, kept in the project field; a HELLO for it at port-up
+  memcpy(h_name, "PROJ1\0\0\0\0\0\0\0\0\0\0\0", 16);
   h_port_state = 0;
   sc_project_ev(1, 0);
   uint32_t id = sc_project_id();
@@ -139,10 +142,24 @@ int main() {
   CHECK(sent(0x51, kv::kOpHello) == 1 && sc_link_epoch() == 0);   // the answer opens it at the next tick
   tick();
   CHECK(sc_link_epoch() != 0);
-  const auto& hm = g_rytm_out.back();
+  const auto& hm = *std::find_if(g_rytm_out.rbegin(), g_rytm_out.rend(), [](const std::vector<uint8_t>& m) { return m[6] == kv::kOpHello; });
   CHECK(hm.size() == 13 && (((uint32_t)hm[7] << 28 | (uint32_t)hm[8] << 21 | hm[9] << 14 | hm[10] << 7 | hm[11]) == id));
   CHECK(g_store.project() == id);
   uint32_t epoch = sc_link_epoch();
+  // the name: once the link is open (the HELLO's answer), then only a change that held 10 ticks
+  tick();
+  CHECK(g_names.size() == 1 && g_names[0] == "PROJ1");
+  const auto& nm = *std::find_if(g_rytm_out.rbegin(), g_rytm_out.rend(), [](const std::vector<uint8_t>& m) { return m[6] == kv::kOpName; });
+  CHECK(nm.size() == 7 + 6 + 5 + 1 && (((uint32_t)nm[7] << 28 | (uint32_t)nm[8] << 21 | nm[9] << 14 | nm[10] << 7 | nm[11]) == id));
+  h_name[4] = '2';                                      // typed: PROJ2
+  tick(5);
+  h_name[4] = '3';
+  tick(5);
+  CHECK(g_names.size() == 1);
+  tick(10);
+  CHECK(g_names.size() == 2 && g_names[1] == "PROJ3");
+  tick(30);
+  CHECK(g_names.size() == 2);
 
   // ---- a write of 300 bytes (3 chunks), read back (too big for the cache: from the Pi)
   uint8_t big[300], back[512];
@@ -259,6 +276,8 @@ int main() {
   tick(2);
   CHECK(sc_link_epoch() != 0 && sc_link_epoch() != epoch && !locks::declared(0));
   CHECK(g_store.project() == sc_project_id());
+  tick();
+  CHECK(g_names.size() == 3 && g_names[2] == "PROJ3");     // a new session: the name again (with the new ID)
 
   // ---- an answer to the HELLO before a project change does not open the new project's link
   sc_project_ev(1, 0);                                  // reloaded (the same ID): a HELLO owed

@@ -43,7 +43,9 @@ Two core-ar2 fields, approved 2026-11-04 (the only core resources the companion 
 
 The session: at every USB port-up and project change the companion sends `51 01 00 HELLO <project 5>`, up to 3 times
 2 s apart while unanswered, and once more when any host message arrives while unanswered (a Sidecar that came up
-late). The Pi's answer (`51 01 40`) opens the link, and `sc_link_epoch()` takes a new value (never 0; 0 while closed).
+late). The project's name (16 bytes at 0x407c89d3, 0021's poll [measured there]) follows as `51 01 04 NAME <project 5>
+<len> <name>` once the link opens, and again when it changes and holds 10 ticks (decided 2026-11-04: the name rides 51
+with its ID instead of the separate 10; the Pi keeps it for its log, /status and web page). The Pi's answer (`51 01 40`) opens the link, and `sc_link_epoch()` takes a new value (never 0; 0 while closed).
 The Pi forgets every lock set at a HELLO, so a mod declares its sets again whenever the epoch changes. An answer to the
 HELLO before a project change does not open the new project's link. The port going down closes it; a request that was
 in flight goes again after the next HELLO.
