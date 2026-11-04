@@ -88,7 +88,7 @@ RLED_SHARDS = [   # (tests, env, est s after the stock_state peek change)
 ]
 
 # files -> suites. ALL: everything in the image or every harness reads it. NONE: nothing a suite runs.
-ALL_PATHS = ("mods/0000-shared/", "mods/0027-elekloader/", "mods/0028-elek-hello/", "registry/", "re/symbols.toml",
+ALL_PATHS = ("mods/0000-shared/", "mods/0032-sidecar/", "mods/0028-elek-hello/", "registry/", "re/symbols.toml",
              "stock/", "tools/build.py", "tools/layout.py", "tools/symbols.py", "Makefile", "tools/emu/us_base.sh",
              "tools/emu/us_ui.json", "tools/emu/us_window.py", "build/suites/run.sh", "VERSION")
 NONE_PATHS = ("docs/", "re/subsystems/", "re/ghidra/", "tools/comp/", "tools/test_", "tools/cavescan.py",

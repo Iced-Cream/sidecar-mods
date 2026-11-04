@@ -4,7 +4,7 @@ title   = "Sidecar send FX pages: AMPLITUDE 2 (SEND FX 1/2 per track) and SEND F
 
 enabled = false
 
-# code in elekloader's DDR area (needs 0027-elekloader)
+# code in elekloader's DDR area (needs 0032-sidecar, which carries elekloader)
 area    = "elek"
 
 # 0004-lfo-rnd: the same page_info / page_get_value / page-cycle sites and page id 12 (0021 excludes it too).

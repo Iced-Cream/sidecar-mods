@@ -89,7 +89,7 @@ def main():
 
     elek = manifest.get("elek")
     if elek:
-        # an elekloader build (mods/0027-elekloader/design.md): the image is stock's length
+        # an elekloader build (mods/0032-sidecar/elekloader.md): the image is stock's length
         # plus the block elekloader appends (core's .boot, then the run image it copies to
         # the area at boot); everything below stock's end is checked as before
         lay = elek["layout"]

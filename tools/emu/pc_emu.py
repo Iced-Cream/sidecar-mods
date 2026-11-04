@@ -6,7 +6,7 @@ words 21..24 (P13..P16) to the four values with stock's writers; the Rytm answer
 
     RYTM_EMU=... .venv/bin/python tools/emu/pc_emu.py TAG TEST [TEST ...]|all     exit 0 when every check passes
 
-TAG: a rui build (0021 slots=1, 0022 rui=1, 0026, 0027) with its base from tools/emu/us_base.sh TAG. The tests first set
+TAG: a rui build (0021 slots=1, 0022 rui=1, 0026, 0032) with its base from tools/emu/us_base.sh TAG. The tests first set
 BD to 6-OP FM (SRC SRC, DOWN x 20, YES: machine 40, voice byte 0x48), then CHRO, RECORD + PLAY and a chord on the pads
 (BD, RS, CH 20 ms apart: stock records one note, the last pad's). The host's messages go in on the USB MIDI port
 (--usb-midi, as the other suites' "usb" events), the Rytm's out through DTBOOT_USB_OUT. Every run under DTEMU_STRICT=1

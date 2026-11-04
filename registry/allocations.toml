@@ -6281,9 +6281,10 @@ from_symbol = "td_mark_entry"
 note        = "jsr operand: the browser row drawer: a TEENSY file's >N pool slot mark"
 
 # ======================================================================
-# elekloader (vendor/elekloader, GPL-2.0-or-later, pinned in the Makefile): mods
-# 0027-elekloader (its core-ar2 0.1, the boot copier and hook bus) and 0028-elek-hello
-# (the first mod whose code lives in elekloader's DDR area). mods/0027-elekloader/design.md.
+# elekloader (vendor/elekloader, GPL-2.0-or-later, pinned in the Makefile): its core-ar2 (the boot
+# copier and hook bus), carried by the companion 0032-sidecar (mod 0027-elekloader until 2026-11-04,
+# folded in), and 0028-elek-hello (the first mod whose code lives in elekloader's DDR area).
+# mods/0032-sidecar/elekloader.md.
 #
 # The area 0x47BE0000-0x47C00000 (128 KB) is elekloader's Rytm `ddr`: elekloader's linker
 # places every format-2 mod's .run/.bss there and core-ar2's .boot copies it out at the
@@ -6302,7 +6303,7 @@ note        = "jsr operand: the browser row drawer: a TEENSY file's >N pool slot
 # elekloader's mods/core-ar2/mod.json, which pins them again by sha256).
 # ======================================================================
 [[patch]]
-owner   = "0027-elekloader"
+owner   = "0032-sidecar"
 addr    = 0x400008c0
 size    = 6
 expect_len = 6
@@ -6310,7 +6311,7 @@ expect_sha256 = "ec49f003974d6144b6e534659eb6be29bb4edb34a26d1b4fbcf3e50f958a074
 foreign = "core-ar2 boot: jsr 0x400014cc (VBR) -> jsr boot (the appended .boot)"
 
 [[patch]]
-owner   = "0027-elekloader"
+owner   = "0032-sidecar"
 addr    = 0x400a2c5a
 size    = 6
 expect_len = 6
@@ -6318,7 +6319,7 @@ expect_sha256 = "a5f585f812b17ff36cb7196f9bfd8db2ad57e4ae0fb696cddb4b63e6b6e6bf2
 foreign = "core-ar2 ev_tick: jsr core_tick"
 
 [[patch]]
-owner   = "0027-elekloader"
+owner   = "0032-sidecar"
 addr    = 0x400a2cc2
 size    = 6
 expect_len = 6
@@ -6326,7 +6327,7 @@ expect_sha256 = "9a44e6fb184eadb34e834aadb7e6808684300875f7b06c75000f27ba038eaac
 foreign = "core-ar2 ev_draw: jsr core_draw"
 
 [[patch]]
-owner   = "0027-elekloader"
+owner   = "0032-sidecar"
 addr    = 0x400a4838
 size    = 6
 expect_len = 6
@@ -6334,7 +6335,7 @@ expect_sha256 = "e98c3f525aa4365514859e4f90b39d8e540e9ff503663f8ce5009c5f804db48
 foreign = "core-ar2 ev_key: jsr core_key"
 
 [[patch]]
-owner   = "0027-elekloader"
+owner   = "0032-sidecar"
 addr    = 0x400a4882
 size    = 6
 expect_len = 6
@@ -6342,7 +6343,7 @@ expect_sha256 = "1caa50bdb2222f55598804b87663524d536b664ceb4798a3141a21bb6f2056a
 foreign = "core-ar2 ev_enc: jsr core_enc"
 
 [[patch]]
-owner   = "0027-elekloader"
+owner   = "0032-sidecar"
 addr    = 0x400db8ea
 size    = 6
 expect_len = 6
@@ -6350,7 +6351,7 @@ expect_sha256 = "c7589861366d298dd3e07f1f5ebce25db0435f9cad638eae321d68e7542f6c7
 foreign = "core-ar2 ev_settings: jmp core_settings"
 
 [[patch]]
-owner   = "0027-elekloader"
+owner   = "0032-sidecar"
 addr    = 0x4011fb6e
 size    = 6
 expect_len = 6
@@ -6358,7 +6359,7 @@ expect_sha256 = "0682088f8b8f8b0760d2f195d03bf17728bc872575efaf90dff0ac96d30db5b
 foreign = "core-ar2 ev_render_in: jsr core_render_in (audio ISR entry)"
 
 [[patch]]
-owner   = "0027-elekloader"
+owner   = "0032-sidecar"
 addr    = 0x401216c2
 size    = 6
 expect_len = 6
@@ -6543,15 +6544,15 @@ rejoin = 0x40007f92
 # ---------------------------------------------------------------- 0026-remote-ui
 # The remote UI (mods/0026-remote-ui/design.md). Code in elekloader's area on core-ar2's events only (ev_tick,
 # ev_draw, ev_key, ev_enc); until 1025 no detour or patch of its own (1026: the panel writer's, below). The render sites
-# 0x400a2c5a / 0x400a2cc2 and the key/encoder dispatch calls 0x400a4838 / 0x400a4882 are core-ar2's (0027's
+# 0x400a2c5a / 0x400a2cc2 and the key/encoder dispatch calls 0x400a4838 / 0x400a4882 are core-ar2's (the companion's
 # foreign claims); 0026 subscribes to them. Host messages reach it through the companion's router (mods/0032-sidecar), its
 # mailbox (magic 'RUIP' + rui_sysex) rui_mbox in its own area memory since the companion phase (2026-11-03).
 
 # 1026: the trig keys' LEDs (34). The UART8 (panel) writer's entry, `lea %sp@(-12),%sp; movem.l %d2-%d4,%sp@`: every
 # byte for the panel MCU passes it (tiles and selectors a byte or a few at a time [code]). rui_uart_det follows the
 # stream and, while the host owns the trig LEDs, rewrites the colour bytes of their slot messages; it re-emits the two
-# instructions and rejoins 0x400019ec. The same site as 0022's keys=1 claims (looper_uart), which 0027 refuses: never
-# both in one build. The area is copied at reset (0027's boot, 0x400008c0), before the first panel byte.
+# instructions and rejoins 0x400019ec. The same site as 0022's keys=1 claims (looper_uart), which the companion refuses: never
+# both in one build. The area is copied at reset (core-ar2's boot, 0x400008c0), before the first panel byte.
 [[detour]]
 owner     = "0026-remote-ui"
 addr      = 0x400019e4

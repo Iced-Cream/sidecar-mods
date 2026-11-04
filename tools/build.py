@@ -245,20 +245,22 @@ def check_linked_params(mods, enabled):
 
 
 # ---------------------------------------------------------------------------
-# elekloader (mods/0027-elekloader/design.md). vendor/elekloader is GPL-2.0-or-later
+# elekloader (mods/0032-sidecar/elekloader.md). vendor/elekloader is GPL-2.0-or-later
 # and is only executed here, like elektron-firmware-tool: nothing of it is copied into
 # this repository. The pinned commit is the Makefile's ELEK_REV; build.py refuses another.
 # The core is built from its source as it was at ELEK_CORE_REV (the same repository): core-ar2
 # 0.9 (9f72fb0, #242), OS 1.74 only, since the companion phase (decided 2026-11-03). Until then
 # the Rytm ran 0.1 (13fa795, #105; core-0.1 sha256 89c00065... for 1.74). 0.2 and later keep mod
 # storage in the sound's and kit's spare bytes, the bytes 0013 / 0021 (sound) and 0025 (kit FX
-# words 38..41) use (mods/0027-elekloader/design.md section 8): those mods stay out of 0.9 builds
+# words 38..41) use (mods/0032-sidecar/elekloader.md section 8): those mods stay out of 0.9 builds
 # until the Storage phase, and CORE_STORE_GUARD below makes elekloader refuse them.
 ELEK_DIR = ROOT / "vendor" / "elekloader"
 ELEK_REV = "9f72fb05bd3baeacdf04af00dc2d1357abf96134"
 ELEK_CORE_REV = "9f72fb05bd3baeacdf04af00dc2d1357abf96134"
 ELEK_CORE_VERSION = "0.9"
-ELEK_MOD = "0027-elekloader"
+# The companion carries the elekloader build (it declares the core, [elek] core in its mod.toml; mod 0027 until
+# 2026-11-04, folded in): every build with code in the area or core-ar2's sites has it.
+ELEK_MOD = "0032-sidecar"
 ELEK_CROSS = "m68k-elf-"
 ELEK_CORE_CROSS = os.environ.get("ELEK_CORE_CROSS", "m68k-linux-gnu-")   # the core's C (elek_build)
 ELEK_ID = "rytm-"          # elemod id = this + the mod's id, e.g. rytm-0021-ext
@@ -783,10 +785,10 @@ def main():
     ap.add_argument("--tag", default=None, help="output name suffix")
     ap.add_argument("--area-elek", action="append", default=[], metavar="MOD",
                     help="link this mod's code into elekloader's DDR area instead of its caves "
-                         "(needs 0027-elekloader; mods/0027-elekloader/design.md)")
+                         "(needs 0032-sidecar, which carries elekloader; mods/0032-sidecar/elekloader.md)")
     ap.add_argument("--elek-bundle", action="store_true",
-                    help="with 0027-elekloader: one elemod for the whole set (rytm-sidecar-<VERSION>), "
-                         "not one per mod (docs/ELEKLOADER.md)")
+                    help="the release's elemods, not one per mod: the companion (sidecar-<VERSION>) and, when the set "
+                         "has other mods, one more for them (rytm-sidecar-<VERSION>) (docs/ELEKLOADER.md)")
     ap.add_argument("--param", action="append", default=[], metavar="MOD:KEY=VAL",
                     help="override a mod param for an ablation build; KEY=VAL without MOD: "
                          "sets a linked param (linked_params) on every mod that lists it")
@@ -854,11 +856,11 @@ def main():
     # 0021's user slots are too big for its caves since the MD page: its slots=1 compile has no fixed-address boxes of its
     # own (registry patches) and is only linked in the area (mods/0021-ext/design.md, "0021 in the area")
     if "0021-ext" in enabled and mods["0021-ext"]["_params"].get("slots") and mods["0021-ext"].get("area") != "elek":
-        raise SystemExit("0021-ext with slots=1 lives in elekloader's area: add --area-elek 0021-ext (and 0027-elekloader)")
+        raise SystemExit("0021-ext with slots=1 lives in elekloader's area: add --area-elek 0021-ext (and 0032-sidecar)")
     # 0025's cave was the head of 1.73's end cave, 864 B shorter on 1.74 (tools/port_os.py): it only links in the area
     if "0025-sendfx-report" in enabled and mods["0025-sendfx-report"].get("area") != "elek":
         raise SystemExit("0025-sendfx-report on OS 1.74 lives in elekloader's area: add --area-elek 0025-sendfx-report "
-                         "(and 0027-elekloader)")
+                         "(and 0032-sidecar)")
     # 0021's us_live runs from 0029's ev_tick: without it no MD set-up and no MD page
     if "0021-ext" in enabled and mods["0021-ext"]["_params"].get("slots") and "0029-sendfx-ui" not in enabled:
         raise SystemExit("0021-ext with slots=1 needs 0029-sendfx-ui: its ev_tick runs us_live (machine 42's set-ups and page)")
@@ -868,7 +870,7 @@ def main():
     check_linked_params(mods, enabled)
     check_sc_cmds(mods, enabled)
     if SC_MOD in enabled and mods[SC_MOD].get("area") != "elek":
-        raise SystemExit(f"{SC_MOD} lives in elekloader's area: it needs {ELEK_MOD}")
+        raise SystemExit(f"{SC_MOD} lives in elekloader's area (area = \"elek\" in its mod.toml)")
     for mid in sorted(enabled):   # a mod's known limitation in this tree ([mod] warning), shown with every build of it
         if mods[mid].get("warning"):
             print(f"WARNING: {mid}: {mods[mid]['warning']}")

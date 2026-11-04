@@ -2,7 +2,8 @@
 """The companion phase's capture comparison (mods/0032-sidecar/design.md): one scripted host session, played into two
 builds in rytm-emu, and every byte each Rytm sends the USB host recorded and compared message by message.
 
-    .venv/bin/python tools/emu/cap_emu.py TAG_A TAG_B        exit 0 when the two captures match (but the expected)
+    .venv/bin/python tools/emu/cap_emu.py TAG_A TAG_B [--gone 30-3f,..]   exit 0 when the two captures match (but
+                                                                           the expected)
 
 Each TAG needs its base (tools/emu/us_base.sh TAG). The host's SysEx goes in with dtboot --usb-midi at fixed clocks (no
 live host: the session is the same instruction for instruction in both runs), keys and turns with --press / --turn;
@@ -18,6 +19,10 @@ only when it is the hello's caps byte (the screen build says 1, the full 0026 15
 set keeps (26 / 27, 30..3F, 50) that TAG_B never sends: those come from the mods and 0026 parts left out (0021's 10..19,
 send FX 20..25, 0026's 29..2D, 45, 49, 4B..4E). Every kept command must match byte for byte, and TAG_B sending a
 command TAG_A did not is a failure. RYTM_EMU: rytm-emu's checkout.
+
+--gone: commands TAG_B may stop sending altogether (a mod left out of the set: 2026-11-04 the remote screen 0026 out of
+the release, --gone 30-3f); every other kept command must still match byte for byte. The FX return's 26 / 27 / 50 left
+the companion on 2026-11-04: no longer kept.
 """
 import collections
 import json
@@ -28,7 +33,7 @@ import sys
 
 EMU = os.environ.get("RYTM_EMU", "../rytm-emu")
 ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-KEPT = {0x26, 0x27, 0x50, *range(0x30, 0x40)}
+KEPT = {*range(0x30, 0x40), 0x2c, 0x2d, 0x51}
 # strict lines stock 1.74 itself gives in rytm-emu 4177ad4 (the same run on the stock .syx; not the mods'). With
 # DTEMU_STRICT=1 that write raises an access error and the OS hangs (stock too), so the runs list only (=log).
 KNOWN_STRICT = ("strict: pc 40121206 write page 00000000", "strict: pc 401218c8 read  page 00000000")
@@ -99,6 +104,11 @@ def messages(midi):
 
 def main():
     a, b = sys.argv[1:3]
+    gone = set()
+    if "--gone" in sys.argv:
+        for part in sys.argv[sys.argv.index("--gone") + 1].split(","):
+            lo, _, hi = part.partition("-")
+            gone |= set(range(int(lo, 16), int(hi or lo, 16) + 1))
     caps = {}
     for tag in (a, b):
         midi, fault, out = capture(tag)
@@ -124,6 +134,9 @@ def main():
             continue
         if c == 0x35 and len(ma) == len(mb) and all(x[:-4] == y[:-4] for x, y in zip(ma, mb)):
             print(f"  expected  35  x{len(ma)}: caps {ma[0][-4:-2]} -> {mb[0][-4:-2]}")
+            continue
+        if c in gone and not mb:
+            print(f"  expected  {c:02x}  {len(ma)} -> 0 (--gone: left out of {b})")
             continue
         if c not in KEPT and not mb:
             print(f"  expected  {c:02x}  {len(ma)} -> 0 (from a part left out of the 0.9 set)")

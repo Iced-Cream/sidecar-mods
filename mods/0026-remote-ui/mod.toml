@@ -4,11 +4,11 @@ title   = "Remote UI (M1): the Rytm as a terminal for pages the Sidecar draws - 
 
 enabled = false
 
-# code in elekloader's DDR area (needs 0027-elekloader); host messages through the companion's router (0032)
+# code in elekloader's DDR area (needs 0032-sidecar, which carries elekloader); host messages through the companion's router (0032)
 area    = "elek"
 
 # its UART8 panel-writer detour (0x400019e4, the trig LEDs) is the site 0022's keys=1 patches (looper_uart);
-# never both in one build (it needs 0027 anyway, which refuses keys=1 too). Lets layout.py see them as exclusive.
+# never both in one build (it needs 0032 anyway, which refuses keys=1 too). Lets layout.py see them as exclusive.
 excludes_params = ["0022-looper:keys"]
 
 # re-only | built | hardware-verified | retracted

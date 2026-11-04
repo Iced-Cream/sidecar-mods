@@ -68,7 +68,7 @@ registry are the project.
 | `requirements.txt` | Python packages for the mod 0006 calibration and telemetry tools and mod 0013's timing tool |
 | `registry/` | `allocations.toml` - every claim on cave space and detour sites |
 | `tools/` | build, layout validation, verification, symbol generation, cave scan |
-| `vendor/` | third-party code that is **executed** (elektron-firmware-tool, MIT; elekloader for 0027 builds and the release, GPL-2.0-or-later), fetched by `make setup`; see `NOTICE` |
+| `vendor/` | third-party code that is **executed** (elektron-firmware-tool, MIT; elekloader for every build with the companion and the release, GPL-2.0-or-later), fetched by `make setup`; see `NOTICE` |
 | `docs/` | user manual, flashing, hazards |
 | `build/` | artifacts, gitignored |
 
@@ -171,11 +171,11 @@ In the 0.3.1 module and the Sidecar build `rui1027d` (0028 in `rui1027d` only); 
 | 0022 | looper mode (dropped from the core 0.9 build, 2026-11-03: its host half would be a Pi counterpart) |
 | 0023 | the Sidecar's SD card as the SIDECAR folder in the Rytm's sample browser (the mod's name `teensy-drive` dates from Sidecar Mini) |
 | 0025 | the send FX reporter and its storage |
-| 0026 | the remote pages: the Rytm as a terminal for pages the Sidecar draws, and the SRC view (`screen=1`: the screen only, 30..3F, the core 0.9 build) |
-| 0027 | elekloader's core: the boot copier, hook bus and code area for mod code |
+| 0026 | the remote pages: the Rytm as a terminal for pages the Sidecar draws, and the SRC view (`screen=1`: the screen only, 30..3F; out of the release since 2026-11-04, back later as a companion service) |
+| 0027 | (folded into 0032 on 2026-11-04: the elekloader build, its core-ar2 and code area) |
 | 0028 | elekloader smoke test (a counter in elekloader's area) |
 | 0029 | the AMPLITUDE 2 and SEND FX 1/2 pages |
-| 0032 | the Sidecar companion: the host link's SysEx router over a table mods register in, and the FX return on Overbridge IN L/R (until 2026-11-03 mod 0030-fx-in) |
+| 0032 | the Sidecar companion, the release set: the host link's SysEx router over a table mods register in, the store link (51), the step clock (2C / 2D), and the elekloader build (once 0027) |
 
 0031-remote-keys (REMOTE KEYS, a development and test feature) is not in the release and not published here; its
 entries in `registry/allocations.toml` and `re/symbols.toml` are kept as a record, and `tools/layout.py` checks only

@@ -54,7 +54,7 @@ excludes 0002, 0003, 0004, 0006, 0009, 0013 and 0020 (caves, hooks, sound index 
 Tested in rytm-emu and with the real Teensy over the bridge; never on a Rytm
 (design.md, "User slots").
 
-With slots=1 the mod links into elekloader's DDR area (--area-elek 0021-ext, needs 0027), its
+With slots=1 the mod links into elekloader's DDR area (--area-elek 0021-ext, needs 0032), its
 fixed-address boxes staying as registry patches (design.md, "0021 in the area"). Machine 42 is MD
 there (design.md, "MD"); DIGIDRUM stays only in the slots=0 image.
 """

@@ -3,7 +3,7 @@
 
     .venv/bin/python tools/emu/sfu_emu.py TAG TEST [TEST ...]|all     exit 0 when every check passes
 
-TAG: a build with 0025 + 0027 + 0029 (sfxui), whose base tools/emu/us_base.sh TAG made. Every run under
+TAG: a build with 0025 + 0029 + 0032 (sfxui), whose base tools/emu/us_base.sh TAG made. Every run under
 DTEMU_STRICT=1. Addresses: OS 1.73 (rytm-teensy docs/superpowers/specs/2026-10-16-sidecar-send-fx-storage.md).
 Words: sound index 0 = SFX1 (hi, bits 8..14) / SFX2 (lo, bits 1..7); FX words 29 / 38 / 39 = SEND FX 1's
 TYPE P1 / P2 P3 / P4 P5, words 0 / 40 / 41 = SEND FX 2's (hi / lo each).

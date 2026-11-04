@@ -3,7 +3,7 @@
 
     .venv/bin/python tools/emu/rui_emu.py TAG TEST [TEST ...]|all     exit 0 when every check passes
 
-TAG: a build with 0022 (rui=1) + 0026 + 0027 (rui), whose base tools/emu/us_base.sh TAG made. Every run under
+TAG: a build with 0022 (rui=1) + 0026 + 0032 (rui), whose base tools/emu/us_base.sh TAG made. Every run under
 DTEMU_STRICT=1 (interpreter), with --usb-host --usb-midi-real (the firmware's own USB MIDI sender) and --ob-link,
 to which remote_ui.py connects; its clock is the emulator's frame requests, so it runs in emulated time.
 Times below are ms after the base snapshot (200 M instructions = 1 emulated second).

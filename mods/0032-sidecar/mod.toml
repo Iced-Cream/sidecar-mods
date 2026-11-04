@@ -4,8 +4,14 @@ title   = "Sidecar companion: the host link's SysEx router; mods register their 
 
 enabled = false
 
-# code in elekloader's DDR area (needs 0027-elekloader); its own elemod, `sidecar`, in release builds
+# code in elekloader's DDR area; its own elemod, `sidecar`, in release builds. The companion also carries the
+# elekloader build itself (once mod 0027, folded in 2026-11-04): its [elek] core below, core-ar2's eight sites in the
+# registry (foreign patches), elekloader.md.
 area    = "elek"
+
+# core-ar2 hooks the UI loop's key dispatch call (0x400a47cc) for ev_key; 0022's keys=1 patches the same call's operand
+# (looper_key). Use ev_key instead (elekloader.md).
+excludes_params = ["0022-looper:keys"]
 
 # re-only | built | hardware-verified | retracted
 status  = "built"
@@ -31,10 +37,12 @@ stub = "stub.s"      # generated from sidecar.c by build.sh
 
 [params]
 # clock: 1 the step clock (clock.c: trig_fire's entry and the sequencer clock's exit, the sites 0026's seq link 1032
-# uses, so not with 0026 screen=0); the Storage phase's release (decided 2026-11-04) sets it. 0 (default): no sites.
+# uses, so not with 0026 screen=0); the release (decided 2026-11-04) sets it. 0 (default): no sites.
 clock = 0
 
 [elek]
+# the elekloader core every build links against (vendor/elekloader/mods/<core>; build.py ELEK_CORE_*)
+core = "core-ar2"
 collections = { sc_cmds = 12 }
 subscribe = [
   { event = "ev_tick", fn = "sc_store_tick", order = 76 },

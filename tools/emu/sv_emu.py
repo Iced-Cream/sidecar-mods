@@ -4,7 +4,7 @@ knob the Rytm's own; 29 (view on / off) and 2A (the page's values) to the host.
 
     .venv/bin/python tools/emu/sv_emu.py TAG TEST [TEST ...]|all     exit 0 when every check passes
 
-TAG: a rui build (0021 slots=1, 0022 rui=1, 0026, 0027) with its base from tools/emu/us_base.sh TAG (BD PLASTIC on BD,
+TAG: a rui build (0021 slots=1, 0022 rui=1, 0026, 0032) with its base from tools/emu/us_base.sh TAG (BD PLASTIC on BD,
 the SRC page showing). Every run under DTEMU_STRICT=1 with --usb-host --usb-midi-real --ob-link; the host is this
 script in --host mode (rytm-teensy sim/protocol.py's 38 / 39 / 3C): it answers each 29 t 1 with a whole checkerboard
 frame and sends 3C every 250 ms (--no-answer: keepalives only, an old host). Times are ms after the base (200 M

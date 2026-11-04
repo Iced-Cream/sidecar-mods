@@ -1,4 +1,9 @@
-# 0027-elekloader: more code space through elekloader (design, 2026-10-16)
+# The elekloader build: more code space through elekloader (design, 2026-10-16)
+
+Folded into the companion on 2026-11-04 (decided): this was mod 0027-elekloader, which had no code of its own, only
+the switch that turned on the elekloader build and named the core. The companion 0032-sidecar now carries it: its
+mod.toml names the core (`[elek] core`), owns core-ar2's eight sites in the registry and refuses 0022 keys=1. Every
+build with code in the area needs the companion. The text below is the original design, with "this mod" meaning 0027.
 
 The caves are full (about 8 B free in hwus1nl). This mod builds the image with
 [elekloader](https://github.com/irpina/elekloader), which already does what we were going to write ourselves:
