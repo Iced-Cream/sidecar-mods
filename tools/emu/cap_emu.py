@@ -2,8 +2,9 @@
 """The companion phase's capture comparison (mods/0032-sidecar/design.md): one scripted host session, played into two
 builds in rytm-emu, and every byte each Rytm sends the USB host recorded and compared message by message.
 
-    .venv/bin/python tools/emu/cap_emu.py TAG_A TAG_B [--gone 30-3f,..]   exit 0 when the two captures match (but
-                                                                           the expected)
+    .venv/bin/python tools/emu/cap_emu.py TAG_A TAG_B [--gone 30-3f] [--new 2c,2d,51]
+
+        exit 0 when the two captures match (but the expected)
 
 Each TAG needs its base (tools/emu/us_base.sh TAG). The host's SysEx goes in with dtboot --usb-midi at fixed clocks (no
 live host: the session is the same instruction for instruction in both runs), keys and turns with --press / --turn;
@@ -23,6 +24,8 @@ command TAG_A did not is a failure. RYTM_EMU: rytm-emu's checkout.
 --gone: commands TAG_B may stop sending altogether (a mod left out of the set: 2026-11-04 the remote screen 0026 out of
 the release, --gone 30-3f); every other kept command must still match byte for byte. The FX return's 26 / 27 / 50 left
 the companion on 2026-11-04: no longer kept.
+--new: commands TAG_B may send that TAG_A never sent (a service new in TAG_B: 2026-11-04 the store link and step
+clock, --new 2c,2d,51); listed with their first message, not compared. A command TAG_A sent stays compared.
 """
 import collections
 import json
@@ -109,6 +112,9 @@ def main():
         for part in sys.argv[sys.argv.index("--gone") + 1].split(","):
             lo, _, hi = part.partition("-")
             gone |= set(range(int(lo, 16), int(hi or lo, 16) + 1))
+    new = set()
+    if "--new" in sys.argv:
+        new = {int(x, 16) for x in sys.argv[sys.argv.index("--new") + 1].split(",")}
     caps = {}
     for tag in (a, b):
         midi, fault, out = capture(tag)
@@ -137,6 +143,9 @@ def main():
             continue
         if c in gone and not mb:
             print(f"  expected  {c:02x}  {len(ma)} -> 0 (--gone: left out of {b})")
+            continue
+        if c in new and not ma:
+            print(f"  new       {c:02x}  0 -> {len(mb)} (--new), first {mb[0]}")
             continue
         if c not in KEPT and not mb:
             print(f"  expected  {c:02x}  {len(ma)} -> 0 (from a part left out of the 0.9 set)")
