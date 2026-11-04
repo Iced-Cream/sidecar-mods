@@ -41,7 +41,7 @@ REL_TAG := rel$(subst .,-,$(VERSION))
 # 0025, 0029 (core storage, machine slots, lock codes, pages); 0022 dropped (its host half would be a Pi counterpart).
 # 0031-remote-keys stays out of production builds (a dev / test feature: RUI_DEV=1 tools/build_rui.sh).
 RELEASE_MODS := 0026-remote-ui 0027-elekloader 0032-sidecar
-RELEASE_ARGS := --param 0026-remote-ui:screen=1
+RELEASE_ARGS := --param 0026-remote-ui:screen=1 --param 0032-sidecar:clock=1
 
 release: symbols layout
 	$(PY) tools/comp/calib_tables.py --check

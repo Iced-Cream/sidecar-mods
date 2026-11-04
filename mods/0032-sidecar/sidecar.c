@@ -16,8 +16,10 @@
  * A handler is int f(const uint8_t *data, int32_t len), run in the MIDI task; its result is ignored.
  * Ranges do not overlap (build.py refuses it). The table ends with a zero entry.
  *
- * The companion's own service, in the same table: the FX return on Overbridge IN L/R (host 26 / 27) and the mix
- * report (50), fxin.c, included at the end (until the companion phase, 2026-11-03, mod 0030-fx-in; fx-return.md).
+ * The companion's own services, in the same table: the FX return on Overbridge IN L/R (host 26 / 27) and the mix
+ * report (50), fxin.c (until the companion phase, 2026-11-03, mod 0030-fx-in; fx-return.md); the store link (51:
+ * the Pi's records and parameter locks for any mod, the project's ID and a handle per pattern), store.c; and the step
+ * clock (2C / 2D, with the param `clock`), clock.c (the Storage phase, 2026-11-04; design.md). Included at the end.
  */
 #include <stdint.h>
 
@@ -31,6 +33,7 @@ struct sc_cmd {
 typedef int (*sc_fn)(const uint8_t *d, int32_t len);
 
 extern const struct sc_cmd sc_cmds[];
+static void sc_heard(void);   /* store.c */
 
 /* Host SysEx: 1 when taken. */
 int sc_sysex(const uint8_t *d, int32_t len) {
@@ -38,6 +41,7 @@ int sc_sysex(const uint8_t *d, int32_t len) {
   uint8_t c;
   if (len < 7 || d[0] != 0xf0 || d[1] != 0x7d || d[2] != 0x52 || d[3] != 0x54) return 0;
   c = d[4];
+  sc_heard();
   for (e = sc_cmds; e->box; ++e) {
     if (c < e->first || c > e->last) continue;
     if (e->flags & SC_DIRECT) ((sc_fn)e->box)(d, len);
@@ -67,3 +71,5 @@ __asm__(
     "  jmp 0x40083de0\n");
 
 #include "fxin.c"
+#include "store.c"
+#include "clock.c"

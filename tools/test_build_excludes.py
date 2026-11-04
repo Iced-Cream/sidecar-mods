@@ -163,10 +163,11 @@ class SidecarCmds(unittest.TestCase):
         self.assertEqual([(c["first"], c["last"]) for c in build.sc_cmds_of(mods["0021-ext"])], [(0x15, 0x1d)])
 
     def test_companion_takes_fx_in(self):
-        """The FX return (once 0030) is the companion's own command 26, called directly."""
+        """The companion's own commands, called directly: the FX return's 26 (once 0030) and the store link's 51
+        (the Storage phase)."""
         mods = build.load_mods({"0032-sidecar"})
         self.assertEqual([(c["first"], c["last"], c.get("handler")) for c in build.sc_cmds_of(mods["0032-sidecar"])],
-                         [(0x26, 0x26, "fxin_host")])
+                         [(0x26, 0x26, "fxin_host"), (0x51, 0x51, "sc_store_host")])
         build.check_sc_cmds(mods, {"0032-sidecar"})
 
     def test_screen_keeps_30_3f_only(self):

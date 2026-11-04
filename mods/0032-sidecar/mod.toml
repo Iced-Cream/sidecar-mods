@@ -21,7 +21,12 @@ registered <cmd> in the table sc_cmds (mod.toml [[sidecar.cmds]], built by the l
 mailbox form keeps 0022's rule that a mod hears its commands only once its mailbox holds its
 magic. Replaces 0022's router (companion phase, 2026-11-03); host traffic is unchanged. design.md.
 
-Its own service, the FX return (once mod 0030-fx-in, fx-return.md): off at boot (AUDIO IN on Overbridge
+Its own services: the store link (store.c, the Storage phase, 2026-11-04): the Pi's record store and
+parameter locks (host-link 51) for any mod, with the project's ID and a handle per pattern in core-ar2
+fields; and with `clock` the step clock (clock.c: 2C step ticks of all 13 tracks with a trig flag, 2D
+transport and pattern switches) while the store link is up. design.md.
+
+The FX return (once mod 0030-fx-in, fx-return.md): off at boot (AUDIO IN on Overbridge
 channels 10/11, as stock). The host sends 26 01 (on) / 26 00 (off) / 26 7F (ask); the Rytm answers 27 <0|1>,
 and sends one unasked each time its USB port comes up. On, channels 10/11 carry the delay + reverb return at
 the MIX page's return levels. Back to off when the port goes down. Also the mix report for the Sidecar's
@@ -31,9 +36,24 @@ through mode (50: the 8 stems' pans and the route byte), on a change and once a 
 [sources]
 stub = "stub.s"      # generated from sidecar.c by build.sh
 
+[params]
+# clock: 1 the step clock (clock.c: trig_fire's entry and the sequencer clock's exit, the sites 0026's seq link 1032
+# uses, so not with 0026 screen=0); the Storage phase's release (decided 2026-11-04) sets it. 0 (default): no sites.
+clock = 0
+
 [elek]
 collections = { sc_cmds = 12 }
-subscribe = [{ event = "ev_tick", fn = "fxin_tick", order = 75 }]
+subscribe = [
+  { event = "ev_tick", fn = "fxin_tick", order = 75 },
+  { event = "ev_tick", fn = "sc_store_tick", order = 76 },
+  { event = "ev_project", fn = "sc_project_ev", order = 50 },
+]
+# core-ar2 fields (approved 2026-11-04): the project's ID (its folder of records on the Pi) and a record handle per
+# pattern (store.c)
+storage = [
+  { sym = "sc_proj", scope = "project", bits = 32 },
+  { sym = "sc_phand", scope = "pattern", bits = 16 },
+]
 
 [requires]
 shared = false
@@ -45,3 +65,9 @@ mods = []
 first   = 0x26
 last    = 0x26
 handler = "fxin_host"       # called for every 26 (SC_DIRECT)
+
+# The store link's answers (51 STORE, store.c): the Pi's HELLO, DATA, WRITTEN, STATUS.
+[[sidecar.cmds]]
+first   = 0x51
+last    = 0x51
+handler = "sc_store_host"   # called for every 51 (SC_DIRECT)

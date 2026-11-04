@@ -1,7 +1,9 @@
 # 0032-sidecar: the Sidecar companion
 
-Status: **built** (core-ar2 0.9, 2026-11-03), cloud checks only (`make release`, `make release-check`). Not yet run in
-the emulator or on a unit.
+Status: **built** (core-ar2 0.9, 2026-11-03): router and FX return passed the emulator gate and T111 [hw]. The store link
+and the step clock (Storage phase, 2026-11-04) are [code] only: compiled for the Rytm (GCC 13.3 from Ubuntu, so stub.s
+differs from a GCC 16.2 one), and their logic passes test/ against the Pi's own services [host]; no release build, no
+emulator run yet.
 
 ## What it is
 
@@ -25,20 +27,89 @@ entry, and the companion takes it there first.
   direct entry), the two Overbridge-input jsr operands, an `ev_tick` at order 75 for the 27 answers and the mix
   report 50. Folded in because audio routing over the link is a generic service, not one feature's.
 
+- **The store link** (store.c, the Storage phase, decided 2026-11-04): a client for the Pi's generic record store and
+  parameter-lock service (host-link 51; sidecar-firmware core/kv/kv.h and core/locks/locks.h), for any mod on the
+  Rytm. Below.
+- **The step clock** (clock.c, with the param `clock`): the Rytm's steps as 2C / 2D for the Pi's core/clock. Below.
+
+## The store link
+
+Two core-ar2 fields, approved 2026-11-04 (the only core resources the companion claims):
+
+| field | scope | bits | holds |
+|---|---|---|---|
+| `sc_proj` | project | 32 | the project's ID, which names its folder of records on the Pi (`/.rytm/store/<id>/`). Given at the first `ev_project` that finds it 0 (CREATE NEW, a project saved without the companion). SAVE PROJECT AS copies it: the two projects then share a folder. Records are versions and are never overwritten, so neither loses one; a KEEP from one would drop the other's, so the companion sends no KEEP yet |
+| `sc_phand` | pattern | 16 | a record handle per pattern (0 none), for a mod that keeps a pattern's data on the Pi (a lock table). Copy and paste of a pattern carry it (core) |
+
+The session: at every USB port-up and project change the companion sends `51 01 00 HELLO <project 5>`, up to 3 times
+2 s apart while unanswered, and once more when any host message arrives while unanswered (a Sidecar that came up
+late). The Pi's answer (`51 01 40`) opens the link, and `sc_link_epoch()` takes a new value (never 0; 0 while closed).
+The Pi forgets every lock set at a HELLO, so a mod declares its sets again whenever the epoch changes. An answer to the
+HELLO before a project change does not open the new project's link. The port going down closes it; a request that was
+in flight goes again after the next HELLO.
+
+The API (all from the UI task, `ev_tick` or what it calls; the callbacks come from the companion's `ev_tick`):
+
+```c
+typedef void (*sc_store_cb)(int32_t status, int32_t n, uint32_t handle, void *ctx);
+int32_t sc_store_read(int32_t scope, uint32_t handle, uint8_t *buf, uint32_t cap, sc_store_cb cb, void *ctx);
+int32_t sc_store_write(int32_t scope, const uint8_t *src, uint32_t n, sc_store_cb cb, void *ctx);  /* src kept until cb */
+int32_t sc_link_send(const uint8_t *body, int32_t n);   /* a lock op 10..15, whole; 0 while closed */
+uint32_t sc_link_epoch(void), sc_project_id(void);
+uint32_t sc_pattern_handle(int32_t p);                   /* live pattern 0..127 */
+void sc_set_pattern_handle(int32_t p, uint32_t h);
+```
+
+- Requests queue (4 at most; 0 when full) and go one at a time; a request waits while the link is closed, and once
+  sent it times out after 60 ticks (status 0x7E). Status is kv::Status otherwise (0 ok, 1 missing, 6 too big, ...).
+- A write gets a new handle, never 0 (handles are versions). Up to 4 messages a tick: a 4 KB record is 37 chunks.
+- The cache: 4 records of up to 256 bytes by (scope, handle), filled by each read and write that fits. A handle names
+  a version that never changes, so a cached record is never stale and a read that hits it needs no Pi.
+- Answers arrive in the MIDI task through the router's direct entry for 51 (`sc_store_host`); it writes only the
+  request in flight and the link's words.
+- Sending never waits (fxin.c's rules), and never lands inside a stock SysEx dump unless its flag has stayed set 2 s.
+
+## The step clock
+
+With `clock = 1` (the release's, Makefile `RELEASE_ARGS`), the companion takes 0026's seq-link sites (1032): trig_fire's
+entry and the sequencer clock's exit (registry). A build with 0026 `screen=0` and `clock=1` is refused (both claim the
+hosts). While the store link is open and the port is configured it sends, as sim/protocol.py's "Sidecar sequencer":
+
+- `2C 01 <blk4> <n> {<track> <step> <len> <speed> <flags>} x n`: the steps that started in one audio block, all 13
+  tracks (the FX track is 12), 5 bytes a tick (0026's had 4; the Pi's parser takes either). Flags bit 0: the step holds
+  a note trig; bit 1: a trigless lock trig. From the step's trig word (TrackPattern + 2 x step: bit 0 trig, bit 2
+  lock), or for a euclidean track its map (+0x2d1) [code, re/symbols.toml; to measure]. Mutes are not looked at.
+- `2D 01 01 <state> <blk4>` TRANSPORT at link-up and on each change; `2D 01 03 <from> <to> <blk4>` SWITCH when the new
+  pattern's first step starts (0026 1042's jump handling: a re-schedule call is no step).
+
+The FX track's speed byte (0x405c8d25 + 12) is read as the voice tracks' are [I: the array's width is not measured].
+
 ## Rules it carries
 
 - The Pi engine stays generic: no engine part exists for one Rytm mod. A client registers commands here only for a
   service the engine offers to any mod.
-- Core resources: the companion claims none of core-ar2's shared resources (storage, lock codes, machine slots,
-  pages, CCs). Its event subscription is `ev_tick` order 75. Any later claim needs the owner's OK first.
+- Core resources: the companion claims two core-ar2 fields, `sc_proj` (project, 32 bits) and `sc_phand` (pattern, 16
+  bits), approved 2026-11-04; nothing else of core's shared resources (lock codes, machine slots, pages, CCs). Its
+  event subscriptions are `ev_tick` orders 75 and 76 and `ev_project` order 50. Any later claim needs the owner's OK
+  first.
 - Host traffic is unchanged by the move from 0022's router to this table: the gate is a capture comparison against the
   build before it, byte-identical but for the traffic of features left out of the build.
+- The store link and the step clock add host traffic (51 HELLO at port-up, 2C / 2D while playing with the link open);
+  the gate for them is the same capture comparison, every kept command byte-identical and the new ones as above.
+
+## Tests
+
+`make -C mods/0032-sidecar/test FIRMWARE=<sidecar-firmware>` builds store.c and clock.c for a PC (test/companion_host.c
+gives the firmware's words) and runs them against the Pi's own core/kv, core/locks and core/clock: the HELLO and the
+epoch, a 3-chunk write and its read, the cache, a missing handle, the queue's limit, a timeout, lock ops reaching the
+Pi's lock service and played by the companion's own 2C, the 13 tracks' trig flags, a jump's re-schedule, a full tick
+queue, a project change (and a stale HELLO answer), the port going down mid-request, no Pi at all. ASan and UBSan.
 
 ## Clients in the core 0.9 build
 
 | mod | commands | entry |
 |---|---|---|
-| 0032-sidecar (itself) | 26 | direct: `fxin_host` |
+| 0032-sidecar (itself) | 26, 51 | direct: `fxin_host`, `sc_store_host` |
 | 0026-remote-ui, `screen=1` | 30..3F | mailbox `rui_mbox`, magic `RUIP` |
 
 0026 without `screen` also registers 28, 2E..2F, 45..48, 4A and 4F; 0021 15..1D (15..17 without slots), 0023 0E and

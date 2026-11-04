@@ -180,7 +180,8 @@ void fxin_tick(void *ctrl) {
   if (!st.was_up && up) st.tell = 1;
   st.was_up = (uint8_t)up;
   if (r != st.seen || st.tell) {
-    uint8_t m[7] = {0xf0, 0x7d, 0x52, 0x54, 0x27, 0, 0xf7};
+    uint8_t m[7];                    /* byte by byte: an initialiser may become a memcpy call, which the area lacks */
+    m[0] = 0xf0, m[1] = 0x7d, m[2] = 0x52, m[3] = 0x54, m[4] = 0x27, m[6] = 0xf7;
     m[5] = FXIN_WORD == FXIN_ON;
     if (try_send(m, 7)) {
       st.seen = r;

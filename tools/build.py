@@ -598,7 +598,7 @@ def elek_build(img, stock_img, mods, enabled, elek_detours, tag, meta, syx_out, 
         mdir = work / "mods" / eid
         mdir.mkdir(parents=True)
         sites, sources, subscribe, defsym = [], [], [], {}
-        collections, contribute = {}, []
+        collections, contribute, storage = {}, [], []
         for mid in ms:
             sites += sites_of(mid)
             contribute += sc_contributions(mods[mid], stub_symbols.get(mid, {}))
@@ -606,6 +606,8 @@ def elek_build(img, stock_img, mods, enabled, elek_detours, tag, meta, syx_out, 
             if mid not in elek_mods:
                 continue
             subscribe += mods[mid].get("_elek", {}).get("subscribe", [])
+            # core-ar2 fields ([elek] storage: sym, scope, bits), placed by elekloader from the build's lockfile
+            storage += mods[mid].get("_elek", {}).get("storage", [])
             prm = {f"P_{k.upper()}": int(v) for k, v in mods[mid]["_params"].items()}
             if bundle:
                 # several stubs in one mod: each gets its own params as .set lines, as
@@ -662,6 +664,8 @@ def elek_build(img, stock_img, mods, enabled, elek_detours, tag, meta, syx_out, 
             modjson["collections"] = collections
         if contribute:
             modjson["contribute"] = contribute
+        if storage:
+            modjson["storage"] = storage
         (mdir / "mod.json").write_text(json.dumps(modjson, indent=1) + "\n")
         elek("elekloader.sdk.build", mdir, "--stock", STOCK_SYX, "--out", mdir / "out")
         built.append(next((mdir / "out").glob("*.elemod")))
