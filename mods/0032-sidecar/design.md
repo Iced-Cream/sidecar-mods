@@ -107,6 +107,14 @@ epoch, a 3-chunk write and its read, the cache, a missing handle, the queue's li
 Pi's lock service and played by the companion's own 2C, the 13 tracks' trig flags, a jump's re-schedule, a full tick
 queue, a project change (and a stale HELLO answer), the port going down mid-request, no Pi at all. ASan and UBSan.
 
+`test/storetest/` is a test client of the store link: a separate elekloader mod (`sidecar-storetest`, requires
+`sidecar`) for test builds only, never in a release. Each session it declares lock set 7 (track 1, slot 3, two
+parameters, a lock on steps 1 and 9), writes a 600-byte record and reads it back from the Pi, writes and reads a small
+one (served by the cache), and reads the previous session's record by pattern 1's handle (a reload or SAVE AS shares
+the folder). Boxes at the screen's bottom right show each step; the Pi's /status `kv` and `locks` members show the
+same from its side. The host test runs it too (three sessions: first, second with the earlier record, a deaf Pi).
+Build it with elekloader's SDK (`python -m elekloader.sdk.build mods/0032-sidecar/test/storetest --stock <1.74 .syx>`).
+
 ## Clients in the core 0.9 build
 
 | mod | commands | entry |

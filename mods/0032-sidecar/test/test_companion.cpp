@@ -42,7 +42,16 @@ uint32_t h_ck_drops(void);
 uint32_t h_scl_hits(void);
 uint32_t h_scl_hellos(void);
 uint32_t h_scl_timeouts(void);
+// storetest/storetest.c, the test client (built with h_fillrect for its FILLRECT)
+void st_tick(void* ctrl);
+void st_draw(void* bmp, void* ctrl);
+extern volatile uint32_t st_res, st_bad, st_sessions;
+extern volatile int32_t st_status[6];
 }
+static bool g_st_on = false;                            // the test client ticks after the companion
+static uint8_t g_ctrl[64];
+static int g_rects = 0;
+extern "C" void h_fillrect(void*, int, int, int, int, int) { ++g_rects; }
 
 static int g_fail = 0;
 #define CHECK(c) do { if (!(c)) { printf("FAIL %s:%d: %s\n", __FILE__, __LINE__, #c); ++g_fail; } } while (0)
@@ -103,7 +112,7 @@ static int deliver() {                                 // the Pi's answers reach
   return k;
 }
 static void tick(int n = 1) {                          // ev_tick, the answers in between
-  for (int i = 0; i < n; ++i) { sc_store_tick(nullptr); deliver(); }
+  for (int i = 0; i < n; ++i) { sc_store_tick(nullptr); if (g_st_on) st_tick(g_ctrl); deliver(); }
 }
 static int sent(uint8_t cmd, uint8_t op = 0xFF) {
   int k = 0;
@@ -312,6 +321,40 @@ int main() {
   for (int t = 0; t < 13; ++t) h_prev[t] = 5, sc_fire(t, 1, 6);
   sc_end();
   CHECK(sent(0x2C) == (int)n2c);
+
+  // ---- the test client (storetest/): each session declares its lock set, writes 600 bytes and reads them back, a
+  // small record through the cache, then the previous session's record by pattern 1's handle
+  h_port_state = 1;
+  sc_set_pattern_handle(0, 0);
+  g_st_on = true;
+  tick(3);                                              // the link back open: session 1
+  CHECK(st_sessions == 1);
+  tick(40);
+  enum { S_LOCKS, S_WRITE, S_READ, S_SMALL, S_PRIOR, S_DONE };
+  CHECK(st_res == (1u << S_LOCKS | 1u << S_WRITE | 1u << S_READ | 1u << S_SMALL | 1u << S_DONE) && st_bad == 0);
+  CHECK(locks::declared(7) && locks::lock_at(7, 0, 0) == 1000 && locks::lock_at(7, 8, 1) == 3000);
+  uint32_t h1 = sc_pattern_handle(0);
+  CHECK(h1 != 0);
+  g_ctrl[0x20] = 0;
+  st_draw(nullptr, g_ctrl);
+  CHECK(g_rects == 1 + 1 + 5);                          // the clear, one session pixel, five boxes
+  // session 2 (the project loaded again, or SAVE AS: the same ID): the first session's record read back
+  sc_project_ev(1, 0);
+  tick(3);
+  CHECK(st_sessions == 2);
+  tick(40);
+  CHECK(st_res == 0x3f && st_bad == 0);
+  CHECK(sc_pattern_handle(0) != h1);
+  // a deaf Pi mid-session: the step times out and shows as failed; the next session runs again
+  sc_project_ev(1, 0);
+  tick(3);
+  g_pi_deaf = true;
+  tick(80);
+  CHECK(st_sessions == 3 && (st_bad & 1u << S_WRITE) && st_status[S_WRITE] == 0x7e);
+  g_pi_deaf = false;
+  g_st_on = false;
+  h_port_state = 0;                                     // closed again, as the next part starts
+  tick();
 
   // ---- no Pi at all: three HELLOs 2 s apart, then quiet until a host message or the port comes up again
   h_port_state = 1;

@@ -1,0 +1,19 @@
+{
+ "id": "sidecar-storetest",
+ "version": "1.0",
+ "title": "Sidecar store test",
+ "category": "Tests",
+ "license": "GPL-2.0-or-later",
+ "author": "Iced-Cream",
+ "description": "A test client of the Sidecar companion's store link (Storage phase, 2026-11-04), for test builds only, never a release: at each new session it declares a lock set, writes a record of 600 bytes and reads it back from the Pi, writes and reads a small one (the companion's cache), and reads the record the previous session left (pattern 1's handle). Boxes at the bottom right of the screen show each step's result.",
+ "device": "analog-rytm-mk2",
+ "os": "1.74",
+ "sources": ["storetest.c"],
+ "cflags": ["-DFILLRECT_AT=0x40070726"],
+ "subscribe": [
+  {"event": "ev_tick", "fn": "st_tick", "order": 80},
+  {"event": "ev_draw", "fn": "st_draw", "order": 80}
+ ],
+ "resources": {"core": "0.9"},
+ "requires": ["core", "sidecar"]
+}
