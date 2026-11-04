@@ -1,6 +1,6 @@
 # 0032-sidecar: the Sidecar companion
 
-Status: **built** (core-ar2 0.9, 2026-11-03): router and FX return passed the emulator gate and T111 [hw]. The store link
+Status: **built** (core-ar2 0.9, 2026-11-03): router (with the FX return, since taken out) passed the emulator gate and T111 [hw]. The store link
 and the step clock (Storage phase, 2026-11-04) are [code] only: compiled for the Rytm (GCC 13.3 from Ubuntu, so stub.s
 differs from a GCC 16.2 one), and their logic passes test/ against the Pi's own services [host]; no release build, no
 emulator run yet.
@@ -23,10 +23,9 @@ entry, and the companion takes it there first.
   `{magic, handler}` the mod writes when it is ready, and the handler is called only while the mailbox holds the
   entry's magic (0022's rule for its fixed mailboxes). A handler is `int f(const uint8_t *data, int32_t len)`, run in
   the MIDI task, never waiting.
-- **The FX return** (fxin.c, until 2026-11-03 mod 0030-fx-in; fx-return.md): the companion's own command 26 (a
-  direct entry), the two Overbridge-input jsr operands, an `ev_tick` at order 75 for the 27 answers and the mix
-  report 50. Folded in because audio routing over the link is a generic service, not one feature's.
-
+- **No FX return** since 2026-11-04 (decided: take it out for now, a generic audio route later): the command 26 / 27,
+  its two Overbridge-input jsr operands and the mix report 50 (fxin.c, fx-return.md, once mod 0030) are in git history
+  only. The router and table did not change; the Pi's generic engine already drops 26, 27 and 50.
 - **The store link** (store.c, the Storage phase, decided 2026-11-04): a client for the Pi's generic record store and
   parameter-lock service (host-link 51; sidecar-firmware core/kv/kv.h and core/locks/locks.h), for any mod on the
   Rytm. Below.
@@ -69,7 +68,7 @@ void sc_set_pattern_handle(int32_t p, uint32_t h);
   a version that never changes, so a cached record is never stale and a read that hits it needs no Pi.
 - Answers arrive in the MIDI task through the router's direct entry for 51 (`sc_store_host`); it writes only the
   request in flight and the link's words.
-- Sending never waits (fxin.c's rules), and never lands inside a stock SysEx dump unless its flag has stayed set 2 s.
+- Sending never waits (0029's try_send rules), and never lands inside a stock SysEx dump unless its flag has stayed set 2 s.
 
 ## The step clock
 
@@ -92,12 +91,13 @@ The FX track's speed byte (0x405c8d25 + 12) is read as the voice tracks' are [I:
   service the engine offers to any mod.
 - Core resources: the companion claims two core-ar2 fields, `sc_proj` (project, 32 bits) and `sc_phand` (pattern, 16
   bits), approved 2026-11-04; nothing else of core's shared resources (lock codes, machine slots, pages, CCs). Its
-  event subscriptions are `ev_tick` orders 75 and 76 and `ev_project` order 50. Any later claim needs the owner's OK
+  event subscriptions are `ev_tick` order 76 and `ev_project` order 50. Any later claim needs the owner's OK
   first.
 - Host traffic is unchanged by the move from 0022's router to this table: the gate is a capture comparison against the
   build before it, byte-identical but for the traffic of features left out of the build.
 - The store link and the step clock add host traffic (51 HELLO at port-up, 2C / 2D while playing with the link open);
-  the gate for them is the same capture comparison, every kept command byte-identical and the new ones as above.
+  the gate for them is the same capture comparison, every kept command byte-identical and the new ones as above;
+  27 and 50 are gone with the FX return (tools/emu/cap_emu.py's KEPT set needs that change at the next run).
 
 ## Tests
 
@@ -111,7 +111,7 @@ queue, a project change (and a stale HELLO answer), the port going down mid-requ
 
 | mod | commands | entry |
 |---|---|---|
-| 0032-sidecar (itself) | 26, 51 | direct: `fxin_host`, `sc_store_host` |
+| 0032-sidecar (itself) | 51 | direct: `sc_store_host` |
 | 0026-remote-ui, `screen=1` | 30..3F | mailbox `rui_mbox`, magic `RUIP` |
 
 0026 without `screen` also registers 28, 2E..2F, 45..48, 4A and 4F; 0021 15..1D (15..17 without slots), 0023 0E and

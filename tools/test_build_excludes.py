@@ -151,7 +151,7 @@ class SidecarCmds(unittest.TestCase):
 
     def test_overlap_refused(self):
         mods = build.load_mods(self.RUI)
-        mods["0032-sidecar"]["_sc_cmds"].append({"first": 0x30, "last": 0x30, "handler": "fxin_host"})
+        mods["0032-sidecar"]["_sc_cmds"].append({"first": 0x30, "last": 0x30, "handler": "sc_store_host"})
         with self.assertRaises(SystemExit) as cm:
             build.check_sc_cmds(mods, self.RUI)
         self.assertIn("overlap", str(cm.exception))
@@ -163,11 +163,11 @@ class SidecarCmds(unittest.TestCase):
         self.assertEqual([(c["first"], c["last"]) for c in build.sc_cmds_of(mods["0021-ext"])], [(0x15, 0x1d)])
 
     def test_companion_takes_fx_in(self):
-        """The companion's own commands, called directly: the FX return's 26 (once 0030) and the store link's 51
-        (the Storage phase)."""
+        """The companion's own command, called directly: the store link's 51 (the Storage phase; the FX return's 26
+        left on 2026-11-04)."""
         mods = build.load_mods({"0032-sidecar"})
         self.assertEqual([(c["first"], c["last"], c.get("handler")) for c in build.sc_cmds_of(mods["0032-sidecar"])],
-                         [(0x26, 0x26, "fxin_host"), (0x51, 0x51, "sc_store_host")])
+                         [(0x51, 0x51, "sc_store_host")])
         build.check_sc_cmds(mods, {"0032-sidecar"})
 
     def test_screen_keeps_30_3f_only(self):

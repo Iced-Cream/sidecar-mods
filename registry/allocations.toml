@@ -7272,30 +7272,6 @@ expect_sha256 = "17dc225f40a7b26df41249bf968e40cb56a7ec90c75e3e68692b4b48fc35551
 replace = "00000035000000000000000000007f000000000000000001ffffffffffffffff0000000e000000004024091a40240b7f4023723d00000035000000000000000000007f000000000000000001ffffffffffffffff0000000f000000004023758040240b7f4023723d000000390000001d0000000000007f000000000000000001ffffffffffffffff00000014000000004023758d40240b7f4023759b000000390000001d0000000000007f000000000000000001ffffffffffffffff00000015000000004023759f40240b7f402375ad00000039000000260000000000007f000000000000000001ffffffffffffffff0000001600000000402375b140240b7f402375bf00000039000000260000000000007f000000000000000001ffffffffffffffff0000001700000000402375c340240b7f402375d100000039000000270000000000007f000000000000000001ffffffffffffffff0000001800000000402375d540240b7f402375e300000039000000270000000000007f000000000000000001ffffffffffffffff0000001900000000402375e740240b7f402375f500000038000000000000000000007f000000000000000001ffffffffffffffff0000001a00000000402375f940240b7f4023760700000038000000000000000000007f000000000000000001ffffffffffffffff0000001b000000004023760b40240b7f4023761900000038000000280000000000007f000000000000000001ffffffffffffffff0000001c000000004023761d40240b7f4023762b00000038000000280000000000007f000000000000000001ffffffffffffffff0000001d000000004023762f40240b7f4023763e00000038000000290000000000007f000000000000000001ffffffffffffffff0000001e000000004023764340240b7f4023765200000038000000290000000000007f000000000000000001ffffffffffffffff0000001f000000004023765740240b7f40237666"
 note    = "records 14..27 become the AMPLITUDE 2 / SEND FX 1 / SEND FX 2 knobs (fields above; names at run time)"
 
-# ---------------------------------------------------------------- 0032-sidecar: the FX return (until 2026-11-03 0030-fx-in)
-# The delay + reverb return on Overbridge IN L/R, switched by the host (mods/0032-sidecar/fx-return.md). Code in
-# elekloader's area; the two jsr operands point at fxin_ob there. The switch (fxin_word, fxin_req) is in the companion's
-# area memory, written by its handler fxin_host, which its router calls on a host 26; zero at boot reads as off. Folded
-# into the companion in the companion phase (decided 2026-11-03): audio routing is a generic service of the link.
-
-[[patch]]
-owner       = "0032-sidecar"
-addr        = 0x401214ba
-size        = 4
-expect_len  = 4
-expect_sha256 = "ae6aa465aa40b2becc3b631febe33d07e412cba8260e35a28a175fc30c00a905"
-from_symbol = "fxin_ob"
-note        = "jsr operand: ob_in_write(rx_buffer, 0, 32), the block driver's normal path (0024-ob-mix's site)"
-
-[[patch]]
-owner       = "0032-sidecar"
-addr        = 0x4011fe76
-size        = 4
-expect_len  = 4
-expect_sha256 = "ae6aa465aa40b2becc3b631febe33d07e412cba8260e35a28a175fc30c00a905"
-from_symbol = "fxin_ob"
-note        = "jsr operand: ob_in_write(rx_buffer, 0, 32), the driver's other path (0x8000e578 != 0; 0024-ob-mix's site)"
-
 # ---------------------------------------------------------------- 0031-remote-keys (2026-10-27)
 # analoghealth's four sites (Iced-Cream/analoghealth mod.json guarded_sites, OS 1.74), carried to 1.73 by the
 # measured port map with each 48-byte window identical apart from translated pointers (re/symbols.toml, the

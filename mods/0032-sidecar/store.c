@@ -41,6 +41,18 @@ STORE_FIELD(sc_phand);
 #define SC_HELLO_TRIES 3
 #define SC_LQ       512                /* bytes of queued lock ops */
 #define SC_LMAX     120                /* the longest lock op body */
+#ifndef PORT_STATE                     /* the USB MIDI sender's words (fxin.c's until the FX return left, 2026-11-04) */
+typedef void (*send_fn)(int32_t n, const uint8_t *m);
+typedef int32_t (*trylock_fn)(void *m);
+typedef void (*unlock_fn)(void *m);
+#define MIDI_SEND   ((send_fn)0x400029e0u)
+#define MIDI_MUTEX  ((void *)0x42f67a28u)
+#define MUTEX_TRY   ((trylock_fn)0x4000119cu)      /* never pends: 1 taken, 0 not now */
+#define MUTEX_GIVE  ((unlock_fn)0x400011eeu)
+#define PORT_STATE  (*(volatile uint32_t *)0x413db254u)   /* 1: the USB port configured */
+#define TX_LEVEL    (*(volatile int32_t *)0x413db258u)    /* the sender spins while level + n > 4091 */
+#define USB_POOL    (*(const volatile uint32_t *const volatile *)0x413db390u)   /* free requests, next at +52 */
+#endif
 #ifndef SC_TXSX                        /* the firmware's words (test/: the host test gives its own) */
 #define SC_TXSX     (*(const volatile uint32_t *)0x413db244u)   /* the sender's SysEx state: a stock dump under way */
 #define SC_RAND_A   (*(volatile uint32_t *)0xfc07000cu)         /* DTCN0, the bus-clock count */
@@ -87,7 +99,7 @@ static struct {
   uint32_t hellos, acks, reqs, done, errors, timeouts, hits, lock_ops, lock_drops, bad;   /* diagnostics */
 } scl __attribute__((section(".bss"), aligned(4)));
 
-/* ---- sending (the UI task; never waits): fxin.c's try_send, sized, and never inside a stock SysEx dump (it would
+/* ---- sending (the UI task; never waits): 0029's try_send, sized, and never inside a stock SysEx dump (it would
    land inside it), unless the dump's flag has stayed set for 2 s (a dump cut by a cable pull) */
 static int32_t sc_send(const uint8_t *m, int32_t n) {
   const volatile uint32_t *h;
@@ -325,7 +337,7 @@ static int32_t sc_step(struct sc_req *r) {
   return 0;
 }
 
-/* ev_tick (order 76, after fxin_tick): the HELLO, the lock ops, the requests, the callbacks */
+/* ev_tick (order 76): the HELLO, the lock ops, the requests, the callbacks */
 void sc_store_tick(void *ctrl);
 void sc_store_tick(void *ctrl) {
   int32_t up = PORT_STATE == 1, k;

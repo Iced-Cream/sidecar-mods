@@ -7,10 +7,6 @@ enabled = false
 # code in elekloader's DDR area (needs 0027-elekloader); its own elemod, `sidecar`, in release builds
 area    = "elek"
 
-# 0024-ob-mix (ob-fx branch) patches the same two jsr operands as the FX return; 0006's telemetry and calibration
-# builds write the same words 10/11.
-excludes = ["0006-comp-preview"]
-
 # re-only | built | hardware-verified | retracted
 status  = "built"
 
@@ -23,14 +19,11 @@ magic. Replaces 0022's router (companion phase, 2026-11-03); host traffic is unc
 
 Its own services: the store link (store.c, the Storage phase, 2026-11-04): the Pi's record store and
 parameter locks (host-link 51) for any mod, with the project's ID and a handle per pattern in core-ar2
-fields; and with `clock` the step clock (clock.c: 2C step ticks of all 13 tracks with a trig flag, 2D
+fields, and the project's name; and with `clock` the step clock (clock.c: 2C step ticks of all 13 tracks with a trig flag, 2D
 transport and pattern switches) while the store link is up. design.md.
 
-The FX return (once mod 0030-fx-in, fx-return.md): off at boot (AUDIO IN on Overbridge
-channels 10/11, as stock). The host sends 26 01 (on) / 26 00 (off) / 26 7F (ask); the Rytm answers 27 <0|1>,
-and sends one unasked each time its USB port comes up. On, channels 10/11 carry the delay + reverb return at
-the MIX page's return levels. Back to off when the port goes down. Also the mix report for the Sidecar's
-through mode (50: the 8 stems' pans and the route byte), on a change and once a second.
+The FX return (26 / 27, once 0030) and the mix report (50) left on 2026-11-04 (decided: a generic
+audio route later); git history has them (fxin.c, fx-return.md).
 """
 
 [sources]
@@ -44,7 +37,6 @@ clock = 0
 [elek]
 collections = { sc_cmds = 12 }
 subscribe = [
-  { event = "ev_tick", fn = "fxin_tick", order = 75 },
   { event = "ev_tick", fn = "sc_store_tick", order = 76 },
   { event = "ev_project", fn = "sc_project_ev", order = 50 },
 ]
@@ -57,14 +49,8 @@ storage = [
 
 [requires]
 shared = false
-symbols = ["fx_return_gain_pre", "fx_return_gain_post", "fx_delay_out", "fx_reverb_out", "ob_in_write", "lfo_track_array"]
+symbols = []
 mods = []
-
-# The companion's own command: FX IN (26).
-[[sidecar.cmds]]
-first   = 0x26
-last    = 0x26
-handler = "fxin_host"       # called for every 26 (SC_DIRECT)
 
 # The store link's answers (51 STORE, store.c): the Pi's HELLO, DATA, WRITTEN, STATUS.
 [[sidecar.cmds]]

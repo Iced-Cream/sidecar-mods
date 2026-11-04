@@ -66,7 +66,6 @@ SUITES = {
     "md":   dict(mods={"0021", "0029"}, imports={"us", "sfx"}, est=300),
     "mi":   dict(mods={"0021", "0026", "0022"}, imports={"pc", "cu"}, est=90),
     "ar":   dict(mods={"0021", "0026", "0022"}, imports={"us"}, est=120),
-    "fxin": dict(mods={"0032", "0024"}, est=43),   # the companion's FX return (0030 until 2026-11-03)
     "td":   dict(mods={"0023"}, imports={"us"}, est=37),
     "frz":  dict(mods={"0029"}, est=22),
 }
@@ -99,7 +98,7 @@ NONE_PATHS = ("docs/", "re/subsystems/", "re/ghidra/", "tools/comp/", "tools/tes
 PATH_SUITES = {"tools/build_rui.sh": set(SUITES), "tools/looper_base.sh": set(SUITES)}
 # the mods every image carries (enabled by default, stock sites) that no suite is about: the quick suites that boot
 # the image and drive its UI, as a smoke test (the full set runs before a flash)
-SMOKE = ["frz", "td", "fxin", "rui", "sv"]
+SMOKE = ["frz", "td", "rui", "sv"]   # (fxin left with the FX return, 2026-11-04)
 STOCK_SITE_MODS = {"0002", "0003", "0004", "0006", "0008", "0009", "0010", "0012", "0013", "0020"}
 
 

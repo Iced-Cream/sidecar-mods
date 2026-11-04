@@ -16,10 +16,10 @@
  * A handler is int f(const uint8_t *data, int32_t len), run in the MIDI task; its result is ignored.
  * Ranges do not overlap (build.py refuses it). The table ends with a zero entry.
  *
- * The companion's own services, in the same table: the FX return on Overbridge IN L/R (host 26 / 27) and the mix
- * report (50), fxin.c (until the companion phase, 2026-11-03, mod 0030-fx-in; fx-return.md); the store link (51:
- * the Pi's records and parameter locks for any mod, the project's ID and a handle per pattern), store.c; and the step
- * clock (2C / 2D, with the param `clock`), clock.c (the Storage phase, 2026-11-04; design.md). Included at the end.
+ * The companion's own services, in the same table: the store link (51: the Pi's records and parameter locks for any
+ * mod, the project's ID, name and a handle per pattern), store.c; and the step clock (2C / 2D, with the param
+ * `clock`), clock.c (the Storage phase, 2026-11-04; design.md). Included at the end. The FX return (26 / 27, fxin.c,
+ * once 0030) and its mix report (50) left on 2026-11-04 (decided: a generic audio route later).
  */
 #include <stdint.h>
 
@@ -70,6 +70,5 @@ __asm__(
     "  moveml %d2-%d3/%a2-%a3,%sp@\n"
     "  jmp 0x40083de0\n");
 
-#include "fxin.c"
 #include "store.c"
 #include "clock.c"
