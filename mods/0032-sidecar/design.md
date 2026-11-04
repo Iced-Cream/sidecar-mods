@@ -82,6 +82,10 @@ hosts). While the store link is open and the port is configured it sends, as sim
   lock), or for a euclidean track its map (+0x2d1) [code, re/symbols.toml; to measure]. Mutes are not looked at.
 - `2D 01 01 <state> <blk4>` TRANSPORT at link-up and on each change; `2D 01 03 <from> <to> <blk4>` SWITCH when the new
   pattern's first step starts (0026 1042's jump handling: a re-schedule call is no step).
+- `2D 01 02 <now> <queued, 7F none>` PATTERN and `2D 01 07 <t hi> <t mid> <t lo>` TEMPO (BPM x 120, 21 bits) at
+  link-up and on each change (added 2026-11-04 after T115, where the Pi's clock.pattern stayed -1 and bpm 0). The
+  words are 0026's (SQ_NEXT 0x412f3e91, SQ_TEMPO 0x40287ffc, measured there); while a switch is pending the old
+  pattern is reported playing and the new one queued, as 0026's 1033 did.
 
 The FX track's speed byte (0x405c8d25 + 12) is read as the voice tracks' are [I: the array's width is not measured].
 

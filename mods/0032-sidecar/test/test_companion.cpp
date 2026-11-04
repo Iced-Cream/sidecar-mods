@@ -21,6 +21,8 @@
 extern "C" {
 extern volatile uint32_t h_port_state, h_play, h_blk, h_txsx;
 extern volatile int8_t h_pat_idx;
+extern volatile uint32_t h_tempo;
+extern uint8_t h_next[2];
 extern uint8_t h_speed[13], h_prev[13], h_patd[85760], h_name[16];
 extern const volatile uint32_t* h_pool;
 typedef void (*sc_store_cb)(int32_t status, int32_t n, uint32_t handle, void* ctx);
@@ -245,13 +247,14 @@ int main() {
   h_patd[917 * 5 + 0x2d1 + 3] = 0;
   for (int t = 0; t < 13; ++t) h_speed[t] = 2, h_prev[t] = 3;
   h_play = 0, h_pat_idx = 0;
-  sc_end();                                             // the link is up: TRANSPORT as it is (stopped)
-  CHECK(sent(0x2D) == 1 && clock::transport() == clock::kStop);
+  sc_end();                                             // the link is up: TRANSPORT, PATTERN and TEMPO as they are
+  CHECK(sent(0x2D) == 3 && clock::transport() == clock::kStop);
+  CHECK(clock::pattern() == 0 && clock::queued() == -1 && clock::bpm() == 120.0);
   h_play = 1;
   h_blk = 2000;
   for (int t = 0; t < 13; ++t) sc_fire(t, 0, 4);
   sc_end();
-  CHECK(sent(0x2D) == 2 && clock::transport() == clock::kPlay);
+  CHECK(sent(0x2D) == 4 && clock::transport() == clock::kPlay);
   CHECK(sent(0x2C) == 1 && g_ticks.size() == 13);
   auto tm = std::find_if(g_rytm_out.rbegin(), g_rytm_out.rend(), [](const std::vector<uint8_t>& m) { return m[4] == 0x2C; });
   CHECK(tm != g_rytm_out.rend() && tm->size() == 6 + 4 + 1 + 5 * 13 + 1 && (*tm)[10] == 13);
@@ -271,6 +274,24 @@ int main() {
   // a full queue drops and counts
   for (int i = 0; i < 40; ++i) h_prev[0] = (uint8_t)(i & 15), sc_fire(0, 1, 0);
   CHECK(h_ck_drops() > 0);
+  sc_end();
+  // TEMPO on a change only; PATTERN: a queued pattern, then the switch (the old one plays until its first step)
+  int n2d = sent(0x2D);
+  h_tempo = 1275 * 12;                                  // 127.5 BPM
+  sc_end();
+  sc_end();
+  CHECK(sent(0x2D) == n2d + 1 && clock::bpm() == 127.5);
+  h_next[0] = 0, h_next[1] = 5;                         // pattern 6 queued
+  sc_end();
+  CHECK(clock::pattern() == 0 && clock::queued() == 5);
+  h_pat_idx = 5;                                        // written a step ahead: still pattern 1 playing, 6 next
+  sc_end();
+  CHECK(clock::pattern() == 0 && clock::queued() == 5);
+  h_next[1] = 5;
+  for (int t = 0; t < 13; ++t) h_prev[t] = 0, sc_fire(t, 5, 1);   // the new pattern's first step: SWITCH
+  sc_end();
+  CHECK(clock::pattern() == 5 && clock::queued() == -1);
+  h_tempo = 120 * 120;
   sc_end();
 
   // ---- the pattern handle: per live pattern

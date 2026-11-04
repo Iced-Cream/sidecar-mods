@@ -11,6 +11,9 @@
  *       carried 4 bytes a tick and only its seq tracks; the Pi takes either (a tick's size from the message's length).
  *   2D 01 01 <0 stop 1 play 2 pause> <blk4>   TRANSPORT, on a change
  *   2D 01 03 <from> <to> <blk4>               SWITCH: the new pattern's first step started in that block
+ *   2D 01 02 <now> <queued 7F none>           PATTERN: the playing pattern and the one queued after it, at link-up and
+ *                                             on a change (as 0026's 1033: until the SWITCH the old one still plays)
+ *   2D 01 07 <t hi> <t mid> <t lo>            TEMPO: BPM x 120 in 21 bits, at link-up and on a change
  * blk4: the audio block counter (1500 a second) as 4 x 7 bits, MSB first.
  *
  * Where the steps come from (0026 1032, measured there [rytm-emu, 2026-10-20]): trig_fire (0x4009aa28, (track,
@@ -37,6 +40,9 @@
 #define CK_SENDER    (*(const volatile uint32_t *)0x42f67a28u)  /* the USB MIDI mutex's owner (0: free) */
 #define CK_SYSEX     (*(const volatile uint32_t *)0x413db244u)  /* the sender's SysEx state (0021's SYSEX_STATE) */
 #define CK_TIMER     (*(volatile uint32_t *)0xfc07000cu)        /* DTCN0, the OS's free-running bus-clock count */
+#define CK_NEXT      ((const volatile uint8_t *)0x412f3e91u)    /* BE word: the pattern queued after this one (0026's
+                                                                   SQ_NEXT [measured there]) */
+#define CK_TEMPO     (*(const volatile uint32_t *)0x40287ffcu)  /* BPM x 120 (0026's SQ_TEMPO [measured there]) */
 #endif
 #define CK_TRACKS    13
 #define CK_NQ        32
@@ -47,10 +53,10 @@ struct ck_tick { uint32_t blk; uint8_t t, step, len, spd, flags; };
 static struct {
   struct ck_tick q[CK_NQ];             /* step ticks not sent yet: q[qt % CK_NQ] .. q[(qh - 1) % CK_NQ] */
   volatile uint32_t qh, qt;
-  uint8_t ev[4][16];                   /* 2D 01 / 03, whole messages (ev_n of them) */
-  uint8_t ev_len[4];
+  uint8_t ev[6][16];                   /* 2D 01 / 02 / 03 / 07, whole messages (ev_n of them) */
+  uint8_t ev_len[6];
   uint32_t ev_n;
-  uint32_t init, last_play, last_pat, sw_from, jumped, lvalid, was_on;
+  uint32_t init, last_play, last_pat, sw_from, jumped, lvalid, was_on, rep_pat, rep_next, rep_tempo;
   uint8_t lprev[CK_TRACKS], lpat[CK_TRACKS];
   uint32_t fires, queued, sent2c, sentev, drops, ev_drops, busy, rescheds, ends, isr_max;   /* diagnostics */
 } ck __attribute__((section(".bss"), aligned(4)));
@@ -100,9 +106,39 @@ static uint8_t ck_flags(const volatile uint8_t *d, int32_t t, uint32_t step) {
 
 static int32_t ck_on(void) { return PORT_STATE == 1 && scl.epoch != 0; }
 
+/* a 2D without a block: PATTERN, TEMPO */
+static void ck_report(uint8_t kind, const uint8_t *a, int32_t n) {
+  uint8_t *m, *o;
+  int32_t i;
+  if (ck.ev_n >= 6) { ck.ev_drops++; return; }
+  m = o = ck.ev[ck.ev_n];
+  *o++ = 0xf0; *o++ = 0x7d; *o++ = 0x52; *o++ = 0x54; *o++ = 0x2d; *o++ = 0x01; *o++ = kind;
+  for (i = 0; i < n; ++i) *o++ = a[i] & 0x7f;
+  *o++ = 0xf7;
+  ck.ev_len[ck.ev_n++] = (uint8_t)(o - m);
+}
+
+/* PATTERN and TEMPO when they changed since they were last reported (force: at link-up) */
+static void ck_reports(uint32_t pt, uint32_t force) {
+  uint8_t a[3];
+  uint32_t nx = (uint32_t)CK_NEXT[0] << 8 | CK_NEXT[1], now = pt, tempo = CK_TEMPO & 0x1fffff;
+  if (ck.sw_from & 0x100) { nx = pt; now = ck.sw_from & 0x7f; }   /* switching: the old one plays until its 03 */
+  nx = nx < 128 && nx != now ? nx : 0x7f;
+  if (force || now != ck.rep_pat || nx != ck.rep_next) {
+    a[0] = (uint8_t)now; a[1] = (uint8_t)nx;
+    ck_report(0x02, a, 2);
+    ck.rep_pat = now; ck.rep_next = nx;
+  }
+  if (force || tempo != ck.rep_tempo) {
+    a[0] = (uint8_t)(tempo >> 14); a[1] = (uint8_t)(tempo >> 7); a[2] = (uint8_t)tempo;
+    ck_report(0x07, a, 3);
+    ck.rep_tempo = tempo;
+  }
+}
+
 static void ck_event(uint8_t kind, uint8_t a, uint8_t b, int32_t nargs, uint32_t blk) {
   uint8_t *m, *o;
-  if (ck.ev_n >= 4) { ck.ev_drops++; return; }
+  if (ck.ev_n >= 6) { ck.ev_drops++; return; }
   m = o = ck.ev[ck.ev_n];
   *o++ = 0xf0; *o++ = 0x7d; *o++ = 0x52; *o++ = 0x54; *o++ = 0x2d; *o++ = 0x01; *o++ = kind; *o++ = a;
   if (nargs > 1) *o++ = b;
@@ -179,6 +215,7 @@ void sc_end(void) {
     ck.qt = ck.qh;
     ck.ev_n = 0;
     ck_event(0x01, (uint8_t)pl, 0, 1, blk);
+    ck_reports(pt, 1);
   }
   if (!on) { ck.ev_n = 0; ck.qt = ck.qh; ck.sw_from = 0; }
   ck.was_on = on;
@@ -192,6 +229,7 @@ void sc_end(void) {
       ck_event(0x03, (uint8_t)(ck.sw_from & 0x7f), (uint8_t)pt, 2, blk);
       ck.sw_from = 0;
     }
+    ck_reports(pt, 0);
   }
   ck.last_play = pl;
   ck.last_pat = pt;

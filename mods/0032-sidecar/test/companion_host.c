@@ -42,6 +42,10 @@ uint8_t h_patd[85760];
 #define CK_SENDER    0u
 #define CK_SYSEX     0u
 #define CK_TIMER     h_timer
+uint8_t h_next[2] = {0, 0x7f};
+volatile uint32_t h_tempo = 120 * 120;
+#define CK_NEXT      ((const volatile uint8_t *)h_next)
+#define CK_TEMPO     h_tempo
 
 /* core-ar2's store: one value per (field, item) */
 char sc_proj[1], sc_phand[1];
