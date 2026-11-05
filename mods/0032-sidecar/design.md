@@ -55,7 +55,8 @@ The API (all from the UI task, `ev_tick` or what it calls; the callbacks come fr
 typedef void (*sc_store_cb)(int32_t status, int32_t n, uint32_t handle, void *ctx);
 int32_t sc_store_read(int32_t scope, uint32_t handle, uint8_t *buf, uint32_t cap, sc_store_cb cb, void *ctx);
 int32_t sc_store_write(int32_t scope, const uint8_t *src, uint32_t n, sc_store_cb cb, void *ctx);  /* src kept until cb */
-int32_t sc_link_send(const uint8_t *body, int32_t n);   /* a lock op 10..15, whole; 0 while closed */
+int32_t sc_link_send(const uint8_t *body, int32_t n);   /* a lock op 10..15 or a route op 20..23, whole; 0 while closed */
+int32_t sc_route_result(uint32_t owner, uint32_t seq);   /* the Pi's answer to ROUTE / MOVE: point, -code, -256 none yet */
 uint32_t sc_link_epoch(void), sc_project_id(void);
 uint32_t sc_pattern_handle(int32_t p);                   /* live pattern 0..127 */
 void sc_set_pattern_handle(int32_t p, uint32_t h);
@@ -68,6 +69,15 @@ void sc_set_pattern_handle(int32_t p, uint32_t h);
   a version that never changes, so a cached record is never stale and a read that hits it needs no Pi.
 - Answers arrive in the MIDI task through the router's direct entry for 51 (`sc_store_host`); it writes only the
   request in flight and the link's words.
+- The audio route (the audio route phase, decided 2026-11-04: "ROUTE op + lockable gains"; sidecar-firmware
+  core/route/route.h). A mod sends `20 ROUTE <seq> <owner> <src> <dst> <gain 2>` through `sc_link_send`: one Rytm IN
+  channel (2-9 the voice stems, 10-11 AUDIO IN; never MAIN) added onto one OUT channel (0-1 MAIN, 2-3 MAIN FX, 4-11 the
+  voice inputs) at a gain (8192 unity). The Pi hands out the point and answers `60 ROUTED <seq> <owner> <point>` or
+  `61 REFUSED <seq> <owner> <code>` (3 full, 5 bad, 7 loop); the companion keeps the last 16 for `sc_route_result`,
+  cleared at each new epoch and when the port goes down. `21 MOVE`, `22 UNROUTE`, `23 GAIN` as the header says. A
+  point's gain is lock target 4 (param = the point): a lock set on it plays the gain per step. The Pi closes every point
+  at a HELLO, so a mod asks again when the epoch changes, as it declares its lock sets. The owner byte is the mod's own
+  (storetest 0x31); the Pi checks it on MOVE / UNROUTE / GAIN.
 - Sending never waits (0029's try_send rules), and never lands inside a stock SysEx dump unless its flag has stayed set 2 s.
 
 ## The step clock
@@ -115,7 +125,9 @@ queue, a project change (and a stale HELLO answer), the port going down mid-requ
 `sidecar`) for test builds only, never in a release. Each session it declares lock set 7 (track 1, slot 3, two
 parameters, a lock on steps 1 and 9), writes a 600-byte record and reads it back from the Pi, writes and reads a small
 one (served by the cache), and reads the previous session's record by pattern 1's handle (a reload or SAVE AS shares
-the folder). Boxes at the screen's bottom right show each step; the Pi's /status `kv` and `locks` members show the
+the folder). Since the audio route phase it also asks for two route points, the SD stem onto MAIN L and MAIN R at gain
+0, and declares lock sets 5 and 6 on them (track 1, target 4): unity on steps 1 and 9, so the Pi's copy of SD is heard
+on those steps only (box at x 86). Boxes at the screen's bottom right show each step; the Pi's /status `kv` and `locks` members show the
 same from its side. The host test runs it too (three sessions: first, second with the earlier record, a deaf Pi).
 Build it with elekloader's SDK (`python -m elekloader.sdk.build mods/0032-sidecar/test/storetest --stock <1.74 .syx>`).
 

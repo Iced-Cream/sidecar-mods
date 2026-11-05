@@ -17,6 +17,7 @@
 #include "clock/clock.h"
 #include "kv/kv.h"
 #include "locks/locks.h"
+#include "route/route.h"
 
 extern "C" {
 extern volatile uint32_t h_port_state, h_play, h_blk, h_txsx;
@@ -48,7 +49,9 @@ uint32_t h_scl_timeouts(void);
 void st_tick(void* ctrl);
 void st_draw(void* bmp, void* ctrl);
 extern volatile uint32_t st_res, st_bad, st_sessions;
-extern volatile int32_t st_status[6];
+extern volatile int32_t st_status[7];
+extern volatile int32_t st_points[2];
+int32_t sc_route_result(uint32_t owner, uint32_t seq);
 }
 static bool g_st_on = false;                            // the test client ticks after the companion
 static uint8_t g_ctrl[64];
@@ -90,7 +93,7 @@ static void svc_out(const uint8_t* m, int n) { g_answers.emplace_back(m, m + n);
 static kv::Service g_svc(&g_store, svc_out);
 static std::vector<clock::Tick> g_ticks;
 static void on_tick(const clock::Tick& t) { g_ticks.push_back(t); locks::tick(t.track, t.step, t.extra & 1); }
-static void lock_sink(int, int, int) {}
+static void lock_sink(int slot, int param, int v) { if (slot == route::kTarget) route::set_gain(param, v); }   // as locks_bind
 static std::vector<uint8_t> g_kinds;
 static void on_state(const clock::State& s) { g_kinds.push_back(s.kind); }
 
@@ -99,8 +102,14 @@ extern "C" void h_midi_send(int32_t n, const uint8_t* m) {
   if (g_pi_deaf || n < 6) return;
   if (m[4] == kv::kCmd) {                              // as kv::link::from_host
     if (locks::is_lock_op(m[6])) { locks::sysex(m, n); return; }
+    if (route::is_route_op(m[6])) {                    // the control core's too; its answers go out with the store's
+      route::sysex(m, n);
+      uint8_t a[16];
+      for (int an; (an = route::take_answer(a, sizeof a)) > 0;) g_answers.emplace_back(a, a + an);
+      return;
+    }
     if (m[6] == kv::kOpName) { g_names.emplace_back((const char*)m + 13, (size_t)m[12]); return; }   // the control core's
-    if (m[6] == kv::kOpHello) locks::reset();
+    if (m[6] == kv::kOpHello) locks::reset(), route::reset();
     g_svc.sysex(m, n);
   } else if (m[4] == clock::kTickCmd || m[4] == clock::kStateCmd) {
     clock::sysex(m, n);
@@ -351,20 +360,44 @@ int main() {
   tick(3);                                              // the link back open: session 1
   CHECK(st_sessions == 1);
   tick(40);
-  enum { S_LOCKS, S_WRITE, S_READ, S_SMALL, S_PRIOR, S_DONE };
-  CHECK(st_res == (1u << S_LOCKS | 1u << S_WRITE | 1u << S_READ | 1u << S_SMALL | 1u << S_DONE) && st_bad == 0);
+  enum { S_LOCKS, S_WRITE, S_READ, S_SMALL, S_PRIOR, S_DONE, S_ROUTE };
+  CHECK(st_res == (1u << S_LOCKS | 1u << S_WRITE | 1u << S_READ | 1u << S_SMALL | 1u << S_DONE | 1u << S_ROUTE) && st_bad == 0);
   CHECK(locks::declared(7) && locks::lock_at(7, 0, 0) == 1000 && locks::lock_at(7, 8, 1) == 3000);
+  // the route: SD stem onto MAIN L / R, the points the Pi answered, their gains on lock sets 5 / 6 (base 0, steps 1 and 9
+  // unity); the companion's own 2C ticks play them
+  CHECK(st_points[0] == 0 && st_points[1] == 1);
+  CHECK(route::point(0).open && route::point(0).src == 3 && route::point(0).dst == 0 && route::point(0).owner == 0x31);
+  CHECK(route::point(1).open && route::point(1).dst == 1);
+  CHECK(locks::declared(5) && locks::declared(6) && locks::lock_at(5, 0, 0) == 8192 && locks::lock_at(6, 8, 0) == 8192);
+  CHECK(route::point(0).gain == 0 && route::point(1).gain == 0);
+  h_play = 1;
+  sc_end();                                             // the clock sees the link open and PLAY first
+  h_patd[917 * 1 + 2 * 4 + 1] = 0x01;                   // SD's step 5: a note trig (no lock: the base plays)
+  for (int t = 0; t < 13; ++t) h_prev[t] = 0;           // step 1 starts on every track (SD's has a lock)
+  for (int t = 0; t < 13; ++t) sc_fire(t, h_pat_idx, 1);
+  sc_end();
+  tick();
+  CHECK(route::point(0).gain == 8192 && route::point(1).gain == 8192);
+  for (int t = 0; t < 13; ++t) h_prev[t] = 4;           // step 5: a trig, no lock: the base again
+  for (int t = 0; t < 13; ++t) sc_fire(t, h_pat_idx, 5);
+  sc_end();
+  tick();
+  CHECK(route::point(0).gain == 0 && route::point(1).gain == 0);
+  h_play = 0;
+  // a second route op with the same seq and owner after the session: answers are per session (pending until asked)
+  CHECK(sc_route_result(0x31, 2) == 0 && sc_route_result(0x31, 3) == 1 && sc_route_result(0x30, 0) == -256);
   uint32_t h1 = sc_pattern_handle(0);
   CHECK(h1 != 0);
   g_ctrl[0x20] = 0;
   st_draw(nullptr, g_ctrl);
-  CHECK(g_rects == 1 + 1 + 5);                          // the clear, one session pixel, five boxes
+  CHECK(g_rects == 1 + 1 + 6);                          // the clear, one session pixel, six boxes (five + the route's)
   // session 2 (the project loaded again, or SAVE AS: the same ID): the first session's record read back
   sc_project_ev(1, 0);
   tick(3);
   CHECK(st_sessions == 2);
   tick(40);
-  CHECK(st_res == 0x3f && st_bad == 0);
+  CHECK(st_res == 0x7f && st_bad == 0);
+  CHECK(st_points[0] == 0 && st_points[1] == 1 && route::stats().open == 2);   // the HELLO closed the first two; asked again
   CHECK(sc_pattern_handle(0) != h1);
   // a deaf Pi mid-session: the step times out and shows as failed; the next session runs again
   sc_project_ev(1, 0);

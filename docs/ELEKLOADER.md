@@ -15,7 +15,7 @@ This is a development snapshot (the companion alone, decided 2026-11-04), not a 
 |---|---|---|
 | `Analog-Rytm_MKII_OS1.74.syx` | the stock OS 1.74, from Elektron's support site | `cb0f99d620edde994fb860c0e79cc2464e427d06882828cfdfb00fc53700e123` |
 | `core-0.9-os1.74.elemod` | elekloader's core-ar2 0.9 for OS 1.74: the boot copier and hook bus every elekloader mod builds on | `ea2c2a633de79d602c250258ee0c3f223f84a3b4e5ee3509c7366402a002bf12` |
-| `sidecar-0.4.0.elemod` | the Sidecar companion: the host link on the Rytm | `58084fdf8fe7f0eb43521a7f4414459d0b6eb28862c88c3eac7d32ddb33d5330` |
+| `sidecar-0.4.0.elemod` | the Sidecar companion: the host link on the Rytm | `dc2108d1aebf20a50ab6c760e3e651a807cb81055d1ccc08771d340e7917abbd` |
 
 The two `.elemod` files are published together, with `SHA256SUMS`, `LICENSE`, `NOTICE`, `TOOLCHAIN.txt` and the
 source of elekloader (`elekloader-9f72fb0-src.tar.gz`). Check every hash before you use them.
@@ -57,7 +57,7 @@ recovery route).
    from there is untested: the OS carries "Downgrade not possible" and the bootstrap a VERSION CHECK
    (`docs/FLASHING.md`, "Downgrades"), so either route, USB or the STARTUP menu, may refuse it.
 6. Build, and download the `.syx`. With version 1.74 its sha256 is
-   `d3544239e4724bc16d4a07be5243389433e1b04b0ed4b4ce4518ffb929847b0b`, as built from this branch. If yours differs, do not flash it: see the next section.
+   `79b4b9d2a4c1d296f9a01f5b8b514fe68f97d8a87afcd99572561577d505b0a1`, as built from this branch. If yours differs, do not flash it: see the next section.
 
 ### If your file's sha256 differs
 

@@ -7511,3 +7511,25 @@ expect_sha256 = "6f3f2b5774382e7432bc4d2f581f1a4920f081225dc1673069f3ad63193ad38
 entry     = "sc_end_det"
 rejoin    = 0x4009c012
 elek_size = 8
+
+# ------------------------------------------------- the Sidecar's Pi-side numbers
+# Not firmware addresses (tools/layout.py does not read these): numbers on the Pi that every companion client shares,
+# so two mods never pick the same one (decided 2026-11-04, the audio route phase). Lock sets: 51 10 SET's <set>, 0..7
+# (sidecar-firmware core/locks kSets). Route owners: 51 20 ROUTE's <owner>, any 7-bit id (core/route); the Pi hands out
+# the points themselves.
+
+[[pi_lock_set]]
+set   = 7
+owner = "0032-sidecar:storetest"   # test builds only: slot 3 params 0..1 (Storage phase)
+
+[[pi_lock_set]]
+set   = 6
+owner = "0032-sidecar:storetest"   # test builds only: the route's MAIN R point gain (audio route phase)
+
+[[pi_lock_set]]
+set   = 5
+owner = "0032-sidecar:storetest"   # test builds only: the route's MAIN L point gain (audio route phase)
+
+[[pi_route_owner]]
+id    = 0x31
+owner = "0032-sidecar:storetest"   # test builds only

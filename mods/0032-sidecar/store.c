@@ -22,6 +22,10 @@
  *                      follows LOAD and SAVE AS NEW]), polled each tick: sent once the link opens (each new epoch)
  *                      and when it changes and has held SC_NAME_STABLE ticks. The Pi keeps it for its log and pages.
  *   lock ops 10..15    sc_link_send queues a whole op (the Pi answers none): sent in order, before the requests.
+ *   route ops 20..23   the Pi's audio route (sidecar-firmware core/route, the audio route phase 2026-11-04): queued
+ *                      and sent as the lock ops. The Pi answers ROUTE / MOVE with 60 ROUTED <seq> <owner> <point> or
+ *                      61 REFUSED <seq> <owner> <code>; the companion keeps the last SC_NR answers for
+ *                      sc_route_result(owner, seq). A point's gain is lock target 4 (param = the point).
  * The cache: SC_NC records of up to SC_CMAX bytes, by (scope, handle), filled by every read and write that fits. A
  * handle names one version that never changes, so a cached record is never stale: a read that hits it needs no Pi.
  *
@@ -41,6 +45,8 @@ STORE_FIELD(sc_phand);
 #define SC_HELLO_TRIES 3
 #define SC_LQ       512                /* bytes of queued lock ops */
 #define SC_LMAX     120                /* the longest lock op body */
+#define SC_NR       16                 /* route answers kept (60 / 61) */
+#define SC_ROUTE_PENDING (-256)
 #ifndef PORT_STATE                     /* the USB MIDI sender's words (fxin.c's until the FX return left, 2026-11-04) */
 typedef void (*send_fn)(int32_t n, const uint8_t *m);
 typedef int32_t (*trylock_fn)(void *m);
@@ -64,7 +70,7 @@ typedef void (*unlock_fn)(void *m);
 
 enum { RQ_FREE = 0, RQ_QUEUED, RQ_SENT, RQ_DONE };
 enum { OP_HELLO = 0x00, OP_READ = 0x01, OP_WRITE = 0x02, OP_NAME = 0x04, OP_ACK = 0x40, OP_DATA = 0x41, OP_WRITTEN = 0x42,
-       OP_STATUS = 0x7f };
+       OP_ROUTED = 0x60, OP_REFUSED = 0x61, OP_STATUS = 0x7f };
 #define ST_TIMEOUT 0x7e                /* the companion's own: no answer */
 
 typedef void (*sc_store_cb)(int32_t status, int32_t n, uint32_t handle, void *ctx);
@@ -96,6 +102,8 @@ static struct {
   uint32_t name_stable, name_owed, name_epoch, names;
   uint8_t lq[SC_LQ];                   /* lock ops: {len, body...} */
   uint32_t lh, lt;
+  struct { volatile uint32_t key; volatile int32_t res; } r[SC_NR];   /* route answers: key = 1 << 16 | owner << 8 | seq */
+  volatile uint32_t rn;                /* answers written (MIDI task) */
   uint32_t hellos, acks, reqs, done, errors, timeouts, hits, lock_ops, lock_drops, bad;   /* diagnostics */
 } scl __attribute__((section(".bss"), aligned(4)));
 
@@ -209,6 +217,17 @@ int sc_store_host(const uint8_t *d, int32_t len) {
       r->handle = sc_get_h(b + 2);
       sc_finish(r, 0);
       return 1;
+    case OP_ROUTED:                    /* 60 <seq> <owner> <point> */
+    case OP_REFUSED: {                 /* 61 <seq> <owner> <code> */
+      uint32_t i2;
+      if (bn < 3) break;
+      i2 = scl.rn % SC_NR;
+      scl.r[i2].key = 0;
+      scl.r[i2].res = d[6] == OP_ROUTED ? (int32_t)b[2] : -(int32_t)(b[2] ? b[2] : 5);
+      scl.r[i2].key = 1u << 16 | (uint32_t)b[1] << 8 | b[0];   /* the key last: the UI task reads it first */
+      scl.rn++;
+      return 1;
+    }
     case OP_STATUS:                    /* 7F <seq | 7F> <code> */
       if (bn < 2) break;
       if (r && (b[0] == r->seq || b[0] == 0x7f)) sc_finish(r, b[1] ? b[1] : 5);
@@ -253,16 +272,31 @@ int32_t sc_store_write(int32_t scope, const uint8_t *src, uint32_t n, sc_store_c
   return 1;
 }
 
-/* a lock op for the Pi's lock service (body = <op 10..15> <args>, 7-bit bytes); 0: the link is closed or the queue full.
-   The Pi forgets every set at each HELLO: declare them again when sc_link_epoch() changes. */
+/* a lock op for the Pi's lock service (body = <op 10..15> <args>) or a route op for its audio route (<op 20..23> <args>),
+   7-bit bytes; 0: the link is closed or the queue full. The Pi forgets every set and closes every route point at each
+   HELLO: declare them again when sc_link_epoch() changes. */
 int32_t sc_link_send(const uint8_t *body, int32_t n) {
   int32_t i;
-  if (!scl.epoch || n < 1 || n > SC_LMAX || body[0] < 0x10 || body[0] > 0x15) return 0;
+  if (!scl.epoch || n < 1 || n > SC_LMAX || !((body[0] >= 0x10 && body[0] <= 0x15) || (body[0] >= 0x20 && body[0] <= 0x23)))
+    return 0;
   if (SC_LQ - (scl.lh - scl.lt) < (uint32_t)n + 1) { scl.lock_drops++; return 0; }
   for (i = 0; i < n; ++i) if (body[i] & 0x80) return 0;
   scl.lq[scl.lh++ % SC_LQ] = (uint8_t)n;
   for (i = 0; i < n; ++i) scl.lq[scl.lh++ % SC_LQ] = body[i];
   return 1;
+}
+
+/* the Pi's answer to the route op (ROUTE / MOVE) sent with this owner and seq: the point 0..15, -code (3 full, 5 bad,
+   7 loop), or SC_ROUTE_PENDING (-256) while none came (the last SC_NR answers are kept; a seq reused within them gives
+   the newest) */
+int32_t sc_route_result(uint32_t owner, uint32_t seq);
+int32_t sc_route_result(uint32_t owner, uint32_t seq) {
+  uint32_t key = 1u << 16 | (owner & 0x7f) << 8 | (seq & 0x7f), n = scl.rn, i;
+  for (i = 0; i < SC_NR && i < n; ++i) {
+    uint32_t j = (n - 1 - i) % SC_NR;
+    if (scl.r[j].key == key) return scl.r[j].res;
+  }
+  return SC_ROUTE_PENDING;
 }
 
 uint32_t sc_link_epoch(void) { return scl.epoch; }
@@ -351,6 +385,7 @@ void sc_store_tick(void *ctrl) {
     scl.epoch = 0;
     scl.lt = scl.lh;
     scl.cur = 0;
+    for (k = 0; k < SC_NR; ++k) scl.r[k].key = 0;   /* the Pi's points are gone with the session */
     if (r && r->state == RQ_SENT) r->state = RQ_QUEUED;
   }
   scl.was_up = (uint32_t)up;
@@ -361,6 +396,7 @@ void sc_store_tick(void *ctrl) {
   if (scl.acks != scl.opened && (scl.opened = scl.acks, !(scl.hello_owed && scl.tries == 0))) {
     scl.hello_owed = 0;
     scl.gen = scl.gen + 1 ? scl.gen + 1 : 1;   /* a new epoch after each HELLO, never 0 */
+    for (k = 0; k < SC_NR; ++k) scl.r[k].key = 0;   /* route answers of the last session (no route op went since) */
     scl.epoch = scl.gen;
   }
   if (scl.host_msg) {                  /* a host speaks while unanswered: ask again */

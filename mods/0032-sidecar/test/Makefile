@@ -19,9 +19,9 @@ $(B)/storetest.o: storetest/storetest.c
 	$(CC) -std=gnu11 -O1 -g -Wall -Wextra -Wno-int-to-pointer-cast -Wno-pointer-to-int-cast -fsanitize=address,undefined \
 	  -include storetest/host.h -DFILLRECT_AT=h_fillrect -c -o $@ storetest/storetest.c
 
-$(B)/test_companion: test_companion.cpp $(B)/companion_host.o $(B)/storetest.o $(CORE)/kv/kv.cpp $(CORE)/locks/locks.cpp $(CORE)/clock/clock.cpp
+$(B)/test_companion: test_companion.cpp $(B)/companion_host.o $(B)/storetest.o $(CORE)/kv/kv.cpp $(CORE)/locks/locks.cpp $(CORE)/clock/clock.cpp $(CORE)/route/route.cpp
 	$(CXX) -std=c++17 -O1 -g -Wall -I$(CORE) -I$(CORE)/host -fsanitize=address,undefined -o $@ test_companion.cpp \
-	  $(B)/companion_host.o $(B)/storetest.o $(CORE)/kv/kv.cpp $(CORE)/locks/locks.cpp $(CORE)/clock/clock.cpp
+	  $(B)/companion_host.o $(B)/storetest.o $(CORE)/kv/kv.cpp $(CORE)/locks/locks.cpp $(CORE)/clock/clock.cpp $(CORE)/route/route.cpp
 
 clean:
 	rm -rf $(B)
