@@ -35,6 +35,7 @@ uint8_t h_speed[13], h_prev[13];
 uint8_t h_patd[85760];
 #define CK_PLAY      h_play
 #define CK_PAT       h_pat_idx
+#define SC_PAT_NOW   h_pat_idx
 #define CK_SPEED(t)  (h_speed[t])
 #define CK_PREV(t)   (h_prev[t])
 #define CK_BLK       h_blk
@@ -47,25 +48,34 @@ volatile uint32_t h_tempo = 120 * 120;
 #define CK_NEXT      ((const volatile uint8_t *)h_next)
 #define CK_TEMPO     h_tempo
 
+/* the current kit (core-ar2's words): its index, big-endian; live kit k at 0x2000 + k */
+uint8_t h_kit_index[4];
+#define SC_KIT_INDEX h_kit_index
+#define SC_KIT(k)   ((void *)(uintptr_t)(0x2000u + (uint32_t)(k)))
+
 /* core-ar2's store: one value per (field, item) */
-char sc_proj[1], sc_phand[1];
+char sc_proj[1], sc_phand[1], sc_khand[1];
 static uint32_t h_proj_v, h_phand_v[128];
+uint32_t h_khand_v[128];
 unsigned core_store_get(unsigned field, void *item, int index) {
   (void)index;
   if (field == (unsigned)(uintptr_t)sc_proj) return h_proj_v;
   if (field == (unsigned)(uintptr_t)sc_phand) return h_phand_v[((uintptr_t)item - 0x1000u) & 127];
+  if (field == (unsigned)(uintptr_t)sc_khand) return h_khand_v[((uintptr_t)item - 0x2000u) & 127];
   return 0;
 }
 void core_store_set(unsigned field, void *item, int index, unsigned v) {
   (void)index;
   if (field == (unsigned)(uintptr_t)sc_proj) h_proj_v = v;
   if (field == (unsigned)(uintptr_t)sc_phand) h_phand_v[((uintptr_t)item - 0x1000u) & 127] = v;
+  if (field == (unsigned)(uintptr_t)sc_khand) h_khand_v[((uintptr_t)item - 0x2000u) & 127] = v;
 }
 void core_project_edited(void) {}
 uint32_t h_proj_value(void) { return h_proj_v; }
 void h_proj_reset(void) { h_proj_v = 0; }
 
 #include "../store.c"
+#include "../rec.c"
 #include "../clock.c"
 
 /* what the test reads of the mod's state */

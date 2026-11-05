@@ -49,10 +49,11 @@ subscribe = [
   { event = "ev_project", fn = "sc_project_ev", order = 50 },
 ]
 # core-ar2 fields (approved 2026-11-04): the project's ID (its folder of records on the Pi) and a record handle per
-# pattern (store.c)
+# pattern (store.c); (approved 2026-11-05) a record handle per kit (rec.c)
 storage = [
   { sym = "sc_proj", scope = "project", bits = 32 },
   { sym = "sc_phand", scope = "pattern", bits = 16 },
+  { sym = "sc_khand", scope = "kit", bits = 16 },   # approved 2026-11-05: the kit's record, shared by every mod (rec.c)
 ]
 
 [requires]

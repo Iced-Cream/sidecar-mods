@@ -15,6 +15,7 @@
 #include <vector>
 
 #include "clock/clock.h"
+#include "dsp/dsp.h"
 #include "kv/kv.h"
 #include "locks/locks.h"
 #include "route/route.h"
@@ -52,6 +53,17 @@ extern volatile uint32_t st_res, st_bad, st_sessions;
 extern volatile int32_t st_status[7];
 extern volatile int32_t st_points[2];
 int32_t sc_route_result(uint32_t owner, uint32_t seq);
+int32_t sc_dsp_result(uint32_t owner, uint32_t seq);
+uint32_t sc_kit_handle(void);
+uint32_t sc_kit_gen(void);
+int32_t sc_kit_get(uint32_t mod, uint8_t* buf, uint32_t cap);
+int32_t sc_kit_put(uint32_t mod, const uint8_t* src, uint32_t n);
+uint32_t sc_pat_gen(void);
+int32_t sc_pat_index(void);
+int32_t sc_pat_get(uint32_t mod, uint8_t* buf, uint32_t cap);
+int32_t sc_pat_put(uint32_t mod, const uint8_t* src, uint32_t n);
+extern uint8_t h_kit_index[4];
+extern uint32_t h_khand_v[128];
 }
 static bool g_st_on = false;                            // the test client ticks after the companion
 static uint8_t g_ctrl[64];
@@ -108,8 +120,14 @@ extern "C" void h_midi_send(int32_t n, const uint8_t* m) {
       for (int an; (an = route::take_answer(a, sizeof a)) > 0;) g_answers.emplace_back(a, a + an);
       return;
     }
+    if (dsp::is_dsp_op(m[6])) {                        // the DSP library (the send FX phase): the same
+      dsp::sysex(m, n);
+      uint8_t a[32];
+      for (int an; (an = dsp::take_answer(a, sizeof a)) > 0;) g_answers.emplace_back(a, a + an);
+      return;
+    }
     if (m[6] == kv::kOpName) { g_names.emplace_back((const char*)m + 13, (size_t)m[12]); return; }   // the control core's
-    if (m[6] == kv::kOpHello) locks::reset(), route::reset();
+    if (m[6] == kv::kOpHello) locks::reset(), route::reset(), dsp::reset();
     g_svc.sysex(m, n);
   } else if (m[4] == clock::kTickCmd || m[4] == clock::kStateCmd) {
     clock::sysex(m, n);
@@ -139,6 +157,8 @@ static void cb(int32_t st, int32_t n, uint32_t h, void* ctx) {
 
 int main() {
   setvbuf(stdout, nullptr, _IONBF, 0);
+  alignas(64) static uint8_t arena[dsp::kSlots * dsp::kSlotBytes];   // the DSP library's slots, as the Pi's at boot
+  CHECK(dsp::begin(arena, sizeof arena));
   // a free-request chain below 4 GB (the sender walks it as 32-bit words)
   uint32_t* pool = (uint32_t*)mmap(nullptr, 4096, PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS | MAP_32BIT, -1, 0);
   for (int i = 0; i < 4; ++i) pool[14 * i + 13] = i < 3 ? (uint32_t)(uintptr_t)(pool + 14 * (i + 1)) : 0;
@@ -353,9 +373,10 @@ int main() {
   CHECK(sent(0x2C) == (int)n2c);
 
   // ---- the test client (storetest/): each session declares its lock set, writes 600 bytes and reads them back, a
-  // small record through the cache, then the previous session's record by pattern 1's handle
+  // small record through the cache, then the previous session's record by the handle in its section of the playing
+  // pattern's record (rec.c)
   h_port_state = 1;
-  sc_set_pattern_handle(0, 0);
+  sc_set_pattern_handle(h_pat_idx, 0);
   g_st_on = true;
   tick(3);                                              // the link back open: session 1
   CHECK(st_sessions == 1);
@@ -386,7 +407,85 @@ int main() {
   h_play = 0;
   // a second route op with the same seq and owner after the session: answers are per session (pending until asked)
   CHECK(sc_route_result(0x31, 2) == 0 && sc_route_result(0x31, 3) == 1 && sc_route_result(0x30, 0) == -256);
-  uint32_t h1 = sc_pattern_handle(0);
+  // the DSP library (the send FX phase): PLACE through sc_link_send, its answer kept for sc_dsp_result apart from the
+  // route's; FREE takes the block out again
+  {
+    const uint8_t place[] = {0x30, 5, 0x31, 0x7F, 'D', 'E', 'L', 'A', 'Y'};
+    const uint8_t nope[] = {0x30, 6, 0x31, 0x7F, 'N', 'O', 'P', 'E'};
+    const uint8_t info[] = {0x32, 7, 0, 0, 0};
+    CHECK(sc_dsp_result(0x31, 5) == -256);
+    CHECK(sc_link_send(place, sizeof place) && sc_link_send(nope, sizeof nope) && sc_link_send(info, sizeof info));
+    tick(2);
+    CHECK(sc_dsp_result(0x31, 5) == 0 && sc_dsp_result(0x31, 6) == -9 && sc_route_result(0x31, 5) == -256);
+    CHECK(dsp::slot(0).state == dsp::kPlacedState && !strcmp(dsp::slot(0).block, "DELAY") && dsp::stats().infos == 1);
+    const uint8_t fr[] = {0x31, 0x31, 0x7F};
+    CHECK(sc_link_send(fr, sizeof fr));
+    tick(2);
+    CHECK(dsp::slot(0).state == dsp::kFading && dsp::stats().freed == 1);
+    static float io[24][64];                            // the render side takes the route's queue (the fade), then it goes
+    float* in[12]; float* out[12];
+    for (int c = 0; c < 12; ++c) in[c] = io[c], out[c] = io[12 + c];
+    for (int k = 0; k < 8; ++k) route::process(in, out, 64);
+    dsp::poll();
+    CHECK(dsp::slot(0).state == dsp::kEmpty);
+  }
+  // the kit record (kit.c): one section per mod behind the kit's handle; a write is a new version for the kit it was
+  // read for; another kit loads its own; a copied kit shares the version until either changes
+  {
+    auto sec = [](uint32_t mod) { uint8_t b[64]; int32_t n = sc_kit_get(mod, b, sizeof b); return n < 0 ? std::string("?") : std::string((const char*)b, (size_t)n); };
+    tick(2);
+    uint32_t g0 = sc_kit_gen();
+    CHECK(g0 != 0 && sc_kit_handle() == 0 && sec(25) == "");            // kit 0, no record yet: an empty one
+    CHECK(sc_kit_put(25, (const uint8_t*)"send", 4) && sc_kit_put(77, (const uint8_t*)"other", 5));
+    CHECK(sec(25) == "send" && sec(77) == "other");
+    tick(4);
+    uint32_t h0 = sc_kit_handle();
+    CHECK(h0 != 0 && h_khand_v[0] == h0);
+    CHECK(sc_kit_put(25, (const uint8_t*)"SEND!", 5));                    // a change: a new version, the other kept
+    tick(4);
+    uint32_t h1 = sc_kit_handle();
+    CHECK(h1 != 0 && h1 != h0 && sec(25) == "SEND!" && sec(77) == "other" && sc_kit_gen() == g0);
+    h_kit_index[3] = 5;                                                   // kit 5: no record
+    tick(2);
+    CHECK(sc_kit_gen() != g0 && sec(25) == "" && sc_kit_handle() == 0);
+    h_khand_v[7] = h1;                                                    // kit 0 copied into kit 7
+    h_kit_index[3] = 7;
+    tick(4);
+    CHECK(sec(25) == "SEND!" && sec(77) == "other");                       // read back from the Pi
+    CHECK(sc_kit_put(77, nullptr, 0));                                    // removed in kit 7 only
+    tick(4);
+    CHECK(h_khand_v[7] != h1 && h_khand_v[0] == h1 && sec(77) == "" && sec(25) == "SEND!");
+    h_kit_index[3] = 0;
+    tick(4);
+    CHECK(sec(77) == "other" && sec(25) == "SEND!");                       // kit 0 as it was
+    std::string big(250, 'x');                                            // past SC_KMAX with the others: refused
+    CHECK(sc_kit_put(78, (const uint8_t*)big.data(), 250) == 0 && sec(25) == "SEND!");
+  }
+  // the pattern record (rec.c): the playing pattern's, one section per mod, sections up to 16 bits long; a switch loads
+  // the new pattern's; a write lands in the pattern it was read for
+  {
+    auto sec = [](uint32_t mod) { static uint8_t b[2048]; int32_t n = sc_pat_get(mod, b, sizeof b); return n < 0 ? std::string("?") : std::string((const char*)b, (size_t)n); };
+    int8_t p0 = h_pat_idx;
+    tick(2);
+    uint32_t g0 = sc_pat_gen();
+    CHECK(g0 != 0 && sc_pat_index() == p0);
+    std::string locks(700, 'L');                                          // longer than a byte's length
+    CHECK(sc_pat_put(25, (const uint8_t*)locks.data(), 700) && sec(25) == locks && sec(0x7e).size() == 2);
+    tick(8);
+    uint32_t hp = sc_pattern_handle(p0);
+    CHECK(hp != 0 && sc_pat_gen() == g0);
+    h_pat_idx = 9;                                                        // pattern 10 plays: no record
+    tick(2);
+    CHECK(sc_pat_index() == 9 && sc_pat_gen() != g0 && sec(25) == "");
+    CHECK(sc_pat_put(25, (const uint8_t*)"p10", 3));
+    h_pat_idx = p0;                                                       // switched back before the write went
+    tick(10);
+    CHECK(sc_pattern_handle(9) != 0 && sc_pattern_handle(p0) == hp);      // the write went to pattern 10
+    CHECK(sc_pat_index() == p0 && sec(25) == locks);                      // pattern p0's read back from the Pi
+    std::string big(900, 'x');                                            // past SC_PMAX with the others: refused
+    CHECK(sc_pat_put(26, (const uint8_t*)big.data(), 900) == 0 && sec(25) == locks);
+  }
+  uint32_t h1 = sc_pattern_handle(h_pat_idx);           // the pattern record, holding storetest's section
   CHECK(h1 != 0);
   g_ctrl[0x20] = 0;
   st_draw(nullptr, g_ctrl);
@@ -398,12 +497,12 @@ int main() {
   tick(40);
   CHECK(st_res == 0x7f && st_bad == 0);
   CHECK(st_points[0] == 0 && st_points[1] == 1 && route::stats().open == 2);   // the HELLO closed the first two; asked again
-  CHECK(sc_pattern_handle(0) != h1);
+  CHECK(sc_pattern_handle(h_pat_idx) != h1);
   // a deaf Pi mid-session: the step times out and shows as failed; the next session runs again
   sc_project_ev(1, 0);
   tick(3);
   g_pi_deaf = true;
-  tick(80);
+  tick(200);                                            // the kit's and the pattern's record reads time out first, in turn
   CHECK(st_sessions == 3 && (st_bad & 1u << S_WRITE) && st_status[S_WRITE] == 0x7e);
   g_pi_deaf = false;
   g_st_on = false;

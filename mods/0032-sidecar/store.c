@@ -8,6 +8,7 @@
  *                                     SAVE PROJECT AS copies it, so the two projects then share one folder (records
  *                                     are versions and never overwritten, so neither loses a record; a KEEP would)
  *   sc_phand 16 bits, pattern scope   a record handle for each pattern (0 none), for mods that keep a pattern's data
+ *   sc_khand 16 bits, kit scope       the current kit's record, one section per mod (rec.c)
  *                                     on the Pi (the lock tables); copy and paste of a pattern carry it (core)
  *
  * The link (all F0 7D 52 54 51 01 <op> ... F7, kv.h has the codec):
@@ -25,7 +26,10 @@
  *   route ops 20..23   the Pi's audio route (sidecar-firmware core/route, the audio route phase 2026-11-04): queued
  *                      and sent as the lock ops. The Pi answers ROUTE / MOVE with 60 ROUTED <seq> <owner> <point> or
  *                      61 REFUSED <seq> <owner> <code>; the companion keeps the last SC_NR answers for
- *                      sc_route_result(owner, seq). A point's gain is lock target 4 (param = the point).
+ *                      sc_route_result(owner, seq). A point's gain is lock target 64 (param = the point).
+ *   DSP ops 30..32     the Pi's library of blocks (sidecar-firmware core/dsp, the send FX phase 2026-11-05): queued and
+ *                      sent as the lock ops. PLACE's answer, 70 PLACED <seq> <owner> <slot> or 71 REFUSED <seq> <owner>
+ *                      <code>, kept with the route's for sc_dsp_result(owner, seq); INFO's 72 TEXT is not kept.
  * The cache: SC_NC records of up to SC_CMAX bytes, by (scope, handle), filled by every read and write that fits. A
  * handle names one version that never changes, so a cached record is never stale: a read that hits it needs no Pi.
  *
@@ -35,6 +39,13 @@
 
 STORE_FIELD(sc_proj);
 STORE_FIELD(sc_phand);
+#ifdef SC_HOST                         /* a PC's pointers want 8 */
+#define SC_BSS __attribute__((section(".bss")))
+#else
+#define SC_BSS __attribute__((section(".bss"), aligned(4)))
+#endif
+static void sc_kit_tick(void);       /* rec.c: the kit and pattern records (sidecar.c includes it after this file) */
+static void sc_kit_project(void);
 
 #define SC_NQ       4
 #define SC_NC       4
@@ -70,7 +81,7 @@ typedef void (*unlock_fn)(void *m);
 
 enum { RQ_FREE = 0, RQ_QUEUED, RQ_SENT, RQ_DONE };
 enum { OP_HELLO = 0x00, OP_READ = 0x01, OP_WRITE = 0x02, OP_NAME = 0x04, OP_ACK = 0x40, OP_DATA = 0x41, OP_WRITTEN = 0x42,
-       OP_ROUTED = 0x60, OP_REFUSED = 0x61, OP_STATUS = 0x7f };
+       OP_ROUTED = 0x60, OP_REFUSED = 0x61, OP_PLACED = 0x70, OP_DSP_REFUSED = 0x71, OP_TEXT = 0x72, OP_STATUS = 0x7f };
 #define ST_TIMEOUT 0x7e                /* the companion's own: no answer */
 
 typedef void (*sc_store_cb)(int32_t status, int32_t n, uint32_t handle, void *ctx);
@@ -105,7 +116,7 @@ static struct {
   struct { volatile uint32_t key; volatile int32_t res; } r[SC_NR];   /* route answers: key = 1 << 16 | owner << 8 | seq */
   volatile uint32_t rn;                /* answers written (MIDI task) */
   uint32_t hellos, acks, reqs, done, errors, timeouts, hits, lock_ops, lock_drops, bad;   /* diagnostics */
-} scl __attribute__((section(".bss"), aligned(4)));
+} scl SC_BSS;
 
 /* ---- sending (the UI task; never waits): 0029's try_send, sized, and never inside a stock SysEx dump (it would
    land inside it), unless the dump's flag has stayed set for 2 s (a dump cut by a cable pull) */
@@ -166,6 +177,7 @@ void sc_project_ev(int32_t how, uint32_t dropped) {
     core_store_set(STORE(sc_proj), 0, 0, id);
   }
   scl.proj = id;
+  sc_kit_project();
   scl.epoch = 0;                       /* closed until the Pi has opened this project */
   scl.hello_owed = 1;
   scl.tries = 0;
@@ -218,16 +230,20 @@ int sc_store_host(const uint8_t *d, int32_t len) {
       sc_finish(r, 0);
       return 1;
     case OP_ROUTED:                    /* 60 <seq> <owner> <point> */
-    case OP_REFUSED: {                 /* 61 <seq> <owner> <code> */
-      uint32_t i2;
+    case OP_REFUSED:                   /* 61 <seq> <owner> <code> */
+    case OP_PLACED:                    /* 70 <seq> <owner> <slot> */
+    case OP_DSP_REFUSED: {             /* 71 <seq> <owner> <code> */
+      uint32_t i2, ok = d[6] == OP_ROUTED || d[6] == OP_PLACED;
       if (bn < 3) break;
       i2 = scl.rn % SC_NR;
       scl.r[i2].key = 0;
-      scl.r[i2].res = d[6] == OP_ROUTED ? (int32_t)b[2] : -(int32_t)(b[2] ? b[2] : 5);
-      scl.r[i2].key = 1u << 16 | (uint32_t)b[1] << 8 | b[0];   /* the key last: the UI task reads it first */
+      scl.r[i2].res = ok ? (int32_t)b[2] : -(int32_t)(b[2] ? b[2] : 5);
+      scl.r[i2].key = (d[6] >= OP_PLACED ? 2u : 1u) << 16 | (uint32_t)b[1] << 8 | b[0];   /* the key last: the UI task reads it first */
       scl.rn++;
       return 1;
     }
+    case OP_TEXT:                      /* 72 TEXT (an answer to INFO): not kept, the library is fixed per Pi engine */
+      return 1;
     case OP_STATUS:                    /* 7F <seq | 7F> <code> */
       if (bn < 2) break;
       if (r && (b[0] == r->seq || b[0] == 0x7f)) sc_finish(r, b[1] ? b[1] : 5);
@@ -272,12 +288,14 @@ int32_t sc_store_write(int32_t scope, const uint8_t *src, uint32_t n, sc_store_c
   return 1;
 }
 
-/* a lock op for the Pi's lock service (body = <op 10..15> <args>) or a route op for its audio route (<op 20..23> <args>),
-   7-bit bytes; 0: the link is closed or the queue full. The Pi forgets every set and closes every route point at each
-   HELLO: declare them again when sc_link_epoch() changes. */
+/* a lock op for the Pi's lock service (body = <op 10..15> <args>), a route op for its audio route (<op 20..23> <args>)
+   or a DSP op for its library of blocks (<op 30..32> <args>), 7-bit bytes; 0: the link is closed or the queue full.
+   The Pi forgets every set, closes every route point and frees every DSP slot at each HELLO: declare them again when
+   sc_link_epoch() changes. */
 int32_t sc_link_send(const uint8_t *body, int32_t n) {
   int32_t i;
-  if (!scl.epoch || n < 1 || n > SC_LMAX || !((body[0] >= 0x10 && body[0] <= 0x15) || (body[0] >= 0x20 && body[0] <= 0x23)))
+  if (!scl.epoch || n < 1 || n > SC_LMAX ||
+      !((body[0] >= 0x10 && body[0] <= 0x15) || (body[0] >= 0x20 && body[0] <= 0x23) || (body[0] >= 0x30 && body[0] <= 0x32)))
     return 0;
   if (SC_LQ - (scl.lh - scl.lt) < (uint32_t)n + 1) { scl.lock_drops++; return 0; }
   for (i = 0; i < n; ++i) if (body[i] & 0x80) return 0;
@@ -289,15 +307,21 @@ int32_t sc_link_send(const uint8_t *body, int32_t n) {
 /* the Pi's answer to the route op (ROUTE / MOVE) sent with this owner and seq: the point 0..15, -code (3 full, 5 bad,
    7 loop), or SC_ROUTE_PENDING (-256) while none came (the last SC_NR answers are kept; a seq reused within them gives
    the newest) */
-int32_t sc_route_result(uint32_t owner, uint32_t seq);
-int32_t sc_route_result(uint32_t owner, uint32_t seq) {
-  uint32_t key = 1u << 16 | (owner & 0x7f) << 8 | (seq & 0x7f), n = scl.rn, i;
+static int32_t sc_result(uint32_t kind, uint32_t owner, uint32_t seq) {
+  uint32_t key = kind << 16 | (owner & 0x7f) << 8 | (seq & 0x7f), n = scl.rn, i;
   for (i = 0; i < SC_NR && i < n; ++i) {
     uint32_t j = (n - 1 - i) % SC_NR;
     if (scl.r[j].key == key) return scl.r[j].res;
   }
   return SC_ROUTE_PENDING;
 }
+int32_t sc_route_result(uint32_t owner, uint32_t seq);
+int32_t sc_route_result(uint32_t owner, uint32_t seq) { return sc_result(1, owner, seq); }
+
+/* the Pi's answer to the DSP op PLACE sent with this owner and seq: the slot 0..15, -code (3 full, 5 bad, 9 unknown
+   block), or SC_ROUTE_PENDING (-256) while none came (kept with the route's answers, the last SC_NR of both) */
+int32_t sc_dsp_result(uint32_t owner, uint32_t seq);
+int32_t sc_dsp_result(uint32_t owner, uint32_t seq) { return sc_result(2, owner, seq); }
 
 uint32_t sc_link_epoch(void) { return scl.epoch; }
 uint32_t sc_project_id(void) { return scl.proj; }
@@ -465,4 +489,5 @@ void sc_store_tick(void *ctrl) {
     }
     if (!sc_step(r)) break;
   }
+  sc_kit_tick();
 }

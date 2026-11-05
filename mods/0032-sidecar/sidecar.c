@@ -71,4 +71,5 @@ __asm__(
     "  jmp 0x40083de0\n");
 
 #include "store.c"
+#include "rec.c"
 #include "clock.c"

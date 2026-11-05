@@ -255,9 +255,9 @@ def check_linked_params(mods, enabled):
 # words 38..41) use (mods/0032-sidecar/elekloader.md section 8): those mods stay out of 0.9 builds
 # until the Storage phase, and CORE_STORE_GUARD below makes elekloader refuse them.
 ELEK_DIR = ROOT / "vendor" / "elekloader"
-ELEK_REV = "9f72fb05bd3baeacdf04af00dc2d1357abf96134"
-ELEK_CORE_REV = "9f72fb05bd3baeacdf04af00dc2d1357abf96134"
-ELEK_CORE_VERSION = "0.9"
+ELEK_REV = "7d0bf15e8fcd5eeb4dd00321c4c6038e30d14bc1"
+ELEK_CORE_REV = "7d0bf15e8fcd5eeb4dd00321c4c6038e30d14bc1"
+ELEK_CORE_VERSION = "0.11"
 # The companion carries the elekloader build (it declares the core, [elek] core in its mod.toml; mod 0027 until
 # 2026-11-04, folded in): every build with code in the area or core-ar2's sites has it.
 ELEK_MOD = "0032-sidecar"
@@ -503,9 +503,18 @@ def elek_build(img, stock_img, mods, enabled, elek_detours, tag, meta, syx_out, 
     # the core's source at ELEK_CORE_REV: its mod.json names ../core/*.s, so both folders
     src = work / "core-src"
     src.mkdir()
-    arc = subprocess.run(["git", "-C", ELEK_DIR, "archive", ELEK_CORE_REV, "mods/core",
-                          f"mods/{core}"], check=True, capture_output=True).stdout
-    subprocess.run(["tar", "-x", "-C", src], input=arc, check=True)
+    if os.environ.get("ELEK_CORE_WORKTREE") == "1":
+        # a test build with local core changes not committed yet (the send FX phase's core_param_locks, 2026-11-05):
+        # the core from vendor/elekloader's working tree. Never a release: the release's corresponding source is the
+        # commit's (Makefile release).
+        if bundle:
+            raise SystemExit("ELEK_CORE_WORKTREE=1 is for test builds only, not --elek-bundle")
+        for d in ("mods/core", f"mods/{core}"):
+            shutil.copytree(ELEK_DIR / d, src / d)
+    else:
+        arc = subprocess.run(["git", "-C", ELEK_DIR, "archive", ELEK_CORE_REV, "mods/core",
+                              f"mods/{core}"], check=True, capture_output=True).stdout
+        subprocess.run(["tar", "-x", "-C", src], input=arc, check=True)
     cver = json.loads((src / "mods" / core / "mod.json").read_text())["version"]
     if cver != ELEK_CORE_VERSION:
         raise SystemExit(f"{core} at {ELEK_CORE_REV[:7]} is {cver}, not {ELEK_CORE_VERSION}")
@@ -610,6 +619,11 @@ def elek_build(img, stock_img, mods, enabled, elek_detours, tag, meta, syx_out, 
             subscribe += mods[mid].get("_elek", {}).get("subscribe", [])
             # core-ar2 fields ([elek] storage: sym, scope, bits), placed by elekloader from the build's lockfile
             storage += mods[mid].get("_elek", {}).get("storage", [])
+            # entries in core's tables ([elek] contribute: to, order, a symbol of the mod's): core_pages,
+            # core_params, core_view_pages (core-ar2 0.4), as elekloader's own mods contribute them
+            contribute += [{"to": c["to"], "order": int(c.get("order", 50)), "data": "00000000",
+                            "relocs": [[0, "abs32", "sym:" + c["sym"], 0]]}
+                           for c in mods[mid].get("_elek", {}).get("contribute", [])]
             prm = {f"P_{k.upper()}": int(v) for k, v in mods[mid]["_params"].items()}
             if bundle:
                 # several stubs in one mod: each gets its own params as .set lines, as

@@ -14,7 +14,7 @@ EFT_REV := a5bce9a6af644386d900924082993a805e812874
 # ELEK_CORE_REV in build.py, with Ubuntu's gcc-m68k-linux-gnu (GCC 13; ELEK_CORE_CROSS), as upstream
 # does: its C is pre-C23. mods/0032-sidecar/elekloader.md.
 ELEK_URL := https://github.com/irpina/elekloader
-ELEK_REV := 9f72fb05bd3baeacdf04af00dc2d1357abf96134
+ELEK_REV := 7d0bf15e8fcd5eeb4dd00321c4c6038e30d14bc1
 CORE_VER := 0.9
 
 setup:

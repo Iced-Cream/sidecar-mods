@@ -1,0 +1,50 @@
+[mod]
+id      = "0025-sendfx"
+title   = "Sidecar send FX: SEND FX 1 and 2 as graphs of the Pi's DSP library, sends and P2..P5 on the Pi"
+
+enabled = false
+
+# code in elekloader's DDR area, a client of the companion (0032-sidecar): its link, kit record and answers
+area    = "elek"
+
+# re-only | built | hardware-verified | retracted
+status  = "built"
+
+summary = """
+SEND FX 1 and 2 on the Sidecar (the send FX phase, 2026-11-05). Each TYPE (OFF, CHORUS, COMB, CRUSH,
+RINGMOD, ECHO) is a graph of blocks from the Pi's DSP library: the mod places them in the Pi's processor
+slots, joins them with route points, sends each voice stem into the first block and returns the last
+onto MAIN FX (PRE) or MAIN (POST, P1). Sends per track are route gains, P2..P5 block params, both
+through the Pi's lock service. The values live in the kit's record on the Pi (the companion's kit
+section 25); p-locks (a trig held, core-ar2 0.11's lock calls) in the playing pattern's record there
+(section 25), played by the Pi's lock service on the Rytm's step clock. Pages: AMPLITUDE 2 (SFX1, SFX2) behind AMP, SEND FX 1 and 2 behind DELAY and REVERB on
+the FX track. Replaces 0025-sendfx-report and 0029-sendfx-ui (1.73). design.md.
+"""
+
+[sources]
+stub = "stub.s"      # generated from sfx.c by build.sh
+
+[params]
+
+[elek]
+core = "core-ar2"
+subscribe = [
+  { event = "ev_tick", fn = "sfx_tick", order = 78 },
+]
+# the pages (core-ar2 0.4; core pages claim on views 3, 5 and 6 approved 2026-11-05): page ids 16..18, knob ids 560..573
+contribute = [
+  { to = "core_pages", order = 50, sym = "sfx_page_amp2" },
+  { to = "core_pages", order = 50, sym = "sfx_page_fx1" },
+  { to = "core_pages", order = 50, sym = "sfx_page_fx2" },
+  { to = "core_params", order = 50, sym = "sfx_params" },
+  # p-locks (decided 2026-11-05: Pi locks with the mod's own entry): core-ar2 0.11's held-trig lock calls for 560..573
+  { to = "core_param_locks", order = 50, sym = "sfx_locks" },
+  { to = "core_view_pages", order = 20, sym = "sfx_view_amp2" },
+  { to = "core_view_pages", order = 20, sym = "sfx_view_fx1" },
+  { to = "core_view_pages", order = 20, sym = "sfx_view_fx2" },
+]
+
+[requires]
+shared = false
+symbols = []
+mods = ["0032-sidecar"]

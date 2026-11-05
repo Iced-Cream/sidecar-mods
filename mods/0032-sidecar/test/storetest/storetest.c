@@ -9,11 +9,12 @@
  *   1 WRITE   a record of 600 bytes (6 WRITE chunks, too big for the companion's cache): its new handle
  *   2 READ    that record read back from the Pi, compared byte for byte
  *   3 SMALL   a 16-byte record written and read back (the read is served from the companion's cache)
- *   4 PRIOR   the record the previous session wrote, by pattern 1's handle (sc_phand, kept with the project when it
- *             is saved): read and checked. No handle yet: no box (a project that never ran the test)
- *   5 DONE    every step answered; pattern 1's handle now names this session's record
+ *   4 PRIOR   the record the previous session wrote, by the handle kept in this mod's section (ST_MOD) of the playing
+ *             pattern's record (the companion's rec.c, behind sc_phand; kept with the project when it is saved): read
+ *             and checked. No handle yet: no box (a project that never ran the test)
+ *   5 DONE    every step answered; the section now names this session's record
  *   6 ROUTE   (the audio route phase, 2026-11-04) asks the Pi's audio route for two points, the SD stem (IN 3) onto
- *             MAIN L and MAIN R (OUT 0, 1) at gain 0, then declares lock sets 5 and 6 (track 1 = SD, target 4, the
+ *             MAIN L and MAIN R (OUT 0, 1) at gain 0, then declares lock sets 5 and 6 (track 1 = SD, target 64, the
  *             point the Pi answered): base 0, unity (8192) on steps 1 and 9. While the pattern plays, the Pi's copy
  *             of SD sounds on MAIN on steps 1 and 9 only (the T118 check). Owner 0x31, its own box at x 86.
  *
@@ -32,14 +33,15 @@ extern int32_t sc_store_write(int32_t scope, const uint8_t *src, uint32_t n, sc_
 extern int32_t sc_link_send(const uint8_t *body, int32_t n);
 extern uint32_t sc_link_epoch(void);
 extern uint32_t sc_project_id(void);
-extern uint32_t sc_pattern_handle(int32_t p);
-extern void sc_set_pattern_handle(int32_t p, uint32_t h);
+extern int32_t sc_pat_get(uint32_t mod, uint8_t *buf, uint32_t cap);
+extern int32_t sc_pat_put(uint32_t mod, const uint8_t *src, uint32_t n);
+#define ST_MOD 0x7e                    /* its section in the pattern record (test builds only) */
 extern int32_t sc_route_result(uint32_t owner, uint32_t seq);
 #define SC_ROUTE_PENDING (-256)
 #define RT_OWNER 0x31
 #define RT_SD_IN 3                     /* IN 3: the SD stem */
 #define RT_TRACK 1                     /* the SD track: the locks play on its steps */
-#define RT_TARGET 4                    /* the lock target of the route's gains (core/route kTarget) */
+#define RT_TARGET 64                   /* the route's gains as a lock target (core/route kTarget; 4 before the send FX phase) */
 #define RT_UNITY 8192
 #define RT_TIMEOUT 60
 
@@ -108,7 +110,6 @@ static void start(void) {
     if (lock_op(r0, 7) && lock_op(r1, 7)) rt_state = 1;
     else { rt_state = 2; fail(S_ROUTE, -2); }
   }
-  st_h_prior = sc_pattern_handle(0);
   fill(st_big, BIG, st_sessions);
   st_step = S_WRITE;
   st_wait = 0;
@@ -184,7 +185,12 @@ void st_tick(void *ctrl) {
           if (!st_h_small) { fill(st_small, SMALL, st_sessions); q = sc_store_write(SCOPE_PATTERN, st_small, SMALL, st_cb, tag); }
           else q = sc_store_read(SCOPE_PATTERN, st_h_small, st_small_back, SMALL, st_cb, tag);
           break;
-        case S_PRIOR:
+        case S_PRIOR: {
+          uint8_t b[2];
+          int32_t n = sc_pat_get(ST_MOD, b, 2);
+          if (n < 0) { q = 0; break; }                             /* the pattern record not loaded yet: wait */
+          st_h_prior = n == 2 ? (uint32_t)b[0] << 8 | b[1] : 0;
+          }
           if (!st_h_prior) { st_step = S_DONE; q = 0; break; }      /* no earlier record: nothing to check */
           q = sc_store_read(SCOPE_PATTERN, st_h_prior, st_prior, BIG, st_cb, tag);
           break;
@@ -192,9 +198,11 @@ void st_tick(void *ctrl) {
       if (q && st_step < S_DONE) st_wait = 1;
     }
     if (st_step == S_DONE) {
-      if (st_h_big) sc_set_pattern_handle(0, st_h_big);
+      uint8_t b[2] = {(uint8_t)(st_h_big >> 8), (uint8_t)st_h_big};
+      int32_t kept = !st_h_big || sc_pat_put(ST_MOD, b, 2);
       st_h_small = 0;
-      if (!(st_bad & ((1u << S_DONE) - 1))) pass(S_DONE); else fail(S_DONE, -4);
+      if (!kept) fail(S_DONE, -5);
+      else if (!(st_bad & ((1u << S_DONE) - 1))) pass(S_DONE); else fail(S_DONE, -4);
     }
   }
 draw:

@@ -55,11 +55,20 @@ The API (all from the UI task, `ev_tick` or what it calls; the callbacks come fr
 typedef void (*sc_store_cb)(int32_t status, int32_t n, uint32_t handle, void *ctx);
 int32_t sc_store_read(int32_t scope, uint32_t handle, uint8_t *buf, uint32_t cap, sc_store_cb cb, void *ctx);
 int32_t sc_store_write(int32_t scope, const uint8_t *src, uint32_t n, sc_store_cb cb, void *ctx);  /* src kept until cb */
-int32_t sc_link_send(const uint8_t *body, int32_t n);   /* a lock op 10..15 or a route op 20..23, whole; 0 while closed */
+int32_t sc_link_send(const uint8_t *body, int32_t n);   /* a lock op 10..15, route op 20..23 or DSP op 30..32, whole; 0 while closed */
 int32_t sc_route_result(uint32_t owner, uint32_t seq);   /* the Pi's answer to ROUTE / MOVE: point, -code, -256 none yet */
+int32_t sc_dsp_result(uint32_t owner, uint32_t seq);     /* the Pi's answer to PLACE: slot, -code, -256 none yet */
 uint32_t sc_link_epoch(void), sc_project_id(void);
 uint32_t sc_pattern_handle(int32_t p);                   /* live pattern 0..127 */
 void sc_set_pattern_handle(int32_t p, uint32_t h);
+uint32_t sc_kit_handle(void);                            /* the current kit's record (rec.c), 0 none */
+uint32_t sc_kit_gen(void);                               /* 0 while no kit record is loaded; changes at each load */
+int32_t sc_kit_get(uint32_t mod, uint8_t *buf, uint32_t cap);      /* the mod's section: length, 0 none, -1 not loaded */
+int32_t sc_kit_put(uint32_t mod, const uint8_t *src, uint32_t n);  /* replace it (0 removes): 1, or 0 not loaded / full */
+uint32_t sc_pat_handle(void), sc_pat_gen(void);          /* the same for the playing pattern's record (rec.c) */
+int32_t sc_pat_index(void);                              /* the pattern the loaded record is for, -1 none */
+int32_t sc_pat_get(uint32_t mod, uint8_t *buf, uint32_t cap);
+int32_t sc_pat_put(uint32_t mod, const uint8_t *src, uint32_t n);
 ```
 
 - Requests queue (4 at most; 0 when full) and go one at a time; a request waits while the link is closed, and once
@@ -75,9 +84,27 @@ void sc_set_pattern_handle(int32_t p, uint32_t h);
   voice inputs) at a gain (8192 unity). The Pi hands out the point and answers `60 ROUTED <seq> <owner> <point>` or
   `61 REFUSED <seq> <owner> <code>` (3 full, 5 bad, 7 loop); the companion keeps the last 16 for `sc_route_result`,
   cleared at each new epoch and when the port goes down. `21 MOVE`, `22 UNROUTE`, `23 GAIN` as the header says. A
-  point's gain is lock target 4 (param = the point): a lock set on it plays the gain per step. The Pi closes every point
+  point's gain is lock target 64 (param = the point): a lock set on it plays the gain per step. The Pi closes every point
   at a HELLO, so a mod asks again when the epoch changes, as it declares its lock sets. The owner byte is the mod's own
   (storetest 0x31); the Pi checks it on MOVE / UNROUTE / GAIN.
+- The kit and pattern records (rec.c; the kit handle claim approved 2026-11-05, the pattern handle 2026-11-04). The
+  16-bit fields `sc_khand` (kit) and `sc_phand` (pattern) name the current kit's and the playing pattern's record on
+  the Pi (kv scopes 1 and 3). A record holds one section per mod, `<mod 2> <len 2> <len bytes>` (mod = the mod's
+  number, 25 for 0025-sendfx), 256 bytes in all for a kit and 1536 for a pattern, so every mod with per-kit or
+  per-pattern data shares one claimed field. The companion keeps each current record in RAM and loads it again when
+  the kit or pattern or its handle changes (a load, a paste, a pattern switch) and at a project load. A put changes a
+  section in RAM; the companion then writes the whole record as a new version (the kit's at the next tick, the
+  pattern's 12 ticks after the last put, or at once when another pattern starts playing) and sets the new handle in
+  the item it was for. A copy keeps naming the same version until either copy changes. A mod reads its section again
+  when the gen changes. After a pattern switch the new record arrives some ticks later, so a mod's first steps may
+  still play the old pattern's data [I]. storetest keeps its record's handle in its own pattern section (0x7E).
+- The DSP library (the send FX phase, decided 2026-11-05: a library of primitives in the Pi engine, graphs from the
+  Rytm; sidecar-firmware core/dsp/dsp.h). A mod sends `30 PLACE <seq> <owner> <slot | 7F> <name>` to put a library block
+  (DELAY, FILTER, SHAPER, MOD, WIDTH) into one of the Pi's 16 processor slots; the Pi answers `70 PLACED <seq> <owner>
+  <slot>` or `71 REFUSED <seq> <owner> <code>` (3 full, 5 bad, 9 unknown block), kept with the route's answers for
+  `sc_dsp_result`. `31 FREE <owner> <slot | 7F>` takes blocks out (their route points fade first); `32 INFO` asks the
+  library (its 72 TEXT answer is not kept). Route points join the slots (slot s's inputs and outputs are route channels
+  12 + 2s and 13 + 2s) and the block's params are lock target s. The Pi frees every slot at a HELLO.
 - Sending never waits (0029's try_send rules), and never lands inside a stock SysEx dump unless its flag has stayed set 2 s.
 
 ## The step clock
