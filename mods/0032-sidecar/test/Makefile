@@ -9,7 +9,7 @@ B := build
 test: $(B)/test_companion
 	./$(B)/test_companion
 
-$(B)/companion_host.o: companion_host.c ../store.c ../clock.c
+$(B)/companion_host.o: companion_host.c ../store.c ../rec.c ../clock.c
 	@mkdir -p $(B)
 	$(CC) -std=gnu11 -O1 -g -Wall -Wno-unused-function -Wno-pointer-to-int-cast -Wno-int-to-pointer-cast \
 	  -I$(ELEK) -fsanitize=address,undefined -c -o $@ companion_host.c

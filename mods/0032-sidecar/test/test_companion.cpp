@@ -471,7 +471,7 @@ int main() {
     CHECK(g0 != 0 && sc_pat_index() == p0);
     std::string locks(700, 'L');                                          // longer than a byte's length
     CHECK(sc_pat_put(25, (const uint8_t*)locks.data(), 700) && sec(25) == locks && sec(0x7e).size() == 2);
-    tick(8);
+    tick(20);                                                             // SC_PQUIET (12) passed and the write answered
     uint32_t hp = sc_pattern_handle(p0);
     CHECK(hp != 0 && sc_pat_gen() == g0);
     h_pat_idx = 9;                                                        // pattern 10 plays: no record
