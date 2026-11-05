@@ -11,7 +11,7 @@ area    = "elek"
 status  = "built"
 
 summary = """
-The integration's test mod (mods/0032-sidecar/elekloader.md, milestone 1). Its code is in
+The integration's test mod (docs/ELEKLOADER-BUILD.md, milestone 1). Its code is in
 elekloader's blob area. eh_tick, subscribed to core-ar2's ev_tick (~20 Hz), counts in
 eh_ticks; the registry detour at 0x400a46f0 (the UI task's message loop) jumps to eh_loop,
 which counts in eh_loops and replays the displaced pea. Both words follow the magic "EH01"

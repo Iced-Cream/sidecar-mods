@@ -12,10 +12,15 @@ EFT_REV := a5bce9a6af644386d900924082993a805e812874
 # elekloader (GPL-2.0-or-later), executed only by builds with the companion 0032-sidecar; tools/build.py
 # checks this same commit (ELEK_REV). Its core-ar2 0.9 (OS 1.74 only) is built from the source at
 # ELEK_CORE_REV in build.py, with Ubuntu's gcc-m68k-linux-gnu (GCC 13; ELEK_CORE_CROSS), as upstream
-# does: its C is pre-C23. mods/0032-sidecar/elekloader.md.
+# does: its C is pre-C23. docs/ELEKLOADER-BUILD.md.
 ELEK_URL := https://github.com/irpina/elekloader
 ELEK_REV := 7d0bf15e8fcd5eeb4dd00321c4c6038e30d14bc1
 CORE_VER := 0.9
+# The Sidecar companion (mod 0032-sidecar until 2026-11-05) is its own repository, an ordinary elekloader mod built by
+# its own tools/build.py; tools/build.py checks this same commit (SC_REV) and links its elemod into every build with
+# 0032-sidecar. mods/0032-sidecar/mod.toml.
+SC_URL := https://github.com/Iced-Cream/sidecar-core
+SC_REV := 79ea7b4bed5e3d5d9dda50ce391d2215aa01255a
 
 setup:
 	python3 -m venv .venv
@@ -25,6 +30,8 @@ setup:
 	$(MAKE) -C vendor/elektron-firmware-tool
 	test -d vendor/elekloader/.git || git clone $(ELEK_URL) vendor/elekloader
 	git -C vendor/elekloader checkout --quiet $(ELEK_REV)
+	test -d vendor/sidecar-core/.git || git clone $(SC_URL) vendor/sidecar-core
+	git -C vendor/sidecar-core checkout --quiet $(SC_REV)
 
 symbols:
 	$(PY) tools/symbols.py
@@ -41,7 +48,7 @@ REL_TAG := rel$(subst .,-,$(VERSION))
 # 0025, 0029 (core storage, machine slots, lock codes, pages); 0022 dropped (its host half would be a Pi counterpart).
 # 0031-remote-keys stays out of production builds (a dev / test feature: RUI_DEV=1 tools/build_rui.sh).
 RELEASE_MODS := 0032-sidecar
-RELEASE_ARGS := --param 0032-sidecar:clock=1
+RELEASE_ARGS :=
 
 release: symbols layout
 	$(PY) tools/comp/calib_tables.py --check
@@ -49,7 +56,7 @@ release: symbols layout
 	$(PY) tools/verify.py --tag $(REL_TAG)
 	rm -rf $(REL) && mkdir -p $(REL)
 	cp build/elek/$(REL_TAG)/core/core-$(CORE_VER).elemod $(REL)/core-$(CORE_VER)-os1.74.elemod
-	cp build/elek/$(REL_TAG)/mods/sidecar/out/sidecar-$(VERSION).elemod $(REL)/
+	cp build/elek/$(REL_TAG)/mods/sidecar/out/sidecar-*.elemod $(REL)/
 	cp LICENSE NOTICE $(REL)/
 	# GPL-2.0 section 3: the corresponding source of core-$(CORE_VER)-os1.74.elemod and of the builder (one commit) beside it
 	git -C vendor/elekloader archive --format=tar.gz --prefix=elekloader-9f72fb0/ \

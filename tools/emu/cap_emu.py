@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""The companion phase's capture comparison (mods/0032-sidecar/design.md): one scripted host session, played into two
+"""The companion phase's capture comparison (sidecar-core companion/design.md): one scripted host session, played into two
 builds in rytm-emu, and every byte each Rytm sends the USB host recorded and compared message by message.
 
     .venv/bin/python tools/emu/cap_emu.py TAG_A TAG_B [--gone 30-3f] [--new 2c,2d,51]

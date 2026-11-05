@@ -99,6 +99,8 @@ def load_mods(only):
         mod["_sources"] = m.get("sources", {})
         mod["_params"] = dict(m.get("params", {}))
         mod["_elek"] = m.get("elek", {})
+        # built from its own repository (`external = "sidecar-core"`: vendor/sidecar-core), linked as its elemod
+        mod["_external"] = mod.get("external")
         mod["_provides"] = bool(mod.get("provides_shared"))
         mod["_needs_shared"] = bool(m.get("requires", {}).get("shared"))
         # mods it needs that no address shows (a mailbox it waits on, data another keeps):
@@ -245,14 +247,14 @@ def check_linked_params(mods, enabled):
 
 
 # ---------------------------------------------------------------------------
-# elekloader (mods/0032-sidecar/elekloader.md). vendor/elekloader is GPL-2.0-or-later
+# elekloader (docs/ELEKLOADER-BUILD.md). vendor/elekloader is GPL-2.0-or-later
 # and is only executed here, like elektron-firmware-tool: nothing of it is copied into
 # this repository. The pinned commit is the Makefile's ELEK_REV; build.py refuses another.
 # The core is built from its source as it was at ELEK_CORE_REV (the same repository): core-ar2
 # 0.9 (9f72fb0, #242), OS 1.74 only, since the companion phase (decided 2026-11-03). Until then
 # the Rytm ran 0.1 (13fa795, #105; core-0.1 sha256 89c00065... for 1.74). 0.2 and later keep mod
 # storage in the sound's and kit's spare bytes, the bytes 0013 / 0021 (sound) and 0025 (kit FX
-# words 38..41) use (mods/0032-sidecar/elekloader.md section 8): those mods stay out of 0.9 builds
+# words 38..41) use (docs/ELEKLOADER-BUILD.md section 8): those mods stay out of 0.9 builds
 # until the Storage phase, and CORE_STORE_GUARD below makes elekloader refuse them.
 ELEK_DIR = ROOT / "vendor" / "elekloader"
 ELEK_REV = "7d0bf15e8fcd5eeb4dd00321c4c6038e30d14bc1"
@@ -268,13 +270,14 @@ ELEK_ID = "rytm-"          # elemod id = this + the mod's id, e.g. rytm-0021-ext
 # --elek-bundle: one elemod for the whole set, the file we publish for the elekloader web page
 # (docs/ELEKLOADER.md). Its version is the release's, from VERSION (the one version source).
 BUNDLE_ID = "rytm-sidecar"
-# The companion (mods/0032-sidecar/design.md): its own elemod in a bundle build, which the rest requires.
+# The companion (sidecar-core companion/design.md): its own elemod in a bundle build, which the rest requires.
 SC_MOD = "0032-sidecar"
 SC_ID = "sidecar"
-SC_META = {
-    "title": "Sidecar companion for the Analog Rytm MKII",
-    "category": "Sidecar", "author": "trigcondition", "license": "GPL-2.0-or-later",
-}
+# Since 2026-11-05 the companion is its own repository, an ordinary elekloader mod (id SC_ID): sidecar-core, cloned
+# by `make setup` at the Makefile's SC_REV (build.py refuses another). mods/0032-sidecar/mod.toml stays as its entry
+# here (`external`): the registry's claims, its command for the overlap check, the clients' `requires`.
+SC_DIR = ROOT / "vendor" / "sidecar-core"
+SC_REV = "79ea7b4bed5e3d5d9dda50ce391d2215aa01255a"
 SC_TABLE = "sc_cmds"
 SC_ENTRY = 12             # {first, last, flags, pad, magic, box}: sidecar.c struct sc_cmd
 SC_DIRECT = 1
@@ -479,6 +482,20 @@ def sc_contributions(mod, stub_syms):
     return out
 
 
+def companion_build(out, env):
+    """The companion's elemod, built by sidecar-core's own tools/build.py (vendor/sidecar-core at SC_REV) with this
+    tree's elekloader and stock file. -> its path."""
+    if not (SC_DIR / "tools" / "build.py").is_file():
+        raise SystemExit(f"no {SC_DIR}: run `make setup` (it clones sidecar-core at SC_REV)")
+    rev = subprocess.run(["git", "-C", SC_DIR, "rev-parse", "HEAD"], capture_output=True, text=True).stdout.strip()
+    if rev != SC_REV and os.environ.get("SC_WORKTREE") != "1":
+        raise SystemExit(f"vendor/sidecar-core is at {rev}, build.py is pinned to {SC_REV} "
+                         "(SC_WORKTREE=1 for a test build with another checkout)")
+    run([sys.executable, SC_DIR / "tools" / "build.py", "--stock", STOCK_SYX, "--out", out / "out"],
+        env=dict(env, ELEK_DIR=str(ELEK_DIR)))
+    return next((out / "out").glob("*.elemod"))
+
+
 def elek_build(img, stock_img, mods, enabled, elek_detours, tag, meta, syx_out, reg_claims,
                elek_patches, cave_spans, bundle, stub_symbols):
     """Hand the patched image to elekloader: every byte build.py changed becomes a site
@@ -529,12 +546,19 @@ def elek_build(img, stock_img, mods, enabled, elek_detours, tag, meta, syx_out, 
     # sources, subscriptions and its elek detours (jmp sites elekloader resolves)
     owner_of = owners_of_changes(stock_img, bytes(img), base, reg_claims)
     elek_mods = sorted(m for m in enabled if mods[m].get("area") == "elek")
+    external = sorted(m for m in elek_mods if mods[m].get("_external"))
+    local = [m for m in elek_mods if m not in external]
+    if any(m != SC_MOD for m in external):
+        raise SystemExit(f"only {SC_MOD} is built from another repository, not {external}")
     shutil.copy(BUILD / "symbols.inc", work / "symbols.inc")
     members = sorted(set(owner_of.values()) | set(elek_mods))
-    for mid in elek_mods:
+    for mid in local:
         elek_source(mods[mid], work / f"{mid}.s")
 
     def sites_of(mid):
+        if mid in external:
+            # its sites are in its own elemod (sidecar-core companion/mod.src.json); the registry only claims them
+            return []
         sites = [{"addr": f"0x{a:08x}", "stock": st.hex(), "op": "bytes", "new": nw.hex()}
                  for a, st, nw in change_runs(stock_img, bytes(img), base,
                                               lambda va: owner_of.get(va) == mid)]
@@ -567,7 +591,7 @@ def elek_build(img, stock_img, mods, enabled, elek_detours, tag, meta, syx_out, 
     for mid in members:
         blobs = [nw for a, st, nw in change_runs(stock_img, bytes(img), base,
                                                  lambda va, m=mid: owner_of.get(va) == m)]
-        if mid in elek_mods:
+        if mid in local:
             blobs += area_code(mid)
         found[mid] = cross_refs(blobs, mid, cave_spans)
         needs[mid] = set(found[mid]) | set(mods[mid]["_needs_mods"])
@@ -587,24 +611,28 @@ def elek_build(img, stock_img, mods, enabled, elek_detours, tag, meta, syx_out, 
             raise SystemExit(f"--elek-bundle: the bundle lacks what its mods need: {missing}")
         # one link unit: a jmp / ptr / subscriber is found by name, so each must be
         # defined by one member only
-        labels = {mid: defined_labels(mid) for mid in elek_mods}
-        for mid in elek_mods:
+        labels = {mid: defined_labels(mid) for mid in local}
+        for mid in local:
             names = [d["entry"] for d in elek_detours if d["owner"] == mid] + \
                 [q["from_symbol"] for q in elek_patches if q["owner"] == mid] + \
                 [x["fn"] for x in mods[mid].get("_elek", {}).get("subscribe", [])]
             for n in names:
-                dup = [o for o in elek_mods if o != mid and n in labels[o]]
+                dup = [o for o in local if o != mid and n in labels[o]]
                 if dup:
                     raise SystemExit(f"--elek-bundle: {mid}'s {n} is also defined by {dup}")
-        # the companion is its own elemod (mods/0032-sidecar/design.md), the rest one more that requires it
+        # the companion is its own elemod (from sidecar-core), the rest one more that requires it
         rest = [m for m in members if m != SC_MOD]
-        units = ([(SC_ID, version, [SC_MOD])] if SC_MOD in members else []) + \
-            ([(BUNDLE_ID, version, rest)] if rest else [])
+        units = [(BUNDLE_ID, version, rest)] if rest else []
     else:
-        units = [(ELEK_ID + mid, tag, [mid]) for mid in members]
+        units = [(ELEK_ID + mid, tag, [mid]) for mid in members if mid not in external]
     unit_of = {mid: eid for eid, _v, ms in units for mid in ms}
+    if SC_MOD in members:
+        unit_of[SC_MOD] = SC_ID
 
     built, nsites, sources_of = [], 0, {}
+    if SC_MOD in external:
+        built.append(companion_build(work / "mods" / SC_ID, env))
+        sources_of[SC_ID] = [SC_MOD]
     for eid, version, ms in units:
         mdir = work / "mods" / eid
         mdir.mkdir(parents=True)
@@ -614,7 +642,7 @@ def elek_build(img, stock_img, mods, enabled, elek_detours, tag, meta, syx_out, 
             sites += sites_of(mid)
             contribute += sc_contributions(mods[mid], stub_symbols.get(mid, {}))
             collections.update(mods[mid].get("_elek", {}).get("collections", {}))
-            if mid not in elek_mods:
+            if mid not in local:
                 continue
             subscribe += mods[mid].get("_elek", {}).get("subscribe", [])
             # core-ar2 fields ([elek] storage: sym, scope, bits), placed by elekloader from the build's lockfile
@@ -647,15 +675,7 @@ def elek_build(img, stock_img, mods, enabled, elek_detours, tag, meta, syx_out, 
             sorted({unit_of[o] for mid in ms for o in needs[mid] if o in unit_of} - {eid})
         conflicts = sorted({ELEK_ID + x for mid in ms for x in mods[mid].get("excludes", [])
                             if x not in ms})
-        if bundle and eid == SC_ID:
-            modjson = {"id": eid, "version": version, **SC_META,
-                       "description": (
-                           "The Sidecar companion for the Analog Rytm MKII on OS 1.74: it owns the host link's "
-                           "SysEx, and mods register the host commands they take in its table sc_cmds. "
-                           f"Use it with core-ar2 {ELEK_CORE_VERSION} for OS 1.74 and {BUNDLE_ID}-{version}, published beside "
-                           f"it. Source, licence (GPL-2.0-or-later) and the install guide: {HOMEPAGE} "
-                           f"(tag v{version}, docs/ELEKLOADER.md).")}
-        elif bundle:
+        if bundle:
             modjson = {"id": eid, "version": version, **BUNDLE_META,
                        "description": (
                            f"The Sidecar's mods for the Analog Rytm MKII on OS 1.74: "
@@ -728,7 +748,7 @@ def elek_build(img, stock_img, mods, enabled, elek_detours, tag, meta, syx_out, 
         finally:
             sys.path.pop(0)
         ats = {}
-        for mid in elek_mods:
+        for mid in local:
             eid = unit_of[mid]
             if eid not in ats:
                 ats[eid] = {sec: lay["sections"][f"{eid} {sec}"] for sec in (".run", ".bss")
@@ -756,13 +776,19 @@ def elek_build(img, stock_img, mods, enabled, elek_detours, tag, meta, syx_out, 
         for k, v in list(smap.items()):    # the computed names must agree with the linker's
             if k.split(":", 1)[0] in (BUNDLE_ID, SC_ID):
                 n = k.split(":", 1)[1]
-                own = [smap[f"{ELEK_ID}{m}:{n}"] for m in elek_mods if f"{ELEK_ID}{m}:{n}" in smap]
+                own = [smap[f"{ELEK_ID}{m}:{n}"] for m in local if f"{ELEK_ID}{m}:{n}" in smap]
                 if len(own) == 1 and own[0] != v:
                     raise SystemExit(f"bundle symbol {n}: linker 0x{v:08x}, computed 0x{own[0]:08x}")
     # build/obj/<id>.area.elf: an area mod's own object linked where elekloader placed it, so the emulator suites read
     # its symbols (also the file-local ones) and disassemble it at the run addresses, as they do a cave mod's ELF
     for mid in elek_mods:
-        if bundle:
+        if mid in external:
+            # the companion's object as elekloader's SDK compiled it, and its labels under this tree's name too
+            obj, at_run = work / "mods" / SC_ID / "out" / f"{SC_ID}.work" / "sidecar.c.o", lay["sections"].get(f"{SC_ID} .run")
+            for k, v in list(smap.items()):
+                if k.startswith(SC_ID + ":"):
+                    smap.setdefault(f"{ELEK_ID}{mid}:{k.split(':', 1)[1]}", v)
+        elif bundle:
             obj, at_run = work / "mods" / unit_of[mid] / "out" / f"{unit_of[mid]}.work" / f"{mid}.s.o", run_base.get(mid)
         else:
             eid = ELEK_ID + mid
@@ -799,7 +825,7 @@ def main():
     ap.add_argument("--tag", default=None, help="output name suffix")
     ap.add_argument("--area-elek", action="append", default=[], metavar="MOD",
                     help="link this mod's code into elekloader's DDR area instead of its caves "
-                         "(needs 0032-sidecar, which carries elekloader; mods/0032-sidecar/elekloader.md)")
+                         "(needs 0032-sidecar, which carries elekloader; docs/ELEKLOADER-BUILD.md)")
     ap.add_argument("--elek-bundle", action="store_true",
                     help="the release's elemods, not one per mod: the companion (sidecar-<VERSION>) and, when the set "
                          "has other mods, one more for them (rytm-sidecar-<VERSION>) (docs/ELEKLOADER.md)")

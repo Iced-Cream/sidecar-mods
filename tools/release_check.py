@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""The release gate for the elekloader release (docs/ELEKLOADER.md, mods/0032-sidecar/elekloader.md).
+"""The release gate for the elekloader release (docs/ELEKLOADER.md, docs/ELEKLOADER-BUILD.md).
 
     .venv/bin/python tools/release_check.py --dir build/release/0.3.0 --expect build/mainos_rel-0.3.0.bin
 

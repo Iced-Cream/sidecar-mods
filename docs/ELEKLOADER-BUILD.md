@@ -1,3 +1,7 @@
+> Moved here from mods/0032-sidecar/elekloader.md on 2026-11-05, when the companion went to its own repository
+> (sidecar-core). It describes this tree's elekloader build. "The companion" and "0032" below now mean the
+> elemod built from vendor/sidecar-core; mods/0032-sidecar/mod.toml is its entry here.
+
 # The elekloader build: more code space through elekloader (design, 2026-10-16)
 
 Folded into the companion on 2026-11-04 (decided): this was mod 0027-elekloader, which had no code of its own, only

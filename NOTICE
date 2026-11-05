@@ -25,7 +25,12 @@ exact third-party sources the build uses (Makefile, tools/build.py):
     unchanged by elekloader's own builder from mods/core-ar2 and mods/core
     at elekloader commit 9f72fb05bd3baeacdf04af00dc2d1357abf96134
     (https://github.com/irpina/elekloader, GPL-2.0-or-later);
-  - the builder, linker and packer are elekloader at the same commit.
+  - the builder, linker and packer are elekloader at the same commit;
+  - since 2026-11-05 the companion (sidecar-<version>.elemod) is built from
+    its own repository, sidecar-core, at the commit the Makefile pins
+    (SC_REV, cloned to vendor/sidecar-core by `make setup`). A release must
+    publish that source too (the repository, or an archive of it beside the
+    files), which `make release` does not do yet.
 
 Their source is also in the release folder, beside the files (GPL-2.0
 section 3): elekloader-9f72fb0-src.tar.gz (all of elekloader at 9f72fb0,
@@ -80,7 +85,7 @@ Facts, not code
       SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
   - core-ar2's site list and the area's evidence come from elekloader's docs
     and Iced-Cream/rytm-mods-src (GPL-2.0); they are cited, not copied
-    (mods/0032-sidecar/elekloader.md).
+    (docs/ELEKLOADER-BUILD.md).
 
 Elektron
 --------

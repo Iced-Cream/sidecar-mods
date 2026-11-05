@@ -22,7 +22,7 @@ source of elekloader (`elekloader-9f72fb0-src.tar.gz`). Check every hash before 
 
 What they do:
 
-- **The companion** (`sidecar`, mods/0032-sidecar) takes every SysEx message the Sidecar sends the Rytm (F0 7D 52 54
+- **The companion** (`sidecar`, from sidecar-core since 2026-11-05; mods/0032-sidecar is its entry here) takes every SysEx message the Sidecar sends the Rytm (F0 7D 52 54
   ...) before the Rytm's own handling, and passes each command to the mod that registered it in its table. Its own
   services: the store link (the Sidecar keeps records and parameter locks for the Rytm's projects, keyed by a project
   ID) and the step clock (the Rytm's sequencer steps and transport, for the Sidecar's locks). It also carries the

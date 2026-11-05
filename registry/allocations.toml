@@ -6284,7 +6284,7 @@ note        = "jsr operand: the browser row drawer: a TEENSY file's >N pool slot
 # elekloader (vendor/elekloader, GPL-2.0-or-later, pinned in the Makefile): its core-ar2 (the boot
 # copier and hook bus), carried by the companion 0032-sidecar (mod 0027-elekloader until 2026-11-04,
 # folded in), and 0028-elek-hello (the first mod whose code lives in elekloader's DDR area).
-# mods/0032-sidecar/elekloader.md.
+# docs/ELEKLOADER-BUILD.md.
 #
 # The area 0x47BE0000-0x47C00000 (128 KB) is elekloader's Rytm `ddr`: elekloader's linker
 # places every format-2 mod's .run/.bss there and core-ar2's .boot copies it out at the
@@ -7460,36 +7460,31 @@ from_symbol = "cu_mi_name"
 note        = "machine 50 short name: MIDI"
 
 # ---- 0032-sidecar ----
-# The companion (mods/0032-sidecar/design.md): the host link's SysEx router, 0022's until the companion phase
+# The companion (sidecar-core companion/design.md): the host link's SysEx router, 0022's until the companion phase
 # (2026-11-03). Code in elekloader's area only.
 
-[[patch]]
-owner       = "0032-sidecar"
-addr        = 0x40083dd8
-size        = 2
-expect_len  = 2
-expect_sha256 = "5e5be2db18c49bd9863ac94af1ee2a6b6fbe6df2a2033e188c545979a0148880"
-replace     = "4ef9"
-note        = "the SysEx router's entry (lea %sp@(-16),%sp): jmp.l sc_router (address below)"
+# The router entry, `lea %sp@(-16),%sp; moveml %d2-%d3/%a2-%a3,%sp@` (8 B, nothing pc-relative): a jmp to sc_router
+# (sidecar-core companion/sidecar.c), which takes F0 7D 52 54 (the table sc_cmds), else redoes both instructions and
+# rejoins 0x40083de0. Written by elekloader from the companion's elemod (sidecar-core companion/mod.src.json); until
+# 2026-11-05 two patches here (jmp opcode + its address).
+[[detour]]
+owner     = "0032-sidecar"
+addr      = 0x40083dd8
+size      = 6
+expect_len = 8
+expect_sha256 = "9b78b6778f56449ca9429e734d2140df96316ae0e9eea0b9d6eea089f82ddbd0"
+entry     = "sc_router"
+rejoin    = 0x40083de0
+elek_size = 8
 
-[[patch]]
-owner       = "0032-sidecar"
-addr        = 0x40083dda
-size        = 4
-expect_len  = 4
-expect_sha256 = "fff6f049fe88a259746dd396a65f00be240348cbad38803f7d811db0c06dcdd7"
-from_symbol = "sc_router"
-note        = "sc_router: takes F0 7D 52 54 (the companion's table sc_cmds), else redoes lea/moveml and goes on at 0x40083de0"
-
-# The step clock (mods/0032-sidecar/clock.c, the Storage phase, 2026-11-04), gated on the companion's `clock`: the two
-# sites 0026's seq link 1032 uses (gate "!screen"), so a build with both refuses itself (layout: both claim the host);
-# the release builds 0026 with screen=1. trig_fire's entry, `lea %sp@(-88),%sp; movel %sp@(96),%d0` (8 B, nothing
+# The step clock (sidecar-core companion/clock.c, the Storage phase, 2026-11-04), always in the companion since it
+# moved to sidecar-core (2026-11-05; once the param `clock`): the two sites 0026's seq link 1032 uses (gate "!screen"),
+# so a build with both refuses itself (layout: both claim the host); build 0026 with screen=1. trig_fire's entry, `lea %sp@(-88),%sp; movel %sp@(96),%d0` (8 B, nothing
 # pc-relative): called once per track per step, trig or not, for all 13 tracks, by the sequencer clock 0x4009b0b4
 # [measured, rytm-emu rui1031]. sc_fire_det queues the step that starts now (track, step, length, speed, trig flags),
 # re-emits the two instructions and rejoins 0x4009aa30.
 [[detour]]
 owner     = "0032-sidecar"
-gate      = "clock"
 addr      = 0x4009aa28
 size      = 6
 expect_len = 8
@@ -7503,7 +7498,6 @@ elek_size = 8
 # ticks and the 2D (0021's interrupt rules), re-emits the two instructions and rejoins the rte.
 [[detour]]
 owner     = "0032-sidecar"
-gate      = "clock"
 addr      = 0x4009c00a
 size      = 6
 expect_len = 8

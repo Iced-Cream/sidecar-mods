@@ -98,7 +98,7 @@ and read back across kits, p-locks (a P2 and a send lock on the Pi, TYPE/ROUTE a
 record written, another pattern's own locks, back again, a clear, a new session sending them again), and a new
 session. [test] PASS 2026-11-05.
 
-Build: `ELEK_CORE_WORKTREE=1 tools/build.py --tag sfx2 --mods 0032-sidecar 0025-sendfx --param 0032-sidecar:clock=1`
+Build: `ELEK_CORE_WORKTREE=1 tools/build.py --tag sfx2 --mods 0032-sidecar 0025-sendfx` (the companion from vendor/sidecar-core; once with `--param 0032-sidecar:clock=1`, now always in)
 links core 0.10 (the working tree's), the companion and this mod (61628 bytes of the DDR area spare) and
 tools/verify.py passes [code, 2026-11-05]. ELEK_CORE_WORKTREE is for test builds only.
 

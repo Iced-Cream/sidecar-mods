@@ -33,7 +33,7 @@
 
 #include "analog-rytm-mk2/pages.h"
 
-/* the companion's (mods/0032-sidecar/design.md) */
+/* the companion's (sidecar-core companion/design.md) */
 extern int32_t sc_link_send(const uint8_t *body, int32_t n);
 extern int32_t sc_route_result(uint32_t owner, uint32_t seq);
 extern int32_t sc_dsp_result(uint32_t owner, uint32_t seq);

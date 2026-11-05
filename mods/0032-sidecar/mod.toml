@@ -1,68 +1,49 @@
 [mod]
 id      = "0032-sidecar"
-title   = "Sidecar companion: the host link's SysEx router; mods register their commands in its table sc_cmds"
+title   = "Sidecar companion (built from its own repository, sidecar-core): the host link's SysEx router and services"
 
 enabled = false
 
-# code in elekloader's DDR area; its own elemod, `sidecar`, in release builds. The companion also carries the
-# elekloader build itself (once mod 0027, folded in 2026-11-04): its [elek] core below, core-ar2's eight sites in the
-# registry (foreign patches), elekloader.md.
-area    = "elek"
+# The companion's source moved to its own repository on 2026-11-05: https://github.com/Iced-Cream/sidecar-core,
+# pinned in the Makefile (SC_REV) and cloned to vendor/sidecar-core by `make setup`. It is an ordinary elekloader mod
+# there (id `sidecar`, companion/mod.src.json); tools/build.py builds it with sidecar-core's tools/build.py and links
+# its elemod beside core-ar2 and this tree's mods. This entry stays so the rest of the tree can name it: the
+# registry's claims (core-ar2's eight sites, the router entry and the step clock's two sites, all written by
+# elekloader), [[sidecar.cmds]] for the overlap check, and `requires` from the client mods.
+area     = "elek"
+external = "sidecar-core"
+
+# The companion also carries the elekloader build itself (once mod 0027, folded in 2026-11-04): core-ar2's eight
+# sites in the registry (foreign patches) are its claims. sidecar-core's companion/elekloader.md.
 
 # core-ar2 hooks the UI loop's key dispatch call (0x400a47cc) for ev_key; 0022's keys=1 patches the same call's operand
-# (looper_key). Use ev_key instead (elekloader.md).
-excludes_params = ["0022-looper:keys"]
+# (looper_key). Use ev_key instead. The step clock takes the two sites 0026 uses with screen=0 (its seq link): build 0026
+# with screen=1.
+excludes_params = ["0022-looper:keys", "0026-remote-ui:!screen"]
 
 # re-only | built | hardware-verified | retracted
 status  = "built"
 
 summary = """
-The companion every Sidecar client mod goes through. It takes each host SysEx message
-F0 7D 52 54 <cmd> ... F7 at the router's entry, before stock routes it, and calls the mod that
-registered <cmd> in the table sc_cmds (mod.toml [[sidecar.cmds]], built by the linker); the
-mailbox form keeps 0022's rule that a mod hears its commands only once its mailbox holds its
-magic. Replaces 0022's router (companion phase, 2026-11-03); host traffic is unchanged. design.md.
-
-Its own services: the store link (store.c, the Storage phase, 2026-11-04): the Pi's record store and
-parameter locks (host-link 51) for any mod, with the project's ID and a handle per pattern in core-ar2
-fields, and the project's name; and with `clock` the step clock (clock.c: 2C step ticks of all 13 tracks with a trig flag, 2D
-transport and pattern switches) while the store link is up. design.md.
-
-The FX return (26 / 27, once 0030) and the mix report (50) left on 2026-11-04 (decided: a generic
-audio route later); git history has them (fxin.c, fx-return.md).
+The companion every Sidecar client mod goes through, built from sidecar-core. It takes each host SysEx
+message F0 7D 52 54 <cmd> ... F7 at the router's entry and calls the mod that registered <cmd> in its
+table sc_cmds (a client's mod.toml [[sidecar.cmds]], built by the linker). Its own services: the store
+link (51: the Pi's records and parameter locks, the project's ID, name and a handle per pattern, the
+kit's record) and the step clock (2C / 2D). sidecar-core's companion/design.md.
 """
-
-[sources]
-stub = "stub.s"      # generated from sidecar.c by build.sh
-
-[params]
-# clock: 1 the step clock (clock.c: trig_fire's entry and the sequencer clock's exit, the sites 0026's seq link 1032
-# uses, so not with 0026 screen=0); the release (decided 2026-11-04) sets it. 0 (default): no sites.
-clock = 0
 
 [elek]
 # the elekloader core every build links against (vendor/elekloader/mods/<core>; build.py ELEK_CORE_*)
 core = "core-ar2"
-collections = { sc_cmds = 12 }
-subscribe = [
-  { event = "ev_tick", fn = "sc_store_tick", order = 76 },
-  { event = "ev_project", fn = "sc_project_ev", order = 50 },
-]
-# core-ar2 fields (approved 2026-11-04): the project's ID (its folder of records on the Pi) and a record handle per
-# pattern (store.c); (approved 2026-11-05) a record handle per kit (rec.c)
-storage = [
-  { sym = "sc_proj", scope = "project", bits = 32 },
-  { sym = "sc_phand", scope = "pattern", bits = 16 },
-  { sym = "sc_khand", scope = "kit", bits = 16 },   # approved 2026-11-05: the kit's record, shared by every mod (rec.c)
-]
 
 [requires]
 shared = false
 symbols = []
 mods = []
 
-# The store link's answers (51 STORE, store.c): the Pi's HELLO, DATA, WRITTEN, STATUS.
+# The companion's own command (sidecar-core companion/mod.src.json contributes it): listed here for the overlap
+# check only, never contributed again (external).
 [[sidecar.cmds]]
 first   = 0x51
 last    = 0x51
-handler = "sc_store_host"   # called for every 51 (SC_DIRECT)
+handler = "sc_store_host"

@@ -68,7 +68,7 @@ registry are the project.
 | `requirements.txt` | Python packages for the mod 0006 calibration and telemetry tools and mod 0013's timing tool |
 | `registry/` | `allocations.toml` - every claim on cave space and detour sites |
 | `tools/` | build, layout validation, verification, symbol generation, cave scan |
-| `vendor/` | third-party code that is **executed** (elektron-firmware-tool, MIT; elekloader for every build with the companion and the release, GPL-2.0-or-later), fetched by `make setup`; see `NOTICE` |
+| `vendor/` | code that is **executed**, fetched by `make setup` (see `NOTICE`): elektron-firmware-tool (MIT); elekloader for every build with the companion and the release (GPL-2.0-or-later); the companion itself, sidecar-core (GPL-2.0-or-later, its own repository since 2026-11-05) |
 | `docs/` | user manual, flashing, hazards |
 | `build/` | artifacts, gitignored |
 
@@ -175,7 +175,7 @@ In the 0.3.1 module and the Sidecar build `rui1027d` (0028 in `rui1027d` only); 
 | 0027 | (folded into 0032 on 2026-11-04: the elekloader build, its core-ar2 and code area) |
 | 0028 | elekloader smoke test (a counter in elekloader's area) |
 | 0029 | the AMPLITUDE 2 and SEND FX 1/2 pages |
-| 0032 | the Sidecar companion, the release set: the host link's SysEx router over a table mods register in, the store link (51), the step clock (2C / 2D), and the elekloader build (once 0027) |
+| 0032 | the Sidecar companion, the release set, built from its own repository sidecar-core since 2026-11-05 (vendor/sidecar-core, pinned in the Makefile; mods/0032-sidecar/mod.toml is its entry here): the host link's SysEx router over a table mods register in, the store link (51), the step clock (2C / 2D), and the elekloader build (once 0027) |
 
 0031-remote-keys (REMOTE KEYS, a development and test feature) is not in the release and not published here; its
 entries in `registry/allocations.toml` and `re/symbols.toml` are kept as a record, and `tools/layout.py` checks only
