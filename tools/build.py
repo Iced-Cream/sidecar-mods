@@ -491,8 +491,10 @@ def companion_build(out, env):
     if rev != SC_REV and os.environ.get("SC_WORKTREE") != "1":
         raise SystemExit(f"vendor/sidecar-core is at {rev}, build.py is pinned to {SC_REV} "
                          "(SC_WORKTREE=1 for a test build with another checkout)")
+    # the companion's C, compiled by elekloader's SDK, with the toolchain the core's C gets (Ubuntu's GCC 13: the one its
+    # old stub.s came from, so the same bytes), not ELEK_CROSS's: a tree build otherwise needs only m68k-elf-as
     run([sys.executable, SC_DIR / "tools" / "build.py", "--stock", STOCK_SYX, "--out", out / "out"],
-        env=dict(env, ELEK_DIR=str(ELEK_DIR)))
+        env=dict(env, ELEK_DIR=str(ELEK_DIR), ELEKLOADER_CROSS=ELEK_CORE_CROSS))
     return next((out / "out").glob("*.elemod"))
 
 
