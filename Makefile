@@ -2,7 +2,7 @@
 PY := .venv/bin/python
 
 .PHONY: all setup symbols layout build verify cavescan ghidra disasm clean \
-	comp-selftest comp-cal-gen comp-cal-check comp-cal-build cave-selftest release release-check
+	cave-selftest release release-check
 
 all: verify
 
@@ -46,12 +46,12 @@ REL_TAG := rel$(subst .,-,$(VERSION))
 # (mod 0027 folded in) and its services: the router, the store link, the clock. The remote screen 0026 is out of the
 # release (it comes back later as a companion service); the rest is out until the Storage phase: 0014, 0021, 0023,
 # 0025, 0029 (core storage, machine slots, lock codes, pages); 0022 dropped (its host half would be a Pi counterpart).
-# 0031-remote-keys stays out of production builds (a dev / test feature: RUI_DEV=1 tools/build_rui.sh).
+# The tree keeps only the mods planned as sidecar-core clients (2026-11-07): 0014, 0021, 0022, 0023, 0025 and the
+# companion's entry; the rest are in git history.
 RELEASE_MODS := 0032-sidecar
 RELEASE_ARGS :=
 
 release: symbols layout
-	$(PY) tools/comp/calib_tables.py --check
 	$(PY) tools/build.py --tag $(REL_TAG) --elek-bundle --mods $(RELEASE_MODS) $(RELEASE_ARGS)
 	$(PY) tools/verify.py --tag $(REL_TAG)
 	rm -rf $(REL) && mkdir -p $(REL)
@@ -76,10 +76,7 @@ release-check:
 layout:
 	$(PY) tools/layout.py
 
-# Mod 0006's calib.inc must be what its calibration.toml gives before anything
-# is assembled from it.
 build: symbols layout
-	$(PY) tools/comp/calib_tables.py --check
 	$(PY) tools/build.py
 
 verify: build
@@ -111,33 +108,6 @@ disasm: build
 cave-selftest:
 	$(PY) tools/test_cavescan.py
 
-# Mod 0006's calibration (re/subsystems/compressor-calibration.md). Every
-# calibrated value lives in mods/0006-comp-preview/calibration.toml; the fits
-# run from tools/comp/calibrate.py on a calibration's recordings.
-# comp-selftest: host checks of the calibration frames' decoding, and of a
-# run's preflight, verification and report on synthetic captures.
-# comp-cal-gen: write calib.inc from calibration.toml.
-# comp-cal-check: calib.inc is current.
-comp-selftest:
-	$(PY) tools/comp/calframes_selftest.py
-	$(PY) tools/comp/verify_selftest.py > /dev/null && echo "verify: PASS"
-	$(PY) tools/comp/preflight_selftest.py
-
-comp-cal-gen:
-	$(PY) tools/comp/calib_tables.py
-
-comp-cal-check:
-	$(PY) tools/comp/calib_tables.py --check
-
-# The calibration image: 0006 alone, cal = 1. Flash
-# build/Analog-Rytm_MKII_OS1.74_cal.syx, then calibrate.py.
-comp-cal-build: symbols layout
-	$(PY) tools/comp/calib_tables.py --check
-	$(PY) tools/build.py --tag cal --mods 0006-comp-preview --param 0006-comp-preview:cal=1
-	$(PY) tools/verify.py --tag cal
-
-# Everything under build/ is regenerated from the image except build/comp, a
-# calibration's recordings off the hardware, and build/comp_rig.json, the rig's
-# ports and the calibration project's roles.
+# Everything under build/ is regenerated from the image.
 clean:
-	find build -mindepth 1 -maxdepth 1 ! -name comp ! -name comp_rig.json -exec rm -rf {} +
+	find build -mindepth 1 -maxdepth 1 -exec rm -rf {} +

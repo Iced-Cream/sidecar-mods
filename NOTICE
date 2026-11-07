@@ -60,7 +60,8 @@ Facts, not code
 ---------------
   - mods/0020-dmach's phase-modulation and interpolated-sine cores follow
     Mutable Instruments Braids (MIT, (c) 2012 Emilie Gillet), as dmach.c says.
-    0020 is not in any release bundle. To the extent its code is adapted from
+    0020 is not in any release bundle, and left the tree on 2026-11-07 (it
+    stays in git history, so this notice stays too). To the extent its code is adapted from
     Braids, that part is under Braids' licence:
 
       Copyright 2012 Emilie Gillet.

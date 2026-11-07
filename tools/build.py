@@ -299,8 +299,7 @@ CORE_STORE_GUARD = {
     "sound": [(0x4000843a, "st_sound_save"), (0x400081f6, "st_sound_load")],
     "kit": [(0x400088d6, "st_kit_save"), (0x4000863e, "st_kit_load")],
 }
-CORE_STORE_SCOPES = {"0013-voice-dac": ["sound"], "0021-ext": ["sound"],
-                     "0025-sendfx-report": ["kit"]}
+CORE_STORE_SCOPES = {"0021-ext": ["sound"]}
 
 
 def elek_pinning(meta):
@@ -905,10 +904,6 @@ def main():
     # own (registry patches) and is only linked in the area (mods/0021-ext/design.md, "0021 in the area")
     if "0021-ext" in enabled and mods["0021-ext"]["_params"].get("slots") and mods["0021-ext"].get("area") != "elek":
         raise SystemExit("0021-ext with slots=1 lives in elekloader's area: add --area-elek 0021-ext (and 0032-sidecar)")
-    # 0025's cave was the head of 1.73's end cave, 864 B shorter on 1.74 (tools/port_os.py): it only links in the area
-    if "0025-sendfx-report" in enabled and mods["0025-sendfx-report"].get("area") != "elek":
-        raise SystemExit("0025-sendfx-report on OS 1.74 lives in elekloader's area: add --area-elek 0025-sendfx-report "
-                         "(and 0032-sidecar)")
     # 0021's us_live runs from 0029's ev_tick: without it no MD set-up and no MD page
     if "0021-ext" in enabled and mods["0021-ext"]["_params"].get("slots") and "0029-sendfx-ui" not in enabled:
         raise SystemExit("0021-ext with slots=1 needs 0029-sendfx-ui: its ev_tick runs us_live (machine 42's set-ups and page)")
