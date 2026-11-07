@@ -8,7 +8,7 @@
 
 Rytm side only (0.3.2 had no Rytm change, so this is since the Rytm firmware 0.3.1). Pair it with the `dev` branch of
 [sidecar-firmware](https://github.com/trigcondition/sidecar-firmware), which lists the Pi side. "Hardware" means run on a
-real Rytm, on a test build from this source (`tools/build_rui.sh`; `make release` packs the same source as one module,
+real Rytm, on a test build from this source (`tools/build_rui.sh`, removed 2026-11-07 with the mods it built; `make release` packs the same source as one module,
 so its bytes differ); "emulator" means the emulator suites and the flash rehearsal, on that test build. The `make release`
 image has had neither.
 
@@ -65,7 +65,7 @@ registry are the project.
 | `stock/` | checksum of the pinned stock firmware, which you supply. Never written to. |
 | `re/` | cumulative reverse-engineering knowledge: `symbols.toml`, subsystem notes, Ghidra bootstrap |
 | `mods/NNNN-slug/` | one modification: manifest, stub source, design rationale |
-| `requirements.txt` | Python packages for the mod 0006 calibration and telemetry tools and mod 0013's timing tool |
+| `requirements.txt` | empty since 2026-11-07 (its packages were for tools that left with their mods) |
 | `registry/` | `allocations.toml` - every claim on cave space and detour sites |
 | `tools/` | build, layout validation, verification, symbol generation, cave scan |
 | `vendor/` | code that is **executed**, fetched by `make setup` (see `NOTICE`): elektron-firmware-tool (MIT); elekloader for every build with the companion and the release (GPL-2.0-or-later); the companion itself, sidecar-core (GPL-2.0-or-later, its own repository since 2026-11-05) |
@@ -94,7 +94,7 @@ device has - there is no CF-card `.bin` equivalent. See `docs/FLASHING.md` to in
 
 Build a subset for hardware bisection:
 
-    .venv/bin/python tools/build.py --mods 0000-shared 0004-lfo-rnd
+    .venv/bin/python tools/build.py --mods 0032-sidecar 0025-sendfx
 
 ## The release (0.3.1)
 
@@ -161,43 +161,25 @@ byte-identical to stock, so a mistake can only ever reach MAIN OS.
 
 ## Mods
 
-In the 0.3.1 module and the Sidecar build `rui1027d` (0028 in `rui1027d` only); each folder's `mod.toml` and
-`design.md` say more:
+Since 2026-11-07 the tree keeps only the mods planned as sidecar-core clients, plus hidden-machines (kept as it was).
+Each folder's `mod.toml` and `design.md` say more:
 
-| id | what |
-|---|---|
-| 0014 | the hidden machines the firmware carries but never lists |
-| 0021 | external voice machines on every track, for the USB host (the Sidecar), and the user slots |
-| 0022 | looper mode (dropped from the core 0.9 build, 2026-11-03: its host half would be a Pi counterpart) |
-| 0023 | the Sidecar's SD card as the SIDECAR folder in the Rytm's sample browser (the mod's name `teensy-drive` dates from Sidecar Mini) |
-| 0025 | the send FX reporter and its storage |
-| 0026 | the remote pages: the Rytm as a terminal for pages the Sidecar draws, and the SRC view (`screen=1`: the screen only, 30..3F; out of the release since 2026-11-04, back later as a companion service) |
-| 0027 | (folded into 0032 on 2026-11-04: the elekloader build, its core-ar2 and code area) |
-| 0028 | elekloader smoke test (a counter in elekloader's area) |
-| 0029 | the AMPLITUDE 2 and SEND FX 1/2 pages |
-| 0032 | the Sidecar companion, the release set, built from its own repository sidecar-core since 2026-11-05 (vendor/sidecar-core, pinned in the Makefile; mods/0032-sidecar/mod.toml is its entry here): the host link's SysEx router over a table mods register in, the store link (51), the step clock (2C / 2D), and the elekloader build (once 0027) |
-
-0031-remote-keys (REMOTE KEYS, a development and test feature) is not in the release and not published here; its
-entries in `registry/allocations.toml` and `re/symbols.toml` are kept as a record, and `tools/layout.py` checks only
-the claims of mods in this tree.
-
-The older stand-alone mods (not part of the Sidecar build, and mutually exclusive
-with 0021). 0002-euclid-accents and 0003-velocity-humanise (older experiments, not in
-any Sidecar release) are not published here: 0002's accent icons were made from the
-stock glyph bitmaps. Retracted mods and one-off hardware probes are not part of this
-package; the pool notes in `registry/allocations.toml`
-still record what those probes established.
-
-| id | title | status |
+| id | name | what |
 |---|---|---|
-| 0000 | The shared runtime other mods call into | built |
-| 0004 | Two per-sound random modifiers on a second LFO page | built |
-| 0006 | Scrolling compressor gain-reduction estimate | hardware-verified |
-| 0008 | Filter frequency shown in Hz | hardware-verified |
-| 0009 | Main output RMS indicator on the compressor VOL label | built |
-| 0010 | NO + PLAY toggles between the edited kit and the saved one | hardware-verified |
-| 0012 | SLICE LOOP in the track menu: sixteen trigs slicing a one-bar loop | hardware-verified |
-| 0013 | Voices to MAIN through the DAC, with a per-sound high-pass | hardware-verified |
+| 0014 | hidden-machines | the hidden machines the firmware carries but never lists (kept as it was; not a client) |
+| 0021 | ext | external voice machines on every track, for the USB host (the Sidecar); to become a client on the DSP library |
+| 0022 | looper | looper mode; to become a client on a generic loop block |
+| 0023 | teensy-drive | the Sidecar's SD card as the SIDECAR folder in the Rytm's sample browser (the name dates from Sidecar Mini); to become a client of the engine's browse service |
+| 0025 | sendfx | SEND FX 1 and 2 as graphs of the Pi's DSP library: a sidecar-core client |
+| 0032 | sidecar | the companion, built from its own repository sidecar-core (vendor/sidecar-core, pinned in the Makefile; mods/0032-sidecar/mod.toml is its entry here) |
+
+Left the tree on 2026-11-07 (in git history): shared (0000), lfo-rnd (0004), comp-preview (0006), filter-hz (0008),
+main-rms (0009), kit-ab (0010), slice-loop (0012), voice-dac (0013), dmach (0020), the older stand-alone mods;
+sendfx-report (the older 0025) and sendfx-ui (0029), replaced by sendfx; remote-ui (0026), whose screen and step
+clock are companion services now; elek-hello (0028), a test mod. ext still names sendfx-ui and remote-ui in its 1.73-era
+build until it is rebuilt as a client. elekloader (0027) was folded into the companion on 2026-11-04 and fx-in (0030)
+removed the same day. 0031-remote-keys was never published here. Their entries in `registry/allocations.toml` and
+`re/symbols.toml` are kept as a record; `tools/layout.py` checks only the claims of mods in this tree.
 
 Status ladder: `re-only` -> `built` -> `hardware-verified`, plus `retracted`.
 Only `hardware-verified` counts.

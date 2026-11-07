@@ -8,7 +8,7 @@
     ... --plan                                  print the jobs (why each, its command, its estimate) and run nothing
 
     -j N            jobs at once (default 6; the machine has 10 cores and sq / rui run threads of their own)
-    --retry-alone S suites rerun once alone when they fail in the parallel phase (default "rui": real-time host
+    --retry-alone S suites rerun once alone when they fail in the parallel phase (default "none"; was "rui", whose real-time host
                     threads, flaky under load); "none" turns it off. The alone result is the verdict.
     --no-shard      run every suite as one process (as build/suites/run.sh does)
     --fails N       FAIL lines printed a failing suite (default 8; the full log has them all)
@@ -50,56 +50,31 @@ ENV_DEFAULTS = {   # as build/suites/run.sh
 # one reruns this one too); est: wall seconds measured 2026-10-29 (rel0-3-0, run.sh -j 5, build/emu_jobs birth
 # times to build/suites/*.log mtimes), for the longest-first order and the plan's estimate.
 SUITES = {
-    "rled": dict(mods={"0026"}, est=6099),
-    "us":   dict(mods={"0021", "0029", "0023", "0014", "0004"}, est=1649),
-    "sfu":  dict(mods={"0029", "0021", "0025"}, imports={"us", "sfx"}, est=1193),
-    "pj":   dict(mods={"0026"}, est=904),
-    "sfx":  dict(mods={"0025"}, imports={"us"}, est=709),
-    "bk":   dict(mods={"0029", "0026"}, imports={"sv", "rui"}, est=665),
-    "sq":   dict(mods={"0026", "0021"}, est=597),
-    "cu":   dict(mods={"0021", "0029", "0026"}, imports={"pc"}, est=245),
-    "sp":   dict(mods={"0021", "0029"}, imports={"us", "sfx"}, est=215),
-    "rui":  dict(mods={"0026"}, est=187),
-    "sv":   dict(mods={"0026", "0029", "0021"}, imports={"rui"}, est=173),
-    "pc":   dict(mods={"0026", "0021", "0022"}, est=102),
-    "mrep": dict(mods={"0026", "0021"}, est=91),
-    "md":   dict(mods={"0021", "0029"}, imports={"us", "sfx"}, est=300),
-    "mi":   dict(mods={"0021", "0026", "0022"}, imports={"pc", "cu"}, est=90),
-    "ar":   dict(mods={"0021", "0026", "0022"}, imports={"us"}, est=120),
+    "us":   dict(mods={"0021", "0023", "0014"}, est=1649),
+    "sp":   dict(mods={"0021"}, imports={"us", "sfx"}, est=215),
+    "md":   dict(mods={"0021"}, imports={"us", "sfx"}, est=300),
+    "mi":   dict(mods={"0021", "0022"}, imports={"pc", "cu"}, est=90),
+    "ar":   dict(mods={"0021", "0022"}, imports={"us"}, est=120),
     "td":   dict(mods={"0023"}, imports={"us"}, est=37),
-    "frz":  dict(mods={"0029"}, est=22),
 }
-# rled's 24 tests by their dtboot runs (rel0-3-0's job dir): stockupkeys 254, stockup 116, stocktrigup 44, upstock 38,
-# menustock 23 (long runs), upamp 20, the rest 6..18 each. Every rled test is independent (Emu keeps no run state;
-# stock_kw makes sections/rled_stock.snap only when it is missing: then rled is not sharded, see shards()).
-RLED_UPKEYS = ["TRIG", "SRC", "SMPL", "FLTR", "AMP", "LFO", "FX", "YES", "NO", "RECORD", "PLAY", "STOP", "PAGE",
-               "BD", "SD", "RS", "CP", "BT", "LT", "MT", "HT", "CH", "OH", "CY", "CB", "T14", "T15", "T16"]
-RLED_REST = ["levelhdr", "stocktrktrig", "stocktrkfx", "stockyes", "kit", "hostclose", "stockcombo", "combo", "leds",
-             "ledexit", "bad", "trigs", "trkled", "upmap", "menustock", "upmappage", "stocklockpush", "upmaplist",
-             "upmapmenu"]
-RLED_SHARDS = [   # (tests, env, est s after the stock_state peek change)
-    (["stockupkeys"], {"UPKEYS": ",".join(RLED_UPKEYS[0:10])}, 260),
-    (["stockupkeys"], {"UPKEYS": ",".join(RLED_UPKEYS[10:19])}, 240),
-    (["stockupkeys"], {"UPKEYS": ",".join(RLED_UPKEYS[19:28])}, 240),
-    (["stockup"], {"STOCKUP_KEYS": "6-9"}, 170),
-    (["stockup", "stocktrigup"], {"STOCKUP_KEYS": "10-13"}, 290),
-    (["upstock", "upamp"] + RLED_REST[:7], {}, 330),
-    (RLED_REST[7:], {}, 260),
-]
+# Pruned 2026-11-07 (only the mods planned as sidecar-core clients stay): the suites of remote-ui, sendfx-ui and
+# sendfx-report (rled, pj, bk, sq, rui, sv, mrep, sfu, frz) went with their mods; sfx_emu.py, pc_emu.py and cu_emu.py
+# stay only as helpers the suites above import. Every suite here still needs its 1.73-era mods (sendfx-ui, remote-ui)
+# until ext is rebuilt as a client.
 
 # files -> suites. ALL: everything in the image or every harness reads it. NONE: nothing a suite runs.
-ALL_PATHS = ("mods/0000-shared/", "mods/0032-sidecar/", "mods/0028-elek-hello/", "registry/", "re/symbols.toml",
+ALL_PATHS = ("mods/0032-sidecar/", "registry/", "re/symbols.toml",
              "stock/", "tools/build.py", "tools/layout.py", "tools/symbols.py", "Makefile", "tools/emu/us_base.sh",
              "tools/emu/us_ui.json", "tools/emu/us_window.py", "build/suites/run.sh", "VERSION")
 NONE_PATHS = ("docs/", "re/subsystems/", "re/ghidra/", "tools/comp/", "tools/test_", "tools/cavescan.py",
               "tools/verify.py", "tools/release_check.py", "tools/voice_dac_timing.py", "tools/us_records.py",
               "tools/emu/suites.py", "tools/emu/README.md", "tools/emu/el_area.py", "LICENSE", "NOTICE", ".gitignore",
               "requirements.txt", "README.md", "CLAUDE.md")
-PATH_SUITES = {"tools/build_rui.sh": set(SUITES), "tools/looper_base.sh": set(SUITES)}
+PATH_SUITES = {"tools/looper_base.sh": set(SUITES)}   # (tools/build_rui.sh, the 1.73-era rui build set, left 2026-11-07)
 # the mods every image carries (enabled by default, stock sites) that no suite is about: the quick suites that boot
 # the image and drive its UI, as a smoke test (the full set runs before a flash)
-SMOKE = ["frz", "td", "rui", "sv"]   # (fxin left with the FX return, 2026-11-04)
-STOCK_SITE_MODS = {"0002", "0003", "0004", "0006", "0008", "0009", "0010", "0012", "0013", "0020"}
+SMOKE = ["td"]
+STOCK_SITE_MODS = set()   # the stand-alone mods with stock sites left the tree on 2026-11-07
 
 
 def importers(name):
@@ -176,22 +151,9 @@ def script_names(suite, var):
     return None
 
 
-def rled_shards_ok():
-    """The shards cover exactly rled_emu.py's TESTS and UPKEYS (a test or key added there and not here: no shards)."""
-    tests = {t for ts, _, _ in RLED_SHARDS for t in ts}
-    return tests == set(script_names("rled", "TESTS") or ()) and script_names("rled", "UPKEYS") == RLED_UPKEYS
-
-
 def shards(suite, emu, shard, notes):
     """[(job name, tests or None for all, extra env, est s)]"""
-    if suite == "rled" and shard:
-        if not os.path.exists(os.path.join(emu, "sections", "rled_stock.snap")):
-            notes.append("rled not sharded: sections/rled_stock.snap is missing (its first run makes it)")
-        elif not rled_shards_ok():
-            notes.append("rled not sharded: RLED_SHARDS / RLED_UPKEYS in suites.py miss rled_emu.py's TESTS / UPKEYS")
-        else:
-            return [(f"rled.{i + 1}", t, e, est) for i, (t, e, est) in enumerate(RLED_SHARDS)]
-    est = SUITES[suite]["est"] if suite != "rled" else 1700   # rled unsharded after the peek change (estimate)
+    est = SUITES[suite]["est"]
     return [(suite, None, {}, est)]
 
 
@@ -273,7 +235,7 @@ def main():
     ap.add_argument("--full", action="store_true")
     ap.add_argument("--plan", action="store_true")
     ap.add_argument("-j", type=int, default=6)
-    ap.add_argument("--retry-alone", default="rui")
+    ap.add_argument("--retry-alone", default="none")
     ap.add_argument("--no-shard", action="store_true")
     ap.add_argument("--fails", type=int, default=8)
     ap.add_argument("--keep-snaps", action="store_true")
