@@ -15,8 +15,8 @@ SEND FX 1 and 2 on the Sidecar (the send FX phase, 2026-11-05). Each TYPE (OFF, 
 RINGMOD, ECHO) is a graph of blocks from the Pi's DSP library: the mod places them in the Pi's processor
 slots, joins them with route points, sends each voice stem into the first block and returns the last
 onto MAIN FX (PRE) or MAIN (POST, P1). Sends per track are route gains, P2..P5 block params, both
-through the Pi's lock service. The values live in the kit's record on the Pi (the companion's kit
-section 25); p-locks (a trig held, core-ar2 0.11's lock calls) in the playing pattern's record there
+through the Pi's lock service. The sends live in each sound's record on the Pi (the companion's sound
+section 25, so they travel with the sound like stock's), TYPE and P1..P5 in the kit's record (kit section 25); p-locks (a trig held, core-ar2 0.11's lock calls) in the playing pattern's record there
 (section 25), played by the Pi's lock service on the Rytm's step clock. Pages: AMPLITUDE 2 (SFX1, SFX2) behind AMP, SEND FX 1 and 2 behind DELAY and REVERB on
 the FX track. Replaces 0025-sendfx-report and 0029-sendfx-ui (1.73). design.md.
 """

@@ -20,7 +20,7 @@ CORE_VER := 0.13
 # its own tools/build.py; tools/build.py checks this same commit (SC_REV) and links its elemod into every build with
 # 0032-sidecar. mods/0032-sidecar/mod.toml.
 SC_URL := https://github.com/Iced-Cream/sidecar-core
-SC_REV := 264d3c4a518a63c83a4af0327512e042a287a0c2
+SC_REV := 1b7244978f0f972f1f85ccd8c0a3a11aa4c89f57
 
 setup:
 	python3 -m venv .venv

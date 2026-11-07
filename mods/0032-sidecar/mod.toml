@@ -29,7 +29,7 @@ The companion every Sidecar client mod goes through, built from sidecar-core. It
 message F0 7D 52 54 <cmd> ... F7 through core-ar2 0.11's ev_sysex_in and calls the mod that registered <cmd> in its
 table sc_cmds (a client's mod.toml [[sidecar.cmds]], built by the linker). Its own services: the store
 link (51: the Pi's records and parameter locks, the project's ID, name and a handle per pattern, the
-kit's record) and the step clock (2C / 2D). sidecar-core's companion/design.md.
+kit's record, each sound's record) and the step clock (2C / 2D). sidecar-core's companion/design.md.
 """
 
 [elek]

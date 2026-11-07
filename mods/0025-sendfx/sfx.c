@@ -13,9 +13,14 @@
  * A TYPE change frees the FX's slots (the Pi fades their points out and closes them), drops its sets and builds the
  * new graph. A base change (a send, P2..P5) is one BASE op; P1 re-aims the return points (MOVE).
  *
- * The values (the kit's, one section of the companion's kit record, mod number 25, SFX_SEC bytes):
+ * The values (in RAM, sfx.v, SFX_SEC bytes):
  *   [2t + f]   track t's (0..11) send to FX f, 0..127      [24 + 6f + k]  FX f: TYPE, P1 (0 PRE, 1 POST), P2..P5 0..127
- * written back SFX_DEBOUNCE ticks after the last turn.
+ * The sends are the sound's, like stock's DELAY and REVERB sends (decided 2026-11-07): each track's two are its sound's
+ * section 25 in the companion's sound record (SFX_SSEC bytes, put at each turn; the companion writes it once the turns
+ * stop), so they go with the sound when it is copied, saved to the pool or loaded into another track or kit. The FX's
+ * TYPE, P1..P5 are the kit's: its section 25 in the kit record (SFX_KSEC bytes, [6f + k]), written back SFX_DEBOUNCE
+ * ticks after the last turn. A kit section of the old layout (36 bytes, before 2026-11-07: the sends first) gives its
+ * FX values; its sends are not read.
  *
  * P-locks (decided 2026-11-05: Pi locks with the mod's own entry): with a trig held, stock's lock calls for these knobs
  * come to sfx_locks (core-ar2 0.11 core_param_locks) with the track and the step. A lock is a LOCK op in the knob's
@@ -46,18 +51,24 @@ extern uint32_t sc_pat_gen(void);
 extern int32_t sc_pat_index(void);
 extern int32_t sc_pat_get(uint32_t mod, uint8_t *buf, uint32_t cap);
 extern int32_t sc_pat_put(uint32_t mod, const uint8_t *src, uint32_t n);
+extern uint32_t sc_snd_gen(int32_t t);
+extern int32_t sc_snd_get(int32_t t, uint32_t mod, uint8_t *buf, uint32_t cap);
+extern int32_t sc_snd_put(int32_t t, uint32_t mod, const uint8_t *src, uint32_t n);
 
 #ifndef SFX_TRACK                      /* the selected track, 0..12 (12 the FX track), -1 none: core-ar2 0.11 */
 #define SFX_TRACK() core_current_track()
 #endif
 
-#define SFX_MOD      25                /* the kit record's section */
+#define SFX_MOD      25                /* the kit's, the sounds' and the pattern's record section */
 #define SFX_OWNER    0x25              /* the route's and the DSP library's owner byte */
 #define SFX_NFX      2
 #define SFX_NTRACK   12
 #define SFX_NVOICE   8
 #define SFX_NB       2                 /* blocks in a graph, at most */
-#define SFX_SEC      36
+#define SFX_SEC      36                /* the values in RAM */
+#define SFX_KSEC     12                /* the kit's section: FX f's TYPE, P1..P5 at 6f */
+#define SFX_SSEC     2                 /* a sound's section: its sends to FX 1 and 2 */
+#define SFX_OLDKSEC  36                /* the kit's section before 2026-11-07 (the sends first) */
 #define SFX_INFLIGHT 12                /* route ops waiting for an answer, at most */
 #define SFX_TIMEOUT  90                /* ticks without an answer: the session is given up until the next */
 #define SFX_DEBOUNCE 12                /* ticks after the last turn before the kit's section is written */
@@ -121,7 +132,9 @@ struct sfx_fx {
 
 static struct {
   uint32_t epoch, kgen, ticks, seq, kit_t, kit_owed, loaded;
-  uint8_t v[SFX_SEC];                  /* the kit's values */
+  uint8_t v[SFX_SEC];                  /* the values: the sounds' sends, the kit's FX */
+  uint32_t sgen[SFX_NTRACK];           /* the sound records' loads the sends are from */
+  uint32_t snd_owed;                   /* bit t: track t's sends still to put (its record was not loaded) */
   struct sfx_fx fx[SFX_NFX];
   uint32_t send_dirty;                 /* bit 2t + f: track t's send to FX f wants a BASE */
   uint8_t p_dirty[SFX_NFX];            /* bit b: block b's bases */
@@ -138,9 +151,9 @@ static const struct sfx_graph *sfx_graph(int32_t f) {
   return &sfx_types[t < SFX_NTYPES ? t : 0];
 }
 
-static void sfx_defaults(void) {
+static void sfx_defaults(void) {      /* the kit's FX; the sends are the sounds' */
   int32_t i;
-  for (i = 0; i < SFX_SEC; ++i) sfx.v[i] = 0;
+  for (i = 24; i < SFX_SEC; ++i) sfx.v[i] = 0;
   for (i = 0; i < SFX_NFX; ++i) {
     uint8_t *x = sfx_fxv(i);
     x[0] = i ? 1 : 5;                  /* FX 1 ECHO, FX 2 CHORUS */
@@ -505,12 +518,14 @@ static void sfx_flush(void) {
 
 /* the kit's values in place (a load, or a reload of the record): a changed TYPE builds again, the rest is bases */
 static void sfx_kit_loaded(void) {
-  uint8_t old[SFX_SEC];
+  uint8_t old[SFX_SEC], b[SFX_OLDKSEC];
   int32_t i, f, n;
   for (i = 0; i < SFX_SEC; ++i) old[i] = sfx.v[i];
-  n = sc_kit_get(SFX_MOD, sfx.v, SFX_SEC);
-  if (n != SFX_SEC) sfx_defaults();     /* none yet (or another layout): the defaults, written at the first turn */
-  for (i = 0; i < SFX_SEC; ++i) if (sfx.v[i] > 127) sfx.v[i] = 127;
+  n = sc_kit_get(SFX_MOD, b, sizeof b);
+  if (n == SFX_KSEC) for (i = 0; i < SFX_KSEC; ++i) sfx.v[24 + i] = b[i];
+  else if (n == SFX_OLDKSEC) for (i = 0; i < SFX_KSEC; ++i) sfx.v[24 + i] = b[24 + i];
+  else sfx_defaults();                 /* none yet (or another layout): the defaults, written at the first turn */
+  for (i = 24; i < SFX_SEC; ++i) if (sfx.v[i] > 127) sfx.v[i] = 127;
   for (f = 0; f < SFX_NFX; ++f) if (sfx_fxv(f)[0] >= SFX_NTYPES) sfx_fxv(f)[0] = 0;
   sfx.kit_owed = 0;
   sfx.loaded = 1;
@@ -520,7 +535,19 @@ static void sfx_kit_loaded(void) {
     if (sfx_fxv(f)[1] != old[25 + 6 * f]) x->ret_dirty = 1;
     sfx.p_dirty[f] = 3;
   }
-  sfx.send_dirty = 0xffffffu;
+}
+
+/* track t's sound record (re)loaded (another kit, a sound loaded into the track, pasted): its sends, 0 with none */
+static void sfx_snd_loaded(int32_t t) {
+  uint8_t b[SFX_SSEC];
+  int32_t f, n = sc_snd_get(t, SFX_MOD, b, SFX_SSEC);
+  for (f = 0; f < SFX_NFX; ++f) sfx.v[2 * t + f] = n == SFX_SSEC ? (b[f] > 127 ? 127 : b[f]) : 0;
+  sfx.snd_owed &= ~(1u << t);          /* a turn the old record never took is the old sound's: dropped */
+  sfx.send_dirty |= 3u << (2 * t);
+}
+static void sfx_snd_put(int32_t t) {
+  if (sc_snd_put(t, SFX_MOD, &sfx.v[2 * t], SFX_SSEC)) sfx.snd_owed &= ~(1u << t);
+  else sfx.snd_owed |= 1u << t;
 }
 
 /* ev_tick (after the companion's, order 76) */
@@ -532,6 +559,11 @@ void sfx_tick(void *ctrl) {
   sfx.ticks++;
   if (g && g != sfx.kgen) { sfx.kgen = g; sfx_kit_loaded(); }
   if (pg && pg != sfx.pgen) { sfx.pgen = pg; sfx_locks_loaded(); }
+  for (f = 0; f < SFX_NTRACK; ++f) {
+    uint32_t sg = sc_snd_gen(f);
+    if (sg && sg != sfx.sgen[f]) { sfx.sgen[f] = sg; sfx_snd_loaded(f); }
+    else if (sfx.snd_owed & 1u << f) sfx_snd_put(f);
+  }
   if (!sfx.loaded) return;
   if (e != sfx.epoch) {                /* a new session (or the link closed): the Pi has nothing of ours */
     sfx.epoch = e;
@@ -561,7 +593,7 @@ void sfx_tick(void *ctrl) {
   }
   sfx_flush();
   for (f = 0; f < SFX_NFX; ++f) sfx_locks_flush(f);
-  if (sfx.kit_owed && sfx.ticks - sfx.kit_t >= SFX_DEBOUNCE && sc_kit_put(SFX_MOD, sfx.v, SFX_SEC)) sfx.kit_owed = 0;
+  if (sfx.kit_owed && sfx.ticks - sfx.kit_t >= SFX_DEBOUNCE && sc_kit_put(SFX_MOD, &sfx.v[24], SFX_KSEC)) sfx.kit_owed = 0;
 }
 
 /* ---- the pages ---- */
@@ -604,9 +636,11 @@ static int sfx_delta(void *view, int32_t id, int32_t delta, int32_t func) {
   nv = nv < 0 ? 0 : nv > max ? max : nv;
   if (nv == *v) return 1;
   *v = (uint8_t)nv;
-  if (id < SFX_ID_FX) {
+  if (id < SFX_ID_FX) {                /* a send: the sound's */
     int32_t t = sfx_track(), f = id - SFX_ID_SEND;
     sfx.send_dirty |= 1u << (2 * t + f);
+    sfx_snd_put(t);
+    return 1;
   } else {
     int32_t f = (id - SFX_ID_FX) / 6, k = (id - SFX_ID_FX) % 6;
     if (k == 0) sfx_to_free(f);                    /* TYPE: the new graph */

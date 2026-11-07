@@ -51,10 +51,22 @@ Pi's 64.
 
 ## Where the values live
 
-In the kit's record on the Pi: the companion's kit section 25 (`sc_kit_get` / `sc_kit_put`, the kit handle claim
-approved 2026-11-05). 36 bytes: `[2t + f]` track t's send to FX f, then `[24 + 6f]` FX f's TYPE, P1, P2..P5. They are
-written back 12 ticks after the last turn. A kit with no section gets the defaults: FX 1 ECHO, FX 2 CHORUS, sends 0,
-P2..P5 64, PRE.
+The sends are the sound's, as stock's DELAY and REVERB sends are (decided 2026-11-07): each track's two sends are
+section 25 of its sound's record on the Pi (the companion's sound records, the sound handle claim approved
+2026-11-07), 2 bytes, `[f]` the send to FX f. A sound handle lives in the sound's own bytes, so the sends go wherever
+the sound goes: sound copy and paste, a save to the pool, a pool sound loaded into a track, another kit's sound. A
+turn puts the section at once; the companion writes the record once the turns stop (12 ticks).
+
+The FX are the kit's: section 25 of the kit's record (`sc_kit_get` / `sc_kit_put`, the kit handle claim approved
+2026-11-05), 12 bytes, `[6f]` FX f's TYPE, P1, P2..P5, written back 12 ticks after the last turn. A kit with no
+section gets the defaults: FX 1 ECHO, FX 2 CHORUS, P2..P5 64, PRE; a sound with no section sends 0.
+
+Until 2026-11-07 the sends were in the kit's section too (36 bytes: `[2t + f]` the sends, then the FX at `[24 + 6f]`),
+because only the kit handle had been claimed when the values moved onto the Pi. A kit section of that layout still
+gives its FX; its sends are not read (they were only in test projects).
+
+After a kit change or a sound loaded into a track, the track's sends arrive when its sound's record has loaded, a few
+ticks later [I].
 
 ## P-locks (part 2)
 
@@ -93,8 +105,8 @@ core-ar2 0.11 (`core_param_locks`, a local core change collected in the elekload
 `make -C mods/0025-sendfx/test FIRMWARE=<sidecar-firmware>`: sfx.c through the companion against the Pi's store,
 locks, route and DSP library (sidecar-firmware branch send-fx). It covers the defaults built at link-up (two DELAYs
 and a FILTER, 32 send points, the chain, the returns, 27 sets), a send's gain, an SD hit returning as ECHO's repeat on
-MAIN FX and not straight away, P1 POST, a TYPE change (CHORUS to CRUSH), P2 as a block's base, the kit section written
-and read back across kits, p-locks (a P2 and a send lock on the Pi, TYPE/ROUTE and off-track refused, the pattern
+MAIN FX and not straight away, P1 POST, a TYPE change (CHORUS to CRUSH), P2 as a block's base, the kit section and the sounds' sends written
+and read back across kits, a send going with its sound into another kit and track, an old-layout kit section, p-locks (a P2 and a send lock on the Pi, TYPE/ROUTE and off-track refused, the pattern
 record written, another pattern's own locks, back again, a clear, a new session sending them again), and a new
 session. [test] PASS 2026-11-05.
 

@@ -28,7 +28,9 @@ extern "C" {
 extern volatile uint32_t h_port_state;
 extern uint8_t h_name[16];
 extern uint8_t h_kit_index[4];
-extern uint32_t h_khand_v[128];
+extern uint32_t h_khand_v[128], h_shand_v[2048];
+int32_t sc_snd_get(int32_t t, uint32_t mod, uint8_t* buf, uint32_t cap);
+int32_t sc_kit_put(uint32_t mod, const uint8_t* src, uint32_t n);
 int sc_store_host(const uint8_t* d, int32_t len);
 void sc_store_tick(void* ctrl);
 void sc_project_ev(int32_t how, uint32_t dropped);
@@ -216,19 +218,58 @@ int main() {
   tick(2);
   CHECK(locks::value(2, 1) == 16383);                    // set 2 = FX 2's block 0, param 1 DRIVE, full
 
-  // ---- the kit's section written after the debounce, and read back after another kit and this one again
+  // ---- the kit's section (the FX) and SD's sound's (its sends) written once the turns stop, and read back after
+  // another kit and this one again
   tick(20);
   uint8_t sec[64];
-  CHECK(sc_kit_get(25, sec, sizeof sec) == 36 && sec[2] == 127 && sec[24] == 5 && sec[25] == 1 && sec[30] == 3);
-  uint32_t h0 = h_khand_v[0];
-  CHECK(h0 != 0);
-  h_kit_index[3] = 4;                                    // kit 4: no record, the defaults: FX 2 back to CHORUS
+  CHECK(sc_kit_get(25, sec, sizeof sec) == 12 && sec[0] == 5 && sec[1] == 1 && sec[6] == 3);
+  CHECK(sc_snd_get(1, 25, sec, sizeof sec) == 2 && sec[0] == 127 && sec[1] == 0);
+  uint32_t h0 = h_khand_v[0], hsd = h_shand_v[1];
+  CHECK(h0 != 0 && hsd != 0 && h_shand_v[0] == 0 && h_shand_v[2] == 0);   // only SD's sound has a record
+  h_kit_index[3] = 4;                                    // kit 4: no records, the defaults: FX 2 back to CHORUS
   tick(30);
   CHECK(text(568) == "CHORUS" && val(560) == 0 && slots_of("SHAPER") == 0 && slots_of("DELAY") == 2);
   h_kit_index[3] = 0;
   tick(30);
   CHECK(text(568) == "CRUSH" && text(563) == "POST" && val(560) == 127 && slots_of("SHAPER") == 1);
   CHECK(points(12, 43, 0, 1) == 2);
+  // ---- the send goes with the sound: kit 0's SD sound copied into kit 4's SD, and loaded into kit 0's LT (track 5)
+  h_shand_v[16 * 4 + 1] = hsd;
+  h_shand_v[5] = hsd;
+  tick(10);
+  h_track = 5;
+  CHECK(val(560) == 127);                               // LT's own sound now sends to FX 1
+  CHECK(locks::value(8 + 2 * 5, 0) == 8192);             // LT's send set's base: full
+  h_kit_index[3] = 4;
+  tick(30);
+  h_track = 1;
+  CHECK(val(560) == 127 && text(568) == "CHORUS");       // kit 4: SD's send came along, kit 4's FX stay its own
+  // ---- a send turned on kit 4's SD: a new version of that sound only (kit 0's SD keeps its own)
+  CHECK(turn(560, -27) && val(560) == 100);
+  tick(20);
+  CHECK(h_shand_v[16 * 4 + 1] != hsd && h_shand_v[1] == hsd && h_shand_v[5] == hsd);
+  // ---- a kit section of the old layout (36 bytes, sends first): its FX are read, its sends not
+  h_kit_index[3] = 9;
+  tick(20);
+  {
+    uint8_t old[36] = {0};
+    old[2] = 99;                                         // an old send (SD to FX 1): ignored
+    old[24] = 3; old[26] = old[27] = old[28] = old[29] = 64;   // FX 1 CRUSH
+    old[30] = 4; old[32] = old[33] = old[34] = old[35] = 64;   // FX 2 RINGMOD
+    CHECK(sc_kit_put(25, old, 36));
+  }
+  tick(10);
+  uint32_t hold = h_khand_v[9];
+  CHECK(hold != 0);
+  h_kit_index[3] = 0;
+  tick(30);
+  h_khand_v[10] = hold;                                  // a kit saved before the change
+  h_kit_index[3] = 10;
+  tick(40);
+  CHECK(text(562) == "CRUSH" && text(568) == "RINGMOD" && val(560) == 0);
+  h_kit_index[3] = 0;
+  tick(40);
+  CHECK(text(562) == "ECHO" && text(568) == "CRUSH" && val(560) == 127);
 
   // ---- p-locks (part 2): a trig held on the FX track, step 3, FX 1's P2 (ECHO's TIME: block 0, param 0) turned up 10
   const uint16_t kNone = locks::kNone;
