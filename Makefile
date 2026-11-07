@@ -13,14 +13,14 @@ EFT_REV := a5bce9a6af644386d900924082993a805e812874
 # checks this same commit (ELEK_REV). Its core-ar2 0.9 (OS 1.74 only) is built from the source at
 # ELEK_CORE_REV in build.py, with Ubuntu's gcc-m68k-linux-gnu (GCC 13; ELEK_CORE_CROSS), as upstream
 # does: its C is pre-C23. docs/ELEKLOADER-BUILD.md.
-ELEK_URL := https://github.com/irpina/elekloader
-ELEK_REV := 7d0bf15e8fcd5eeb4dd00321c4c6038e30d14bc1
-CORE_VER := 0.9
+ELEK_URL := https://github.com/Iced-Cream/elekloader
+ELEK_REV := 66ea00de7d052c124286d4fdb805b50ec067c11e
+CORE_VER := 0.11
 # The Sidecar companion (mod 0032-sidecar until 2026-11-05) is its own repository, an ordinary elekloader mod built by
 # its own tools/build.py; tools/build.py checks this same commit (SC_REV) and links its elemod into every build with
 # 0032-sidecar. mods/0032-sidecar/mod.toml.
 SC_URL := https://github.com/Iced-Cream/sidecar-core
-SC_REV := a8cabc9435be715d7541e7928d081c3fcfe755ed
+SC_REV := 71f8aa59ac232c00b399327221134cbaa1fa2ce0
 
 setup:
 	python3 -m venv .venv

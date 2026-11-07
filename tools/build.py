@@ -257,8 +257,8 @@ def check_linked_params(mods, enabled):
 # words 38..41) use (docs/ELEKLOADER-BUILD.md section 8): those mods stay out of 0.9 builds
 # until the Storage phase, and CORE_STORE_GUARD below makes elekloader refuse them.
 ELEK_DIR = ROOT / "vendor" / "elekloader"
-ELEK_REV = "7d0bf15e8fcd5eeb4dd00321c4c6038e30d14bc1"
-ELEK_CORE_REV = "7d0bf15e8fcd5eeb4dd00321c4c6038e30d14bc1"
+ELEK_REV = "66ea00de7d052c124286d4fdb805b50ec067c11e"
+ELEK_CORE_REV = "66ea00de7d052c124286d4fdb805b50ec067c11e"
 ELEK_CORE_VERSION = "0.11"
 # The companion carries the elekloader build (it declares the core, [elek] core in its mod.toml; mod 0027 until
 # 2026-11-04, folded in): every build with code in the area or core-ar2's sites has it.
@@ -277,7 +277,7 @@ SC_ID = "sidecar"
 # by `make setup` at the Makefile's SC_REV (build.py refuses another). mods/0032-sidecar/mod.toml stays as its entry
 # here (`external`): the registry's claims, its command for the overlap check, the clients' `requires`.
 SC_DIR = ROOT / "vendor" / "sidecar-core"
-SC_REV = "a8cabc9435be715d7541e7928d081c3fcfe755ed"
+SC_REV = "71f8aa59ac232c00b399327221134cbaa1fa2ce0"
 SC_TABLE = "sc_cmds"
 SC_ENTRY = 12             # {first, last, flags, pad, magic, box}: sidecar.c struct sc_cmd
 SC_DIRECT = 1
@@ -325,6 +325,11 @@ def elek_pinning(meta):
             raise SystemExit(f"elekloader's Rytm 1.74 {what} is {theirs}, ours {mine}")
     if prof.DEVICE.main_load != meta["base"]:
         raise SystemExit(f"elekloader's load address 0x{prof.DEVICE.main_load:08x} != ours")
+    # from core-ar2 0.11 the linker lays the mods out in the core's own area (the profile's core_ddr, 5 MB from
+    # 0x47B10000), not the profile's 128 KB ddr
+    for ver, area in getattr(prof.DEVICE, "core_ddr", ()):
+        if ver == ELEK_CORE_VERSION:
+            return rev, area
     return rev, prof.DEVICE.ddr
 
 

@@ -26,7 +26,6 @@ static int g_fail = 0;
 
 extern "C" {
 extern volatile uint32_t h_port_state;
-extern const volatile uint32_t* h_pool;
 extern uint8_t h_name[16];
 extern uint8_t h_kit_index[4];
 extern uint32_t h_khand_v[128];
@@ -44,8 +43,9 @@ struct ctext { void* obj; int32_t id; int32_t value; char* buf; };
 struct cparam { int32_t first, last; int (*get)(int32_t, int32_t*); int (*delta)(void*, int32_t, int32_t, int32_t); int (*text)(ctext*); };
 extern const cparam sfx_params;
 struct cplock { int32_t first, last; int (*get)(int32_t, int32_t, int32_t); int (*turn)(int32_t, int32_t, int32_t, int32_t);
-                int (*set)(int32_t, int32_t, int32_t, int32_t); int (*clear)(int32_t, int32_t, int32_t); };
-extern const cplock sfx_locks;                          // core-ar2 0.10's core_param_locks entry
+                int (*set)(int32_t, int32_t, int32_t, int32_t); int (*clear)(int32_t, int32_t, int32_t);
+                const char* (*label)(int32_t); const char* (*name)(int32_t); };
+extern const cplock sfx_locks;                          // core-ar2 0.11's core_param_locks entry
 extern volatile int8_t h_pat_idx;
 uint32_t sc_pattern_handle(int32_t p);
 }
@@ -158,9 +158,6 @@ int main() {
   setvbuf(stdout, nullptr, _IONBF, 0);
   alignas(64) static uint8_t arena[dsp::kSlots * dsp::kSlotBytes];
   CHECK(dsp::begin(arena, sizeof arena));
-  uint32_t* pool = (uint32_t*)mmap(nullptr, 4096, PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS | MAP_32BIT, -1, 0);
-  for (int i = 0; i < 4; ++i) pool[14 * i + 13] = i < 3 ? (uint32_t)(uintptr_t)(pool + 14 * (i + 1)) : 0;
-  h_pool = pool;
   locks::set_sink(lock_sink);
   memcpy(h_name, "SENDFX\0\0\0\0\0\0\0\0\0\0", 16);
 
@@ -236,6 +233,8 @@ int main() {
   // ---- p-locks (part 2): a trig held on the FX track, step 3, FX 1's P2 (ECHO's TIME: block 0, param 0) turned up 10
   const uint16_t kNone = locks::kNone;
   auto echo_time = [](int v) { return 10500 + (5000 * v + 63) / 127; };
+  CHECK(!strcmp(sfx_locks.label(560), "SFX1") && !strcmp(sfx_locks.label(564), "P2") &&
+        !strcmp(sfx_locks.name(569), "SFX2 ROUTE") && sfx_locks.label(574) == nullptr);   // labels and names (0.11)
   CHECK(sfx_locks.get(564, 12, 3) == -1);
   CHECK(sfx_locks.turn(564, 12, 3, 10 * 256) == 74 << 8 && sfx_locks.get(564, 12, 3) == 74 << 8);   // from the knob's 64
   tick();                                               // the op goes out at the companion's next tick

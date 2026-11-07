@@ -32,6 +32,7 @@
 #include <stdint.h>
 
 #include "analog-rytm-mk2/pages.h"
+#include "analog-rytm-mk2/moments.h"
 
 /* the companion's (sidecar-core companion/design.md) */
 extern int32_t sc_link_send(const uint8_t *body, int32_t n);
@@ -46,11 +47,8 @@ extern int32_t sc_pat_index(void);
 extern int32_t sc_pat_get(uint32_t mod, uint8_t *buf, uint32_t cap);
 extern int32_t sc_pat_put(uint32_t mod, const uint8_t *src, uint32_t n);
 
-#ifndef SFX_TRACK                      /* the selected track, 0..12 (12 the FX track): core-ar2's words (its rows.c) */
-#define SFX_APP ((uint32_t (*)(void))0x4017fa0au)
-#define SFX_APP_TRACKS ((uint32_t (*)(uint32_t))0x400ae492u)
-#define SFX_CURRENT_TRACK ((int32_t (*)(uint32_t))0x400b693eu)
-#define SFX_TRACK() SFX_CURRENT_TRACK(SFX_APP_TRACKS(SFX_APP()))
+#ifndef SFX_TRACK                      /* the selected track, 0..12 (12 the FX track), -1 none: core-ar2 0.11 */
+#define SFX_TRACK() core_current_track()
 #endif
 
 #define SFX_MOD      25                /* the kit record's section */
@@ -646,7 +644,23 @@ const struct core_page sfx_page_amp2 = {SFX_PAGE_AMP2, "AMPLITUDE 2", {SFX_ID_SE
 const struct core_page sfx_page_fx1 = {SFX_PAGE_FX1, "SEND FX 1", {562, 563, 564, 565, 566, 567, 0, 0}};
 const struct core_page sfx_page_fx2 = {SFX_PAGE_FX2, "SEND FX 2", {568, 569, 570, 571, 572, 573, 0, 0}};
 const struct core_param sfx_params = {SFX_ID_SEND, SFX_ID_LAST, sfx_get, sfx_delta, sfx_text};
-const struct core_param_lock sfx_locks = {SFX_ID_SEND, SFX_ID_LAST, sfx_lock_get, sfx_lock_turn, sfx_lock_set, sfx_lock_clear};
+/* the knobs' labels and names on any page that shows them (core-ar2 0.11; stock's read ERR / ERROR above 468) */
+static const char *const sfx_lab[6] = {"TYPE", "ROUT", "P2", "P3", "P4", "P5"};
+static const char *const sfx_nam[2][6] = {
+  {"SFX1 TYPE", "SFX1 ROUTE", "SFX1 PARAM 2", "SFX1 PARAM 3", "SFX1 PARAM 4", "SFX1 PARAM 5"},
+  {"SFX2 TYPE", "SFX2 ROUTE", "SFX2 PARAM 2", "SFX2 PARAM 3", "SFX2 PARAM 4", "SFX2 PARAM 5"}};
+static const char *sfx_label(int32_t id) {
+  if (id < SFX_ID_SEND || id > SFX_ID_LAST) return 0;
+  if (id < SFX_ID_FX) return id == SFX_ID_SEND ? "SFX1" : "SFX2";
+  return sfx_lab[(id - SFX_ID_FX) % 6];
+}
+static const char *sfx_name(int32_t id) {
+  if (id < SFX_ID_SEND || id > SFX_ID_LAST) return 0;
+  if (id < SFX_ID_FX) return id == SFX_ID_SEND ? "SEND TO SFX1" : "SEND TO SFX2";
+  return sfx_nam[(id - SFX_ID_FX) / 6][(id - SFX_ID_FX) % 6];
+}
+const struct core_param_lock sfx_locks = {SFX_ID_SEND, SFX_ID_LAST, sfx_lock_get, sfx_lock_turn, sfx_lock_set, sfx_lock_clear,
+                                          sfx_label, sfx_name};
 static int32_t sfx_on_voice(void *view) { int32_t t = sfx_track(); (void)view; return t >= 0 && t < SFX_NTRACK; }
 const struct core_view_page sfx_view_amp2 = {CORE_VIEW_AMP, SFX_PAGE_AMP2, sfx_on_voice};
 const struct core_view_page sfx_view_fx1 = {CORE_VIEW_DELAY, SFX_PAGE_FX1, 0};

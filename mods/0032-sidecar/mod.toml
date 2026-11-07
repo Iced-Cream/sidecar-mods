@@ -8,8 +8,8 @@ enabled = false
 # pinned in the Makefile (SC_REV) and cloned to vendor/sidecar-core by `make setup`. It is an ordinary elekloader mod
 # there (id `sidecar`, companion/mod.src.json); tools/build.py builds it with sidecar-core's tools/build.py and links
 # its elemod beside core-ar2 and this tree's mods. This entry stays so the rest of the tree can name it: the
-# registry's claims (core-ar2's eight sites, the router entry and the step clock's two sites, all written by
-# elekloader), [[sidecar.cmds]] for the overlap check, and `requires` from the client mods.
+# registry's claims (core-ar2's eight sites, written by elekloader; from core-ar2 0.11 the companion has no sites of its
+# own), [[sidecar.cmds]] for the overlap check, and `requires` from the client mods.
 area     = "elek"
 external = "sidecar-core"
 
@@ -18,7 +18,7 @@ external = "sidecar-core"
 
 # core-ar2 hooks the UI loop's key dispatch call (0x400a47cc) for ev_key; 0022's keys=1 patches the same call's operand
 # (looper_key). Use ev_key instead. The step clock takes the two sites 0026 uses with screen=0 (its seq link): build 0026
-# with screen=1.
+# with screen=1. (From core-ar2 0.11 the step clock is on core's sequencer events; core itself holds the clock's exit.)
 excludes_params = ["0022-looper:keys", "0026-remote-ui:!screen"]
 
 # re-only | built | hardware-verified | retracted
@@ -26,7 +26,7 @@ status  = "built"
 
 summary = """
 The companion every Sidecar client mod goes through, built from sidecar-core. It takes each host SysEx
-message F0 7D 52 54 <cmd> ... F7 at the router's entry and calls the mod that registered <cmd> in its
+message F0 7D 52 54 <cmd> ... F7 through core-ar2 0.11's ev_sysex_in and calls the mod that registered <cmd> in its
 table sc_cmds (a client's mod.toml [[sidecar.cmds]], built by the linker). Its own services: the store
 link (51: the Pi's records and parameter locks, the project's ID, name and a handle per pattern, the
 kit's record) and the step clock (2C / 2D). sidecar-core's companion/design.md.

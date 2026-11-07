@@ -7460,51 +7460,10 @@ from_symbol = "cu_mi_name"
 note        = "machine 50 short name: MIDI"
 
 # ---- 0032-sidecar ----
-# The companion (sidecar-core companion/design.md): the host link's SysEx router, 0022's until the companion phase
-# (2026-11-03). Code in elekloader's area only.
-
-# The router entry, `lea %sp@(-16),%sp; moveml %d2-%d3/%a2-%a3,%sp@` (8 B, nothing pc-relative): a jmp to sc_router
-# (sidecar-core companion/sidecar.c), which takes F0 7D 52 54 (the table sc_cmds), else redoes both instructions and
-# rejoins 0x40083de0. Written by elekloader from the companion's elemod (sidecar-core companion/mod.src.json); until
-# 2026-11-05 two patches here (jmp opcode + its address).
-[[detour]]
-owner     = "0032-sidecar"
-addr      = 0x40083dd8
-size      = 6
-expect_len = 8
-expect_sha256 = "9b78b6778f56449ca9429e734d2140df96316ae0e9eea0b9d6eea089f82ddbd0"
-entry     = "sc_router"
-rejoin    = 0x40083de0
-elek_size = 8
-
-# The step clock (sidecar-core companion/clock.c, the Storage phase, 2026-11-04), always in the companion since it
-# moved to sidecar-core (2026-11-05; once the param `clock`): the two sites 0026's seq link 1032 uses (gate "!screen"),
-# so a build with both refuses itself (layout: both claim the host); build 0026 with screen=1. trig_fire's entry, `lea %sp@(-88),%sp; movel %sp@(96),%d0` (8 B, nothing
-# pc-relative): called once per track per step, trig or not, for all 13 tracks, by the sequencer clock 0x4009b0b4
-# [measured, rytm-emu rui1031]. sc_fire_det queues the step that starts now (track, step, length, speed, trig flags),
-# re-emits the two instructions and rejoins 0x4009aa30.
-[[detour]]
-owner     = "0032-sidecar"
-addr      = 0x4009aa28
-size      = 6
-expect_len = 8
-expect_sha256 = "1ab7ef2da235b6c728e15915d47344ba08341b941d655aea58fdec1c289a5ce9"
-entry     = "sc_fire_det"
-rejoin    = 0x4009aa30
-elek_size = 8
-
-# The sequencer clock's only exit, `moveml %sp@,%d0-%fp; lea %sp@(76),%sp` then rte at 0x4009c012 (no branch targets
-# 0x4009c00c..0x4009c011 [code]), 203 calls/s at 127 BPM [measured, rytm-emu rui1031]. sc_end_det sends the queued
-# ticks and the 2D (0021's interrupt rules), re-emits the two instructions and rejoins the rte.
-[[detour]]
-owner     = "0032-sidecar"
-addr      = 0x4009c00a
-size      = 6
-expect_len = 8
-expect_sha256 = "6f3f2b5774382e7432bc4d2f581f1a4920f081225dc1673069f3ad63193ad38a"
-entry     = "sc_end_det"
-rejoin    = 0x4009c012
-elek_size = 8
+# The companion (sidecar-core companion/design.md) claims no site from core-ar2 0.11 (2026-11-07): it takes the host
+# link's SysEx through core's ev_sysex_in and its step clock from core's ev_seq_step / ev_seq_tick, where until then it
+# had three detours of its own here (the SysEx router's entry 0x40083dd8, trig_fire's entry 0x4009aa28 and the
+# sequencer clock's exit 0x4009c00a; core-ar2 0.11 holds the first and the last itself).
 
 # ------------------------------------------------- the Sidecar's Pi-side numbers
 # Not firmware addresses (tools/layout.py does not read these): numbers on the Pi that every companion client shares,

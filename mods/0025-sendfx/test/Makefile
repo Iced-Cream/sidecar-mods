@@ -2,7 +2,7 @@
 #   make -C mods/0025-sendfx/test FIRMWARE=<a sidecar-firmware checkout with core/dsp>
 FIRMWARE ?= ../../../../sidecar-firmware
 ELEK := ../../../vendor/elekloader/elekloader/sdk/include
-SC := ../../0032-sidecar
+SC := ../../../vendor/sidecar-core/companion
 CORE := $(FIRMWARE)/core
 B := build
 SAN := -fsanitize=address,undefined
