@@ -10,17 +10,17 @@ all: verify
 EFT_URL := https://github.com/mischa85/elektron-firmware-tool
 EFT_REV := a5bce9a6af644386d900924082993a805e812874
 # elekloader (GPL-2.0-or-later), executed only by builds with the companion 0032-sidecar; tools/build.py
-# checks this same commit (ELEK_REV). Its core-ar2 0.9 (OS 1.74 only) is built from the source at
+# checks this same commit (ELEK_REV): upstream's core-ar2 0.11 release (#260). Its core-ar2 (OS 1.74 only) is built from the source at
 # ELEK_CORE_REV in build.py, with Ubuntu's gcc-m68k-linux-gnu (GCC 13; ELEK_CORE_CROSS), as upstream
 # does: its C is pre-C23. docs/ELEKLOADER-BUILD.md.
-ELEK_URL := https://github.com/Iced-Cream/elekloader
-ELEK_REV := 66ea00de7d052c124286d4fdb805b50ec067c11e
+ELEK_URL := https://github.com/irpina/elekloader
+ELEK_REV := 8068ff581042fb27e9da00cf49ad54c2417a6e3b
 CORE_VER := 0.11
 # The Sidecar companion (mod 0032-sidecar until 2026-11-05) is its own repository, an ordinary elekloader mod built by
 # its own tools/build.py; tools/build.py checks this same commit (SC_REV) and links its elemod into every build with
 # 0032-sidecar. mods/0032-sidecar/mod.toml.
 SC_URL := https://github.com/Iced-Cream/sidecar-core
-SC_REV := 0ef5870fdf1055e99d782cb479b76da7bf882a55
+SC_REV := 3bd0c34e550923bdd497737f0ab414c5b1c9b614
 
 setup:
 	python3 -m venv .venv
@@ -59,8 +59,8 @@ release: symbols layout
 	cp build/elek/$(REL_TAG)/mods/sidecar/out/sidecar-*.elemod $(REL)/
 	cp LICENSE NOTICE $(REL)/
 	# GPL-2.0 section 3: the corresponding source of core-$(CORE_VER)-os1.74.elemod and of the builder (one commit) beside it
-	git -C vendor/elekloader archive --format=tar.gz --prefix=elekloader-9f72fb0/ \
-		$(ELEK_REV) > $(REL)/elekloader-9f72fb0-src.tar.gz
+	git -C vendor/elekloader archive --format=tar.gz --prefix=elekloader-$(shell echo $(ELEK_REV) | cut -c1-7)/ \
+		$(ELEK_REV) > $(REL)/elekloader-$(shell echo $(ELEK_REV) | cut -c1-7)-src.tar.gz
 	{ echo "release $(VERSION), built from rytm-mods $$(git rev-parse HEAD)$$(git diff --quiet HEAD || echo ' (uncommitted changes)')"; \
 	  echo "elekloader $$(git -C vendor/elekloader rev-parse HEAD) (builder and core-ar2 $(CORE_VER))"; \
 	  m68k-elf-as --version | head -1; $${ELEK_CORE_CROSS:-m68k-linux-gnu-}gcc --version | head -1; $(PY) --version; uname -sm; } > $(REL)/TOOLCHAIN.txt
