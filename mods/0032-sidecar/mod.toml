@@ -47,3 +47,9 @@ mods = []
 first   = 0x51
 last    = 0x51
 handler = "sc_store_host"
+
+# 5F DIAG (2026-11-07): a test's readback of the companion's counts (sidecar-core companion/keep.c)
+[[sidecar.cmds]]
+first   = 0x5f
+last    = 0x5f
+handler = "sc_diag_host"

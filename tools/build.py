@@ -277,7 +277,7 @@ SC_ID = "sidecar"
 # by `make setup` at the Makefile's SC_REV (build.py refuses another). mods/0032-sidecar/mod.toml stays as its entry
 # here (`external`): the registry's claims, its command for the overlap check, the clients' `requires`.
 SC_DIR = ROOT / "vendor" / "sidecar-core"
-SC_REV = "71f8aa59ac232c00b399327221134cbaa1fa2ce0"
+SC_REV = "0ef5870fdf1055e99d782cb479b76da7bf882a55"
 SC_TABLE = "sc_cmds"
 SC_ENTRY = 12             # {first, last, flags, pad, magic, box}: sidecar.c struct sc_cmd
 SC_DIRECT = 1
