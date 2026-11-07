@@ -24,32 +24,6 @@ class Excludes(unittest.TestCase):
             build.check_excludes(set(mods), EXCL)
         self.assertIn("mutually exclusive", str(cm.exception))
 
-    def test_0020_and_0021(self):
-        self.refused(["0000-shared", "0020-dmach", "0021-ext"])
-
-    def test_0002_and_0021(self):
-        self.refused(["0002-euclid-accents", "0021-ext"])
-
-    def test_0009_and_0021(self):
-        # 0009's cave (cave7's head) holds 0021's .us5 since the Task 11 review (2026-10-10)
-        self.refused(["0009-main-rms", "0021-ext"])
-
-    def test_0004_and_0021(self):
-        # 0004 packs its settings into sound index 0, the user slots' sound tag; its cave2 holds 0021's .us6 (2026-10-10)
-        self.refused(["0004-lfo-rnd", "0021-ext"])
-
-    def test_0003_and_0021(self):
-        # 0003 needs 0002, which 0021 excludes: without this, euclid's accents would go silently (2026-10-11)
-        self.refused(["0003-velocity-humanise", "0021-ext"])
-
-    def test_0006_and_0021(self):
-        # 0006's caves (cave4, cave9) hold the user slots
-        self.refused(["0006-comp-preview", "0021-ext"])
-
-    def test_0013_and_0021(self):
-        # 0013's caves (cave3, cave5) hold the user slots
-        self.refused(["0013-voice-dac", "0021-ext"])
-
     def test_the_user_slot_build_passes(self):
         build.check_excludes({"0014-hidden-machines", "0021-ext", "0022-looper",
                               "0023-teensy-drive"}, EXCL)
@@ -136,7 +110,7 @@ class LinkedParams(unittest.TestCase):
 
 class SidecarCmds(unittest.TestCase):
     """The companion's table (mods/0032-sidecar): a client needs the companion, and ranges never overlap."""
-    RUI = {"0021-ext", "0022-looper", "0023-teensy-drive", "0026-remote-ui", "0029-sendfx-ui", "0032-sidecar"}
+    RUI = {"0021-ext", "0022-looper", "0023-teensy-drive", "0032-sidecar"}
 
     def test_rui_set_passes(self):
         mods = build.load_mods(self.RUI)
@@ -151,7 +125,7 @@ class SidecarCmds(unittest.TestCase):
 
     def test_overlap_refused(self):
         mods = build.load_mods(self.RUI)
-        mods["0032-sidecar"]["_sc_cmds"].append({"first": 0x30, "last": 0x30, "handler": "sc_store_host"})
+        mods["0032-sidecar"]["_sc_cmds"].append({"first": 0x07, "last": 0x07, "handler": "sc_store_host"})
         with self.assertRaises(SystemExit) as cm:
             build.check_sc_cmds(mods, self.RUI)
         self.assertIn("overlap", str(cm.exception))
@@ -170,19 +144,8 @@ class SidecarCmds(unittest.TestCase):
                          [(0x51, 0x51, "sc_store_host")])
         build.check_sc_cmds(mods, {"0032-sidecar"})
 
-    def test_screen_keeps_30_3f_only(self):
-        """0026 with screen=1 (the core 0.9 release): only the remote screen's 30..3F reach it."""
-        mods = build.load_mods({"0026-remote-ui"})
-        self.assertEqual(len(build.sc_cmds_of(mods["0026-remote-ui"])), 6)
-        mods["0026-remote-ui"]["_params"]["screen"] = 1
-        self.assertEqual([(c["first"], c["last"]) for c in build.sc_cmds_of(mods["0026-remote-ui"])], [(0x30, 0x3f)])
-
     def test_entry_bytes(self):
         mods = build.load_mods(self.RUI)
-        mods["0026-remote-ui"]["area"] = "elek"
-        e = build.sc_contributions(mods["0026-remote-ui"], {})[2]
-        self.assertEqual(e["data"], "303f0000" + b"RUIP".hex() + "00000000")
-        self.assertEqual(e["relocs"], [[8, "abs32", "sym:rui_mbox", 0]])
         e = build.sc_contributions(mods["0023-teensy-drive"], {})[0]
         self.assertEqual(e["data"], "0e0e0000" + b"TDRV".hex() + "401b9d18")
         mods["0022-looper"]["area"] = None

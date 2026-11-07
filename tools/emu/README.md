@@ -16,12 +16,12 @@ tools/emu/suites.py TAG rled sq                   # named suites
 
 - `--changed REV`: the files differing from REV (commits, uncommitted edits, untracked files; `A..B` for a range)
   pick the suites: a mod's files the suites about that mod, a suite script that suite and the suites importing it,
-  `mods/0000-shared`, `registry/`, `re/symbols.toml`, the build tools and the bases every suite. Docs and the RE notes
-  pick none. The stock-site mods no suite is about (0002..0013, 0020) pick a quick smoke set (frz td fxin rui sv);
-  `--full` covers them before a flash. A path not in the map picks every suite (and says so: map it in `suites.py`).
+  `registry/`, `re/symbols.toml`, the build tools and the bases every suite. Docs and the RE notes pick none. Since
+  2026-11-07 the tree keeps only the mods planned as sidecar-core clients; the smoke set is td, and the suites of
+  remote-ui, sendfx-ui and sendfx-report left with their mods. A path not in the map picks every suite (and says so: map it in `suites.py`).
   A change in the Sidecar host's checkout (`RYTM_TEENSY`, the protocol module) is outside this repo: name the suites.
 - Output: one line a suite (verdict, PASS / FAIL counts, seconds, log path), a failing suite's FAIL lines, the wall
-  clock. **Read a log only when its suite failed**, and then grep it (`grep -n FAIL build/suites/rled.log`): the logs
+  clock. **Read a log only when its suite failed**, and then grep it (`grep -n FAIL build/suites/us.log`): the logs
   are 1..63 KB of PASS lines.
 - `-j N` (default 6). `rui` is rerun alone when it fails in the parallel phase (real-time host threads; it can flake
   under load); the alone result is its verdict, and both are in `build/suites/summary.txt`.
