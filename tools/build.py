@@ -251,16 +251,17 @@ def check_linked_params(mods, enabled):
 # and is only executed here, like elektron-firmware-tool: nothing of it is copied into
 # this repository. The pinned commit is the Makefile's ELEK_REV; build.py refuses another.
 # The core is built from its source as it was at ELEK_CORE_REV (the same repository): core-ar2
-# 0.11, upstream's release (irpina/elekloader 8068ff5, #260), since 2026-11-07; 0.9 (9f72fb0, #242),
+# 0.13, upstream's release (elekloader/elekloader 3a7e943, #358), since 2026-11-10; 0.11 (irpina/elekloader
+# 8068ff5, #260) from 2026-11-07; 0.9 (9f72fb0, #242),
 # OS 1.74 only, from the companion phase (decided 2026-11-03). Until then
 # the Rytm ran 0.1 (13fa795, #105; core-0.1 sha256 89c00065... for 1.74). 0.2 and later keep mod
 # storage in the sound's and kit's spare bytes, the bytes 0013 / 0021 (sound) and 0025 (kit FX
 # words 38..41) use (docs/ELEKLOADER-BUILD.md section 8): those mods stay out of 0.9 builds
 # until the Storage phase, and CORE_STORE_GUARD below makes elekloader refuse them.
 ELEK_DIR = ROOT / "vendor" / "elekloader"
-ELEK_REV = "8068ff581042fb27e9da00cf49ad54c2417a6e3b"
-ELEK_CORE_REV = "8068ff581042fb27e9da00cf49ad54c2417a6e3b"
-ELEK_CORE_VERSION = "0.11"
+ELEK_REV = "3a7e9431ffaea392fd11c3349cb3ad7bad87b091"
+ELEK_CORE_REV = "3a7e9431ffaea392fd11c3349cb3ad7bad87b091"
+ELEK_CORE_VERSION = "0.13"
 # The companion carries the elekloader build (it declares the core, [elek] core in its mod.toml; mod 0027 until
 # 2026-11-04, folded in): every build with code in the area or core-ar2's sites has it.
 ELEK_MOD = "0032-sidecar"
@@ -278,7 +279,7 @@ SC_ID = "sidecar"
 # by `make setup` at the Makefile's SC_REV (build.py refuses another). mods/0032-sidecar/mod.toml stays as its entry
 # here (`external`): the registry's claims, its command for the overlap check, the clients' `requires`.
 SC_DIR = ROOT / "vendor" / "sidecar-core"
-SC_REV = "a3127cae6cd735b16ded0a66ce5c4980a997fc15"
+SC_REV = "264d3c4a518a63c83a4af0327512e042a287a0c2"
 SC_TABLE = "sc_cmds"
 SC_ENTRY = 12             # {first, last, flags, pad, magic, box}: sidecar.c struct sc_cmd
 SC_DIRECT = 1
@@ -327,11 +328,8 @@ def elek_pinning(meta):
     if prof.DEVICE.main_load != meta["base"]:
         raise SystemExit(f"elekloader's load address 0x{prof.DEVICE.main_load:08x} != ours")
     # from core-ar2 0.11 the linker lays the mods out in the core's own area (the profile's core_ddr, 5 MB from
-    # 0x47B10000), not the profile's 128 KB ddr
-    for ver, area in getattr(prof.DEVICE, "core_ddr", ()):
-        if ver == ELEK_CORE_VERSION:
-            return rev, area
-    return rev, prof.DEVICE.ddr
+    # 0x47B10000), not the profile's 128 KB ddr; the device's ddr_for picks the entry for this core and newer ones
+    return rev, prof.DEVICE.ddr_for(ELEK_CORE_VERSION)
 
 
 def change_runs(a: bytes, b: bytes, base: int, mine=lambda va: True):
