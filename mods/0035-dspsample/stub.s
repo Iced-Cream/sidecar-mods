@@ -120,75 +120,6 @@ dss_engine:
 	lea (20,%sp),%sp
 	rts
 	.size	dss_engine, .-dss_engine
-	.text
-.LC0:
-	.string	"OFF"
-	.text
-	.align	2
-	.type	dss_text, @function
-dss_text:
-	lea (-12,%sp),%sp
-	mvz.w #417,%d0
-	move.l 16(%sp),%a0
-	movem.l #3076,(%sp)
-	cmp.l 4(%a0),%d0
-	jne .L32
-	move.l 8(%a0),%d2
-	asr.l #8,%d2
-	move.l 12(%a0),%a3
-	lea .LC0,%a2
-	tst.l %d2
-	jle .L36
-	subq.l #1,%d2
-	move.l %d2,-(%sp)
-	jsr sc_sample_name
-	move.l %d2,-(%sp)
-	move.l %a0,%a2
-	jsr sc_sample_state
-	addq.l #8,%sp
-	tst.l %a2
-	jeq .L35
-	tst.b (%a2)
-	jeq .L35
-	subq.l #4,%d0
-	lsr.l #1,%d0
-	jne .L36
-	move.b #33,(%a3)
-	mov3q.l #1,%a1
-.L28:
-	sub.l %a1,%a2
-.L29:
-	move.b (%a2,%a1.l),%d0
-	jeq .L30
-	mvs.b %d0,%d1
-	moveq #46,%d2
-	cmp.l %d1,%d2
-	jeq .L30
-	mov3q.l #7,%d1
-	cmp.l %a1,%d1
-	jne .L31
-.L30:
-	clr.b %d2
-	mov3q.l #1,%d0
-	move.b %d2,(%a3,%a1.l)
-.L26:
-	movem.l (%sp),#3076
-	lea (12,%sp),%sp
-	rts
-.L36:
-	sub.l %a1,%a1
-	jra .L28
-.L31:
-	move.b %d0,(%a3,%a1.l)
-	addq.l #1,%a1
-	jra .L29
-.L32:
-	clr.l %d0
-	jra .L26
-.L35:
-	mov3q.l #2,%d0
-	jra .L26
-	.size	dss_text, .-dss_text
 	.align	2
 	.type	dss_p2delta, @function
 dss_p2delta:
@@ -211,6 +142,140 @@ dss_p2get:
 	lea (12,%sp),%sp
 	rts
 	.size	dss_p2get, .-dss_p2get
+	.align	2
+	.type	dss_num.isra.0, @function
+dss_num.isra.0:
+	lea (-16,%sp),%sp
+	move.l 24(%sp),%d0
+	movem.l #1036,(%sp)
+	move.l 20(%sp),%a1
+	tst.l %d0
+	jge .L29
+	clr.l %d0
+.L29:
+	lea (12,%sp),%a0
+	clr.l %d1
+	move.l %a0,%a2
+.L31:
+	moveq #10,%d3
+	addq.l #1,%d1
+	rems.l %d3,%d2:%d0
+	divs.l %d3,%d0
+	add.l #48,%d2
+	move.b %d2,(%a0)+
+	tst.l %d0
+	jeq .L30
+	mov3q.l #3,%d2
+	cmp.l %d1,%d2
+	jne .L31
+.L30:
+	move.l %a1,%a0
+	move.l %d1,%d0
+.L32:
+	subq.l #1,%d0
+	move.b (%a2,%d0.l),(%a0)+
+	tst.l %d0
+	jne .L32
+	clr.b %d3
+	move.b %d3,(%a1,%d1.l)
+	movem.l (%sp),#1036
+	lea (16,%sp),%sp
+	rts
+	.size	dss_num.isra.0, .-dss_num.isra.0
+	.text
+.LC0:
+	.string	"OFF"
+.LC1:
+	.string	"ON"
+	.text
+	.align	2
+	.type	dss_text, @function
+dss_text:
+	lea (-16,%sp),%sp
+	move.l 20(%sp),%a0
+	movem.l #3084,(%sp)
+	move.l 4(%a0),%d0
+	move.l 8(%a0),%d2
+	asr.l #8,%d2
+	move.l 12(%a0),%a2
+	cmp.l #420,%d0
+	jne .L39
+.L47:
+	move.l %d2,-(%sp)
+	move.l %a2,-(%sp)
+	jsr (dss_num.isra.0)
+	addq.l #8,%sp
+	jra .L40
+.L39:
+	cmp.l #421,%d0
+	jne .L41
+	lea .LC0,%a0
+	tst.l %d2
+	jeq .L43
+	lea .LC1,%a0
+.L43:
+	move.b (%a0)+,%d0
+	jne .L44
+	clr.b (%a2)
+.L40:
+	mov3q.l #1,%d0
+.L38:
+	movem.l (%sp),#3084
+	lea (16,%sp),%sp
+	rts
+.L44:
+	move.b %d0,(%a2)+
+	jra .L43
+.L41:
+	cmp.l #417,%d0
+	jne .L53
+	lea .LC0,%a3
+	tst.l %d2
+	jle .L55
+	move.l %d2,%d3
+	subq.l #1,%d3
+	move.l %d3,-(%sp)
+	jsr sc_sample_name
+	move.l %d3,-(%sp)
+	move.l %a0,%a3
+	jsr sc_sample_state
+	addq.l #8,%sp
+	tst.l %a3
+	jeq .L47
+	tst.b (%a3)
+	jeq .L47
+	subq.l #4,%d0
+	lsr.l #1,%d0
+	jne .L55
+	move.b #33,(%a2)
+	mov3q.l #1,%a1
+.L46:
+	sub.l %a1,%a3
+.L49:
+	move.b (%a3,%a1.l),%d0
+	jeq .L50
+	mvs.b %d0,%d1
+	moveq #46,%d2
+	cmp.l %d1,%d2
+	jeq .L50
+	mov3q.l #7,%d1
+	cmp.l %a1,%d1
+	jne .L51
+.L50:
+	clr.b %d2
+	move.b %d2,(%a2,%a1.l)
+	jra .L40
+.L55:
+	sub.l %a1,%a1
+	jra .L46
+.L51:
+	move.b %d0,(%a2,%a1.l)
+	addq.l #1,%a1
+	jra .L49
+.L53:
+	clr.l %d0
+	jra .L38
+	.size	dss_text, .-dss_text
 	.globl	dss_look1
 	.text
 	.align	2
@@ -263,39 +328,39 @@ dss_p2params:
 	.size	dss_params, 20
 dss_params:
 	.long	417
-	.long	417
+	.long	421
 	.long	0
 	.long	0
 	.long	dss_text
 	.globl	dss_machine
 	.text
-.LC1:
-	.string	"DSP SAMPLE"
 .LC2:
-	.string	"DSPS"
+	.string	"DSP SAMPLE"
 .LC3:
-	.string	"Level"
+	.string	"DSPS"
 .LC4:
-	.string	"LEV"
+	.string	"Level"
 .LC5:
-	.string	"Sample"
+	.string	"LEV"
 .LC6:
-	.string	"SMP"
+	.string	"Sample"
 .LC7:
-	.string	"Tune"
+	.string	"SMP"
 .LC8:
-	.string	"TUN"
+	.string	"Tune"
 .LC9:
-	.string	"Start"
+	.string	"TUN"
 .LC10:
-	.string	"STA"
+	.string	"Start"
 .LC11:
-	.string	"End"
+	.string	"STA"
 .LC12:
-	.string	"END"
+	.string	"End"
 .LC13:
-	.string	"Loop"
+	.string	"END"
 .LC14:
+	.string	"Loop"
+.LC15:
 	.string	"LOP"
 	.text
 	.align	2
@@ -307,58 +372,58 @@ dss_machine:
 	.byte	-1
 	.byte	-1
 	.word	0
-	.long	.LC1
 	.long	.LC2
 	.long	.LC3
 	.long	.LC4
+	.long	.LC5
 	.byte	0
 	.byte	127
 	.byte	100
 	.byte	0
-	.long	.LC5
 	.long	.LC6
+	.long	.LC7
 	.byte	0
 	.byte	127
 	.byte	0
 	.byte	0
-	.long	.LC7
 	.long	.LC8
+	.long	.LC9
 	.byte	40
 	.byte	88
 	.byte	64
 	.byte	1
-	.long	.LC9
 	.long	.LC10
-	.byte	0
-	.byte	127
-	.byte	0
-	.byte	0
-	.long	0
-	.long	0
-	.byte	0
-	.byte	0
-	.byte	0
-	.byte	0
-	.long	0
-	.long	0
-	.byte	0
-	.byte	0
-	.byte	0
-	.byte	0
 	.long	.LC11
+	.byte	0
+	.byte	127
+	.byte	0
+	.byte	0
+	.long	0
+	.long	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.long	0
+	.long	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
 	.long	.LC12
-	.byte	0
-	.byte	127
-	.byte	127
-	.byte	0
 	.long	.LC13
+	.byte	0
+	.byte	127
+	.byte	127
+	.byte	0
 	.long	.LC14
+	.long	.LC15
 	.byte	0
 	.byte	1
 	.byte	0
 	.byte	0
 	.text
-.LC15:
+.LC16:
 	.string	"SAMPLE"
 	.text
 	.align	2
@@ -369,7 +434,7 @@ dss_voice:
 	.byte	6
 	.byte	0
 	.byte	35
-	.long	.LC15
+	.long	.LC16
 	.long	0
 	.long	dss_words
 	.long	dss_page2
@@ -380,7 +445,7 @@ dss_voice:
 	.string	""
 	.globl	dss_page2
 	.text
-.LC16:
+.LC17:
 	.string	"DSP SAMPLE 2"
 	.text
 	.align	2
@@ -388,7 +453,7 @@ dss_voice:
 	.size	dss_page2, 40
 dss_page2:
 	.long	19
-	.long	.LC16
+	.long	.LC17
 	.long	__knobs
 	.long	__knobs+1
 	.long	0
@@ -402,29 +467,29 @@ dss_page2:
 dss_p2bip:
 	.string	"\001"
 	.text
-.LC17:
-	.string	"Fine Tune"
 .LC18:
+	.string	"Fine Tune"
+.LC19:
 	.string	"Velocity"
 	.text
 	.align	2
 	.type	dss_p2name, @object
 	.size	dss_p2name, 8
 dss_p2name:
-	.long	.LC17
 	.long	.LC18
+	.long	.LC19
 	.text
-.LC19:
-	.string	"FIN"
 .LC20:
+	.string	"FIN"
+.LC21:
 	.string	"VEL"
 	.text
 	.align	2
 	.type	dss_p2lab, @object
 	.size	dss_p2lab, 8
 dss_p2lab:
-	.long	.LC19
 	.long	.LC20
+	.long	.LC21
 	.type	dss_p2def, @object
 	.size	dss_p2def, 2
 dss_p2def:

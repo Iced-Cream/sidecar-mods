@@ -65,18 +65,34 @@ const struct core_machine dss_machine = {
  * when the Pi could not load it). SD TEST's records are 416..419 (sound indices 9..12), 420 / 421 (15, 16): SMP
  * (index 10) is 417. get and turn stay stock's. */
 #define DSS_SMP_ID 417
+#define DSS_END_ID 420     /* sound index 15 */
+#define DSS_LOP_ID 421     /* sound index 16 */
 #define DSS_TEXT 7         /* characters shown (ext measured about 7 on the knob) */
+
+/* a number as text, unsigned (stock's text for SD TEST's records is signed about 64) */
+static int32_t dss_num(char *b, int32_t v) {
+  char d[4];
+  int32_t n = 0, k = 0;
+  if (v < 0) v = 0;
+  do d[n++] = (char)('0' + v % 10), v /= 10; while (v && n < 3);
+  while (n) b[k++] = d[--n];
+  b[k] = 0;
+  return k;
+}
 
 static int dss_text(struct core_text *t) {
   int32_t v = t->value >> 8, k = 0, st;
   const char *s;
   char *b = t->buf;
+  /* (PV13A's emulator gate, 2026-11-10: END's record drew ERR, LOP's 000, SMP's number signed) */
+  if (t->id == DSS_END_ID) { dss_num(b, v); return CORE_TEXT_DONE; }
+  if (t->id == DSS_LOP_ID) { s = v ? "ON" : "OFF"; while (*s) b[k++] = *s++; b[k] = 0; return CORE_TEXT_DONE; }
   if (t->id != DSS_SMP_ID) return CORE_TEXT_PASS;
   if (v <= 0) s = "OFF";
   else {
     s = sc_sample_name(v - 1);
     st = sc_sample_state(v - 1);
-    if (!s || !s[0]) return CORE_TEXT_STOCK;     /* unknown or an empty entry: the number */
+    if (!s || !s[0]) { dss_num(b, v); return CORE_TEXT_DONE; }   /* unknown or an empty entry: the number */
     if (st == 4 || st == 5) b[k++] = '!';
   }
   while (*s && *s != '.' && k < DSS_TEXT) b[k++] = *s++;
@@ -84,7 +100,7 @@ static int dss_text(struct core_text *t) {
   return CORE_TEXT_DONE;
 }
 
-const struct core_param dss_params = {DSS_SMP_ID, DSS_SMP_ID, 0, 0, dss_text};
+const struct core_param dss_params = {DSS_SMP_ID, DSS_LOP_ID, 0, 0, dss_text};   /* 418, 419: passed */
 
 /* page 2's knobs: values through the companion (the current track's sound), labels, texts, dials */
 static int dss_p2get(int32_t id, int32_t *value) { return sc_voice_p2_get(&dss_voice, id - CORE_KNOB(0), value); }
