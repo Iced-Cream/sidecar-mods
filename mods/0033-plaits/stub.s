@@ -417,7 +417,7 @@ pl_machine:
 	.byte	1
 	.align	2
 	.type	pl_voice, @object
-	.size	pl_voice, 28
+	.size	pl_voice, 32
 pl_voice:
 	.byte	68
 	.byte	8
@@ -432,6 +432,7 @@ pl_voice:
 	.string	""
 	.string	""
 	.string	""
+	.zero	4
 	.globl	pl_page2
 	.text
 .LC35:

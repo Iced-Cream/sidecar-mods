@@ -21,6 +21,7 @@ struct sc_voice {          /* sidecar-core companion/voice.c */
   const struct core_page *page2;                          /* page 2 behind SRC (the companion's page id 19) */
   const uint8_t *p2def;
   uint8_t p2n, pad2[3];
+  const void *graph;     /* sidecar-core f6cf9b2: a voice graph; 0 here (one block). Keep this copy the same as voice.c's */
 };
 void sc_voice_engine(const struct sc_voice *d, int32_t v, void *frame, uint16_t *blk, int32_t pitch);
 int32_t sc_voice_p2_get(const struct sc_voice *d, int32_t k, int32_t *value);

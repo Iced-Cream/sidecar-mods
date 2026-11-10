@@ -428,7 +428,7 @@ dss_machine:
 	.text
 	.align	2
 	.type	dss_voice, @object
-	.size	dss_voice, 28
+	.size	dss_voice, 32
 dss_voice:
 	.byte	69
 	.byte	6
@@ -443,6 +443,7 @@ dss_voice:
 	.string	""
 	.string	""
 	.string	""
+	.zero	4
 	.globl	dss_page2
 	.text
 .LC17:

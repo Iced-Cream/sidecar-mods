@@ -456,7 +456,7 @@ ds_machine:
 	.byte	1
 	.align	2
 	.type	ds_voice, @object
-	.size	ds_voice, 28
+	.size	ds_voice, 32
 ds_voice:
 	.byte	81
 	.byte	8
@@ -471,6 +471,7 @@ ds_voice:
 	.string	""
 	.string	""
 	.string	""
+	.zero	4
 	.globl	ds_page2
 	.text
 .LC32:
