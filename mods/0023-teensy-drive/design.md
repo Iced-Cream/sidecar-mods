@@ -1,6 +1,8 @@
 # 0023-teensy-drive: the Teensy's SD card in the Rytm's own file browser
 
-Status: milestones 1-3 built and checked in rytm-emu (2026-10-08).
+Status: milestones 1-3 built and checked in rytm-emu (2026-10-08). Since 2026-11-10 a client of the companion
+(sidecar-core) on core-ar2 0.13, browse only: see "On the companion" at the end. The sections between are the
+history (OS 1.73 addresses, the Teensy, the pool).
 
 ## Goal
 
@@ -332,3 +334,32 @@ now `SIDECAR` (the Sidecar may be a Pi or a Teensy). One byte longer; it still f
 96 KB spare in rui1021). Nothing on the host side names the folder (the Sidecar answers by folder number), so no
 host change. A real root folder named TEENSY on a card is now an ordinary folder; one named SIDECAR is refused as
 TEENSY was. `td_emu.py` sfx1021 passes [measured, rytm-emu].
+
+## On the companion (2026-11-10)
+
+teensy-drive is a plain client of the companion on core-ar2 0.13 (the 2026-11-07 goal: every Sidecar mod either
+in core / the engine, or a sidecar-core client; this one needs no graph). What changed:
+
+- **In elekloader's area** (`area = "elek"`): no caves. The registry keeps the detours and patches; build.py hands
+  them to elekloader as jmp sites into the area. The 16 KB listing cache is `.bss` in the area (was the firmware's
+  allocator).
+- **In: the companion's router.** `[[sidecar.cmds]]` 0E with `handler = "td_sysex"` (a direct table entry), not
+  the fixed-address mailbox 'TDRV' at 0x401b9d18.
+- **Out: core-ar2's sender.** 0D goes with `core_midi_try_send` (never waits; refused while the port is down, a stock
+  SysEx is open or the requests are short), not stock's MIDI lock and USB send with the mod's own free-list walk.
+  With `core_usb_midi_up()` false nothing is asked and nothing waited for: SIDECAR opens empty at once.
+- **Time:** the mod counts its `ev_tick` calls (about 20 Hz) instead of reading the audio block counter. The ask
+  stays 400 ms at most, the give-up 60 s, the re-ask once a second.
+- **Left with their Pi side** (the engine strip of 2026-11-04 kept only core/browse, 0D -> 0E): the pool. LOAD TO
+  PROJ's 0F pool add and the project name 10 (td_ref, td_project), the slot list's pool (12/13/14, the six slot
+  list patches, td_pool_tab for ext's user slots, `slots` and `linked_params`). LOAD TO PROJ on a SIDECAR file
+  now gets a reference that the load guard refuses: nothing is loaded and nothing reaches the Pi. A sample source
+  for Pi voices (DSP SAMPLE) would come back as a companion or engine service, not as this pool.
+- **Kept as they were:** the five wrappers, the fake nodes, the milestone 4 guards (id -> path, a reference's check,
+  the load, mkdir, a new root entry named SIDECAR, CREATE DIR), the prefetch and the wait (stock's `sleep_us`).
+
+Still stock calls of the mod's own, because core-ar2 0.13 has no call for them (asked as core needs, 2026-11-10):
+the +Drive's filesystem and browser (readdir, resolve, exists, the two sizes, id -> path, a reference's check, the
+load, mkdir, the folder link, CREATE DIR's and LOAD TO PROJ's call sites) and a wait that blocks only the UI task
+(`sleep_us`). Not tested on the move yet: a build with the stock file, the emulator suite (tools/emu/td_emu.py,
+which still drives the old mailbox), a unit.

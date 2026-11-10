@@ -1,52 +1,43 @@
 [mod]
 id      = "0023-teensy-drive"
-title   = "TEENSY: the Teensy's SD card as a folder in the Rytm's own file browser"
+title   = "teensy-drive: the Sidecar's card as a folder SIDECAR in the Rytm's own file browser"
 
 enabled = false
 
-# 0020-dmach and 0023 never share an image with 0021's DAISYSP builds that use
-# 0020's caves; 0023 uses cave16's rest after 0021.
-excludes = ["0020-dmach"]
-
-# linked with 0021-ext's slots (build.py refuses a mismatch; --param slots=N sets all).
-linked_params = ["slots"]
+# code in elekloader's DDR area, a client of the companion (0032-sidecar): its router brings the Pi's 0E listings
+area    = "elek"
 
 # re-only | built | hardware-verified | retracted
 status  = "built"
 
 summary = """
-GLOBAL > SAMPLES (and the other +Drive browsers) list a folder TEENSY after the
-+Drive's own. Milestone 1: a fixed test listing (two folders, five files) served
-by wrapping the filesystem's readdir, node resolve, exists and the two size
-functions for ids 0x7E......; the +Drive's own entries untouched. Later: the
-Teensy's real listings over SysEx, and LOAD TO PROJ adding to a Teensy pool.
-Reads only; writes inside TEENSY refused (milestone 4). Emulator only (rytm-emu, 2026-10-08).
+GLOBAL > SAMPLES (and the other +Drive browsers) list a folder SIDECAR after the +Drive's own: the Pi's card
+(/Samples), browsed with the browser's own keys, folders and files with sizes. Served by wrapping the filesystem's
+readdir, node resolve, exists and the two size functions for ids 0x7E......; the +Drive's own entries untouched;
+nothing written (the milestone 4 guards). Listings from the Pi's card browse service (0D -> 0E, sidecar-firmware
+core/browse), asked with core-ar2's core_midi_try_send, answered through the companion's router. A companion client
+on core-ar2 0.13 since 2026-11-10 (design.md, "On the companion"); the pool (LOAD TO PROJ to the Sidecar, 0F/10/12..14)
+left with its Pi side.
 """
 
 [sources]
 stub = "stub.s"      # generated from teensy_drive.c by build.sh
 
+[params]
+
+[elek]
+core = "core-ar2"
+subscribe = [
+  { event = "ev_tick", fn = "td_tick", order = 80 },
+]
+
 [requires]
 shared = false
 symbols = []
-# the Teensy's 0E listings and 14 tables reach it only through the companion's SysEx router (0032, until the companion
-# phase 0022's); elekloader's `requires` (with what build.py finds in the bytes; tools/build.py cross_refs)
 mods = ["0032-sidecar"]
 
-[params]
-# slots: 1 is the 12 B mailbox with td_pool_tab for 0021's user slots; 0 (default): c127fe8's 8 B one.
-slots = 0
-
-# The host commands this mod takes, in the companion's table (mods/0032-sidecar, tools/build.py): listings (0E) and the
-# project's pool table (14), to the mailbox at its fixed address 0x401b9d18 ('TDRV' + the handler, written at run time).
+# The Pi's 0E listings, through the companion's router straight to td_sysex.
 [[sidecar.cmds]]
-first = 0x0e
-last  = 0x0e
-magic = "TDRV"
-box   = 0x401b9d18
-
-[[sidecar.cmds]]
-first = 0x14
-last  = 0x14
-magic = "TDRV"
-box   = 0x401b9d18
+first   = 0x0e
+last    = 0x0e
+handler = "td_sysex"
