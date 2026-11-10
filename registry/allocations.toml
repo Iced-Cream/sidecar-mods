@@ -6068,7 +6068,7 @@ size        = 4
 expect_len  = 4
 expect_sha256 = "9c63a1dfad0bc3f5a2cd8299c4b13e51111878bbb8f51d8aa1c377940db6c5ea"
 from_symbol = "td_ref_entry"
-note        = "the load job's jsr 0x4007e698 (entry -> file reference): card files get a reference holding only their id, which td_load_entry refuses (nothing loaded; the pool add 0F left 2026-11-10)"
+note        = "the load job's jsr 0x4007e698 (entry -> file reference): card files go to the Pi's sample pool (51 3D SADDB) and get a marked reference td_load_entry counts as loaded; with the link closed a plain one it refuses"
 
 # Milestone 4 guards (design.md, "Safety"): the load function itself, id ->
 # path, a reference's check, and CREATE DIR inside TEENSY.
@@ -6080,9 +6080,9 @@ expect_len = 8
 expect_sha256 = "ef357f93f8cca2f2e1a60a032d4132c96e6be1df4357eff41e0165d1845ea0e4"
 entry  = "td_load_entry"
 elek_size = 8   # the area build: the 6-byte jmp would end mid-instruction; the stub re-emits all 8 bytes
-# load(manager, &ref, slot): a card reference (the load job's, td_ref, or any
-# other) fails before the stock code copies it into the slot (since 2026-11-10 none
-# counts as loaded: the pool left). td_load_entry re-emits link/moveml.
+# load(manager, &ref, slot): a marked reference (td_ref's, sent to the Pi's sample
+# pool) counts as loaded; any other card reference fails before the stock code copies
+# it into the slot. td_load_entry re-emits link/moveml.
 
 [[detour]]
 owner  = "0023-teensy-drive"

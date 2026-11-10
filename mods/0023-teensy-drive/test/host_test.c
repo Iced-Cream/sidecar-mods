@@ -8,6 +8,7 @@ static int sent, usb_up = 1, sleeps, answer_after = -1, stock_root_left;
 static uint8_t last[16];
 int core_midi_try_send(int len, const unsigned char *m) { memcpy(last, m, len < 16 ? len : 16); ++sent; return 1; }
 int core_usb_midi_up(void) { return usb_up; }
+int32_t sc_sample_add_ref(uint32_t owner, uint32_t folder, uint32_t file) { (void)owner; (void)folder; (void)file; return 1; }
 static void fake_answer(void);
 static void host_sleep(uint32_t us) { (void)us; if (++sleeps == answer_after) fake_answer(); }
 #define SLEEP_US host_sleep
@@ -119,6 +120,8 @@ int main(void) {
     uint8_t b[8] = {0xf0, 0x7d, 0x52, 0x54, 0x0e, 0, 0, 0xf7};
     CHECK(td_sysex(b, 8) == 0, "a short 0E is refused");
   }
+
+  /* td_ref (LOAD TO PROJ) reads the browser model's 32-bit pointers: covered in the emulator, not here */
 
   printf(fails ? "%d FAILED\n" : "ALL PASS\n", fails);
   return fails != 0;

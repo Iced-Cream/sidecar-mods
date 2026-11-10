@@ -165,6 +165,11 @@ td_mkdir_guard:
 td_load_entry:
   moveal %sp@(8),%a0
   movel %a0@,%d0
+  cmpil #0x7E504F4F,%d0
+  jne 2f
+  moveq #1,%d0
+  rts
+2:
   andil #0xFF000000,%d0
   cmpil #0x7E000000,%d0
   jne 3f
@@ -783,35 +788,66 @@ td_count:
 td_ref:
 	move.l %a2,-(%sp)
 	move.l 16(%sp),%d0
-	move.l 8(%sp),%a1
-	move.l 12(%sp),%a2
+	move.l 8(%sp),%a2
+	move.l 12(%sp),%a1
 	tst.l %d0
-	jlt .L97
+	jlt .L99
 	lsl.l #3,%d0
-	move.l 260(%a2),%a0
+	move.l 260(%a1),%a0
 	add.l %d0,%a0
-	cmp.l 264(%a2),%a0
-	jcc .L97
+	cmp.l 264(%a1),%a0
+	jcc .L99
 	move.l (%a0),%a0
 	tst.l %a0
-	jeq .L97
+	jeq .L99
 	move.l (%a0),%d0
 	move.l %d0,%d1
 	and.l #-8388608,%d1
 	cmp.l #2122317824,%d1
-	jne .L97
-	move.l %d0,(%a1)
-	clr.l 12(%a1)
-	clr.l 8(%a1)
-	clr.l 4(%a1)
+	jne .L99
+	move.l %d0,%d1
+	and.l #4095,%d1
+	move.l %d0,(%a2)
+	move.l %d0,4(%a2)
+	clr.l 12(%a2)
+	clr.l 8(%a2)
+	move.l %d1,-(%sp)
+	moveq #12,%d1
+	lsr.l %d1,%d0
+	and.l #1023,%d0
+	move.l %d0,-(%sp)
+	pea 35.w
+	jsr sc_sample_add_ref
+	lea (12,%sp),%sp
+	tst.l %d0
+	jlt .L94
+	move.l #2119192399,(%a2)
+	addq.l #1,td_adds
+.L95:
 	mov3q.l #1,%d0
 .L92:
 	move.l (%sp)+,%a2
 	rts
-.L97:
+.L94:
+	addq.l #1,td_add_fails
+	jra .L95
+.L99:
 	clr.l %d0
 	jra .L92
 	.size	td_ref, .-td_ref
+	.globl	td_add_fails
+	.section	.bss,"aw",@nobits
+	.align	4
+	.type	td_add_fails, @object
+	.size	td_add_fails, 4
+td_add_fails:
+	.zero	4
+	.globl	td_adds
+	.align	4
+	.type	td_adds, @object
+	.size	td_adds, 4
+td_adds:
+	.zero	4
 	.globl	td_file_node
 	.text
 	.align	2
@@ -855,7 +891,7 @@ td_dotdot:
 	.size	td_dot, 2
 td_dot:
 	.string	"."
-	.section	.bss,"aw",@nobits
+	.section	.bss
 	.align	4
 	.type	td_now, @object
 	.size	td_now, 4

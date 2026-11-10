@@ -26,9 +26,9 @@
  * that did not answer within a wait is not waited for again for 60 s; with the USB port down nothing is asked and
  * nothing waited for. Time is counted in ev_tick calls (about 20 Hz), the mod's own clock.
  *
- * Gone with the move (no Pi side since the engine strip, 2026-11-04): the pool (LOAD TO PROJ -> 0F, the project's
- * name 10, the slot list's pool 12/13/14, td_pool_tab for ext's user slots). LOAD TO PROJ on a card file now
- * loads nothing (the load guard refuses its reference).
+ * LOAD TO PROJ on card files adds them to the project's sample pool on the Pi (the Pi's sample service through the
+ * companion's sc_sample_add_ref, 2026-11-10; td_ref below); DSP SAMPLE plays the pool. Gone with the move: ext's
+ * old pool (0F, the project name 10, the slot list's pool 12/13/14, td_pool_tab for ext's user slots).
  */
 #include <stdint.h>
 #ifdef TD_HOST
@@ -37,6 +37,11 @@ int core_usb_midi_up(void);
 #else
 #include "analog-rytm-mk2/moments.h"
 #endif
+/* sidecar-core companion/samples.c (pi-voices 10dce29): 51 3D SADDB, a file of the Pi's browse listing into the
+   project's sample pool on the Pi; -1 when the link is closed or its queue full */
+extern int32_t sc_sample_add_ref(uint32_t owner, uint32_t folder, uint32_t file);
+#define TD_OWNER 0x23                 /* the Pi ops' owner byte */
+#define POOL_MARK 0x7E504F4Fu         /* "~POO": a reference the load guard counts as loaded */
 
 #define TID 0x7E000000u
 #define IS_TID(id) (((uint32_t)(id) & 0xFF000000u) == TID)
@@ -277,17 +282,31 @@ int32_t td_count(uint32_t id) {
 
 /* LOAD TO PROJ's job (the lambda at 0x400ea77c [1.73]) asks 0x4007e698(model, index) for each ticked entry's
    16-byte file reference; its one call site comes here (registry patch, not the function: the browser calls it per
-   visible row). A card file gets a reference holding only its id, which the load guard (td_load_entry) refuses
-   before stock copies it into a slot: nothing is loaded. 0: not a card file, stock's. */
+   visible row). A card file goes into the project's sample pool on the Pi (the companion's sample client, 51 3D
+   SADDB by this listing's folder number and file id; the Pi reads the file's whole name itself) and gets a marked
+   reference, which the load guard (td_load_entry) counts as loaded without touching the Rytm's sample memory: the
+   job's "N SAMPLES LOADED" counts the adds sent. The Pi's answer (index, or full / no file) is the companion's
+   (sc_sample_result); DSP SAMPLE shows the pool by name. With the link closed or its queue full the reference holds
+   only the id and the guard refuses it: nothing counted. 0: not a card file, stock's. */
+uint32_t td_adds TD_BSS, td_add_fails TD_BSS;   /* SADDB sent / not sent (link closed, queue full) */
 int32_t td_ref(uint32_t *out, const uint8_t *model, int32_t index) {
   const uint8_t *begin = *(const uint8_t *const *)(model + 260);
   const uint8_t *end = *(const uint8_t *const *)(model + 264);
   const struct rec *r;
+  uint32_t id;
   if (index < 0 || begin + 8 * index >= end) return 0;
   r = *(const struct rec *const *)(begin + 8 * index);
   if (!r || !IS_TID(r->id) || !(r->id & FILE_BIT)) return 0;
-  out[0] = r->id;
-  out[1] = out[2] = out[3] = 0;
+  id = r->id;
+  out[0] = id;
+  out[1] = id;
+  out[2] = out[3] = 0;
+  if (sc_sample_add_ref(TD_OWNER, (id >> 12) & 0x3ff, id & 0xfff) >= 0) {
+    out[0] = POOL_MARK;
+    ++td_adds;
+  } else {
+    ++td_add_fails;
+  }
   return 1;
 }
 
@@ -467,11 +486,17 @@ __asm__(
 __asm__(
     "  .pushsection .td3,\"ax\"\n"
     "  .align 2\n"
-    /* 0x400b719a(manager, &ref, slot): a card reference fails (0) before the stock code copies it into the slot */
+    /* 0x400b719a(manager, &ref, slot): a marked reference (td_ref's, added to the Pi's pool) counts as loaded (1);
+       another card reference fails (0) before the stock code copies it into the slot */
     "  .globl td_load_entry\n"
     "td_load_entry:\n"
     "  moveal %sp@(8),%a0\n"
     "  movel %a0@,%d0\n"
+    "  cmpil #0x7E504F4F,%d0\n"
+    "  jne 2f\n"
+    "  moveq #1,%d0\n"
+    "  rts\n"
+    "2:\n"
     "  andil #0xFF000000,%d0\n"
     "  cmpil #0x7E000000,%d0\n"
     "  jne 3f\n"

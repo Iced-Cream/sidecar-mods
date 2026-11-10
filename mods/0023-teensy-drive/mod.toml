@@ -16,8 +16,8 @@ GLOBAL > SAMPLES (and the other +Drive browsers) list a folder SIDECAR after the
 readdir, node resolve, exists and the two size functions for ids 0x7E......; the +Drive's own entries untouched;
 nothing written (the milestone 4 guards). Listings from the Pi's card browse service (0D -> 0E, sidecar-firmware
 core/browse), asked with core-ar2's core_midi_try_send, answered through the companion's router. A companion client
-on core-ar2 0.13 since 2026-11-10 (design.md, "On the companion"); the pool (LOAD TO PROJ to the Sidecar, 0F/10/12..14)
-left with its Pi side.
+on core-ar2 0.13 since 2026-11-10 (design.md, "On the companion"). LOAD TO PROJ on SIDECAR files adds them to the
+project's sample pool on the Pi (the companion's sc_sample_add_ref, 51 3D SADDB), which DSP SAMPLE plays.
 """
 
 [sources]

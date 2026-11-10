@@ -350,11 +350,18 @@ in core / the engine, or a sidecar-core client; this one needs no graph). What c
   With `core_usb_midi_up()` false nothing is asked and nothing waited for: SIDECAR opens empty at once.
 - **Time:** the mod counts its `ev_tick` calls (about 20 Hz) instead of reading the audio block counter. The ask
   stays 400 ms at most, the give-up 60 s, the re-ask once a second.
-- **Left with their Pi side** (the engine strip of 2026-11-04 kept only core/browse, 0D -> 0E): the pool. LOAD TO
-  PROJ's 0F pool add and the project name 10 (td_ref, td_project), the slot list's pool (12/13/14, the six slot
-  list patches, td_pool_tab for ext's user slots, `slots` and `linked_params`). LOAD TO PROJ on a SIDECAR file
-  now gets a reference that the load guard refuses: nothing is loaded and nothing reaches the Pi. A sample source
-  for Pi voices (DSP SAMPLE) would come back as a companion or engine service, not as this pool.
+- **Left with their Pi side** (the engine strip of 2026-11-04 kept only core/browse, 0D -> 0E): ext's old pool. The
+  0F pool add and the project name 10 (td_project), the slot list's pool (12/13/14, the six slot list patches,
+  td_pool_tab for ext's user slots, `slots` and `linked_params`).
+- **LOAD TO PROJ -> the Pi's sample pool** (branch teensy-drive-samples, on plaits-voice; the Pi's generic sample
+  service, decided 2026-11-10): td_ref sends `51 3D SADDB <seq> <owner 0x23> <folder hi lo> <file hi lo>` through
+  the companion's `sc_sample_add_ref` for each ticked SIDECAR file, by the listing's own ids, so the Pi resolves the
+  file's whole name (core/browse cuts listed names at 23 characters) and adds it to the project's pool (128 entries,
+  kept per project ID on the Pi). The reference comes back marked ("~POO") and the load guard counts it as loaded:
+  "N SAMPLES LOADED" counts the adds sent, nothing goes into the Rytm's sample memory. The Pi's answer (the index,
+  or 3 full / 5 path too long / 9 no file) is the companion's (`sc_sample_result`), not shown by the browser. With
+  the link closed the reference is refused as before (td_add_fails counts it). DSP SAMPLE (0035) shows and plays
+  the pool.
 - **Kept as they were:** the five wrappers, the fake nodes, the milestone 4 guards (id -> path, a reference's check,
   the load, mkdir, a new root entry named SIDECAR, CREATE DIR), the prefetch and the wait (stock's `sleep_us`).
 
