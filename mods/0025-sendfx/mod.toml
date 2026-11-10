@@ -42,6 +42,14 @@ contribute = [
   { to = "core_view_pages", order = 20, sym = "sfx_view_amp2" },
   { to = "core_view_pages", order = 20, sym = "sfx_view_fx1" },
   { to = "core_view_pages", order = 20, sym = "sfx_view_fx2" },
+  # core-ar2 0.13: how the knobs 560..573 are drawn (sfx.c sfx_look_*)
+  { to = "core_knob_looks", order = 50, sym = "sfx_look_send" },
+  { to = "core_knob_looks", order = 50, sym = "sfx_look_type1" },
+  { to = "core_knob_looks", order = 50, sym = "sfx_look_type2" },
+  { to = "core_knob_looks", order = 50, sym = "sfx_look_route1" },
+  { to = "core_knob_looks", order = 50, sym = "sfx_look_route2" },
+  { to = "core_knob_looks", order = 50, sym = "sfx_look_p1" },
+  { to = "core_knob_looks", order = 50, sym = "sfx_look_p2" },
 ]
 
 [requires]

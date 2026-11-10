@@ -2348,6 +2348,83 @@ sfx_view_amp2:
 	.long	3
 	.long	16
 	.long	sfx_on_voice
+	.globl	sfx_look_p2
+	.align	2
+	.type	sfx_look_p2, @object
+	.size	sfx_look_p2, 24
+sfx_look_p2:
+	.long	570
+	.long	573
+	.long	94
+	.long	0
+	.long	0
+	.long	0
+	.globl	sfx_look_p1
+	.align	2
+	.type	sfx_look_p1, @object
+	.size	sfx_look_p1, 24
+sfx_look_p1:
+	.long	564
+	.long	567
+	.long	94
+	.long	0
+	.long	0
+	.long	0
+	.globl	sfx_look_route2
+	.align	2
+	.type	sfx_look_route2, @object
+	.size	sfx_look_route2, 24
+sfx_look_route2:
+	.long	569
+	.long	569
+	.long	457
+	.long	0
+	.long	0
+	.long	0
+	.globl	sfx_look_route1
+	.align	2
+	.type	sfx_look_route1, @object
+	.size	sfx_look_route1, 24
+sfx_look_route1:
+	.long	563
+	.long	563
+	.long	457
+	.long	0
+	.long	0
+	.long	0
+	.globl	sfx_look_type2
+	.align	2
+	.type	sfx_look_type2, @object
+	.size	sfx_look_type2, 24
+sfx_look_type2:
+	.long	568
+	.long	568
+	.long	94
+	.long	0
+	.long	0
+	.long	1280
+	.globl	sfx_look_type1
+	.align	2
+	.type	sfx_look_type1, @object
+	.size	sfx_look_type1, 24
+sfx_look_type1:
+	.long	562
+	.long	562
+	.long	94
+	.long	0
+	.long	0
+	.long	1280
+	.globl	sfx_look_send
+	.align	2
+	.type	sfx_look_send, @object
+	.size	sfx_look_send, 24
+sfx_look_send:
+	.long	560
+	.long	561
+	.long	94
+	.long	0
+	.long	0
+	.long	0
 	.globl	sfx_locks
 	.align	2
 	.type	sfx_locks, @object
