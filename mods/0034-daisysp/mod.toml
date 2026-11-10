@@ -28,11 +28,19 @@ payload = "blob/build/daisysp.scx"    # built by blob/build.sh (never committed)
 
 [elek]
 core = "core-ar2"
+# page 2's knob ids (core-ar2 0.13: n ids in a row from 555, CORE_KNOB(k))
+knobs = 3
 contribute = [
   # the machine (core-ar2 0.13: slots 34..52; elekloader names it as the resource machine:51)
   { to = "core_machines", order = 50, sym = "ds_machine" },
   # ENG's and INP's value texts (records 450 and 454, CY TEST's ENG and INP)
   { to = "core_params", order = 50, sym = "ds_params" },
+  # page 2 (the companion's page 19 behind SRC shows ds_page2): values, labels, dials
+  { to = "core_params", order = 50, sym = "ds_p2params" },
+  { to = "core_param_locks", order = 50, sym = "ds_p2names" },
+  { to = "core_knob_looks", order = 50, sym = "ds_look0" },
+  { to = "core_knob_looks", order = 50, sym = "ds_look1" },
+  { to = "core_knob_looks", order = 50, sym = "ds_look2" },
   # the blob for the companion's code service: {owner 0x51, flags 0, pad, address, length 0 = its SCX header's}
   { to = "sc_code", order = 50, sym = "ds_scx", data = "510000000000000000000000", at = 4 },
 ]

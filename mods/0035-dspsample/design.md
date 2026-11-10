@@ -40,14 +40,20 @@ filter, overdrive and amp shape it, as on every Pi voice.
 (teensy-drive, thread "Move teensy-drive onto sidecar-core 0.13") is the place to pick a file from the Pi's card and
 LOAD TO PROJ it, as ext's pool did. Until it does, a pool can be filled only by a client that calls the add.
 
+## Page 2
+
+Behind the SRC key (2026-11-10, Connor's pick): the companion's voice page (its page id 19, shared by every voice mod)
+shows "DSP SAMPLE 2" on the track that runs it (SD). Knobs: FIN (cents, bipolar), VEL (velocity onto level: SAMPLE's P7), on this mod's own knob ids (core-ar2 0.13 `knobs = 2`). The values
+are the sound's (this mod's section 35 of the companion's sound record), 0..127, sent to the Pi as the block's params 6, 7 (FIN, VEL)
+in every trig and when they change. No p-locks on page 2 yet [code]. Whether stock's SRC key steps to a listed page on
+1.74 is [I] (ext measured a second SRC press opening the machine list): the emulator gate checks it.
+
 ## Not carried over from ext (yet)
 
 - The resonator (ext's ENG STR BRI DMP MIX FB on the SRC page): a graph of SAMPLE into a resonator block, once the voice
   service places a chain and SD TEST's six records have room (page 2).
-- The SMPL page (ext's SD SAMPLE: TUN FIN SMP / STA END LOP LEV, MOD's seven modes ONE LOOP SLICE GRAIN STRCH PLUCK
-  WAVE): needs a voice page 2 (the same gap as PLAITS's and DAISYSP's) and the modes in SAMPLE.
+- MOD's seven modes (ONE LOOP SLICE GRAIN STRCH PLUCK WAVE): SAMPLE has one shot and loop only.
 - SMP banks (ext's record 441, index << 8 | bank << 5): the pool is 128 entries, SMP's range.
-- Velocity: SAMPLE ignores it; the Rytm's amp does what its velocity routes say.
 
 ## Tests
 

@@ -5,6 +5,110 @@
 	.file	"dspsample.c"
 	.text
 	.align	2
+	.type	dss_p2text, @function
+dss_p2text:
+	lea (-16,%sp),%sp
+	mov3q.l #1,%d1
+	move.l 20(%sp),%a0
+	movem.l #1036,(%sp)
+	move.l 4(%a0),%d0
+	sub.l #__knobs,%d0
+	cmp.l %d0,%d1
+	jcs .L8
+	move.l 8(%a0),%d1
+	asr.l #8,%d1
+	move.l 12(%a0),%a0
+	lea dss_p2bip,%a2
+	lea (1,%a0),%a1
+	tst.b (%a2,%d0.l)
+	jeq .L9
+	move.l %d1,%d0
+	add.l #-64,%d0
+	tst.l %d0
+	jge .L4
+	move.b #45,(%a0)
+	moveq #64,%d0
+	sub.l %d1,%d0
+.L18:
+	move.l %a1,%a0
+.L3:
+	lea (12,%sp),%a1
+	clr.l %d1
+	move.l %a1,%a2
+.L6:
+	moveq #10,%d3
+	addq.l #1,%d1
+	rems.l %d3,%d2:%d0
+	divs.l %d3,%d0
+	add.l #48,%d2
+	move.b %d2,(%a1)+
+	tst.l %d0
+	jeq .L5
+	mov3q.l #3,%d2
+	cmp.l %d1,%d2
+	jne .L6
+.L5:
+	move.l %a0,%a1
+	move.l %d1,%d0
+.L7:
+	subq.l #1,%d0
+	move.b (%a2,%d0.l),(%a1)+
+	tst.l %d0
+	jne .L7
+	clr.b %d3
+	mov3q.l #1,%d0
+	move.b %d3,(%a0,%d1.l)
+.L1:
+	movem.l (%sp),#1036
+	lea (16,%sp),%sp
+	rts
+.L4:
+	tst.l %d0
+	jeq .L3
+	move.b #43,(%a0)
+	jra .L18
+.L9:
+	move.l %d1,%d0
+	jra .L3
+.L8:
+	clr.l %d0
+	jra .L1
+	.size	dss_p2text, .-dss_p2text
+	.align	2
+	.type	dss_p2label, @function
+dss_p2label:
+	move.l 4(%sp),%d0
+	mov3q.l #1,%d1
+	sub.l #__knobs,%d0
+	cmp.l %d0,%d1
+	jcs .L21
+	lea dss_p2lab,%a0
+	move.l (%a0,%d0.l*4),%a0
+.L19:
+	move.l %a0,%d0
+	rts
+.L21:
+	sub.l %a0,%a0
+	jra .L19
+	.size	dss_p2label, .-dss_p2label
+	.align	2
+	.type	dss_p2long, @function
+dss_p2long:
+	move.l 4(%sp),%d0
+	mov3q.l #1,%d1
+	sub.l #__knobs,%d0
+	cmp.l %d0,%d1
+	jcs .L24
+	lea dss_p2name,%a0
+	move.l (%a0,%d0.l*4),%a0
+.L22:
+	move.l %a0,%d0
+	rts
+.L24:
+	sub.l %a0,%a0
+	jra .L22
+	.size	dss_p2long, .-dss_p2long
+	.align	2
 	.type	dss_engine, @function
 dss_engine:
 	move.l 16(%sp),-(%sp)
@@ -28,13 +132,13 @@ dss_text:
 	move.l 16(%sp),%a0
 	movem.l #3076,(%sp)
 	cmp.l 4(%a0),%d0
-	jne .L8
+	jne .L32
 	move.l 8(%a0),%d2
 	asr.l #8,%d2
 	move.l 12(%a0),%a3
 	lea .LC0,%a2
 	tst.l %d2
-	jle .L12
+	jle .L36
 	subq.l #1,%d2
 	move.l %d2,-(%sp)
 	jsr sc_sample_name
@@ -43,50 +147,115 @@ dss_text:
 	jsr sc_sample_state
 	addq.l #8,%sp
 	tst.l %a2
-	jeq .L11
+	jeq .L35
 	tst.b (%a2)
-	jeq .L11
+	jeq .L35
 	subq.l #4,%d0
 	lsr.l #1,%d0
-	jne .L12
+	jne .L36
 	move.b #33,(%a3)
 	mov3q.l #1,%a1
-.L4:
+.L28:
 	sub.l %a1,%a2
-.L5:
+.L29:
 	move.b (%a2,%a1.l),%d0
-	jeq .L6
+	jeq .L30
 	mvs.b %d0,%d1
 	moveq #46,%d2
 	cmp.l %d1,%d2
-	jeq .L6
+	jeq .L30
 	mov3q.l #7,%d1
 	cmp.l %a1,%d1
-	jne .L7
-.L6:
+	jne .L31
+.L30:
 	clr.b %d2
 	mov3q.l #1,%d0
 	move.b %d2,(%a3,%a1.l)
-.L2:
+.L26:
 	movem.l (%sp),#3076
 	lea (12,%sp),%sp
 	rts
-.L12:
+.L36:
 	sub.l %a1,%a1
-	jra .L4
-.L7:
+	jra .L28
+.L31:
 	move.b %d0,(%a3,%a1.l)
 	addq.l #1,%a1
-	jra .L5
-.L8:
+	jra .L29
+.L32:
 	clr.l %d0
-	jra .L2
-.L11:
+	jra .L26
+.L35:
 	mov3q.l #2,%d0
-	jra .L2
+	jra .L26
 	.size	dss_text, .-dss_text
-	.globl	dss_params
+	.align	2
+	.type	dss_p2delta, @function
+dss_p2delta:
+	move.l #dss_voice,%d0
+	sub.l #__knobs,8(%sp)
+	move.l %d0,4(%sp)
+	jra sc_voice_p2_turn
+	.size	dss_p2delta, .-dss_p2delta
+	.align	2
+	.type	dss_p2get, @function
+dss_p2get:
+	move.l 8(%sp),-(%sp)
+	move.l 8(%sp),%d0
+	sub.l #__knobs,%d0
+	move.l %d0,-(%sp)
+	pea dss_voice
+	jsr sc_voice_p2_get
+	lea (12,%sp),%sp
+	rts
+	.size	dss_p2get, .-dss_p2get
+	.globl	dss_look1
 	.text
+	.align	2
+	.type	dss_look1, @object
+	.size	dss_look1, 24
+dss_look1:
+	.long	__knobs+1
+	.long	__knobs+1
+	.long	408
+	.long	0
+	.long	0
+	.long	32512
+	.globl	dss_look0
+	.align	2
+	.type	dss_look0, @object
+	.size	dss_look0, 24
+dss_look0:
+	.long	__knobs
+	.long	__knobs
+	.long	40
+	.long	0
+	.long	0
+	.long	32512
+	.globl	dss_p2names
+	.align	2
+	.type	dss_p2names, @object
+	.size	dss_p2names, 32
+dss_p2names:
+	.long	__knobs
+	.long	__knobs+1
+	.long	0
+	.long	0
+	.long	0
+	.long	0
+	.long	dss_p2label
+	.long	dss_p2long
+	.globl	dss_p2params
+	.align	2
+	.type	dss_p2params, @object
+	.size	dss_p2params, 20
+dss_p2params:
+	.long	__knobs
+	.long	__knobs+1
+	.long	dss_p2get
+	.long	dss_p2delta
+	.long	dss_p2text
+	.globl	dss_params
 	.align	2
 	.type	dss_params, @object
 	.size	dss_params, 20
@@ -192,15 +361,72 @@ dss_machine:
 	.text
 	.align	2
 	.type	dss_voice, @object
-	.size	dss_voice, 16
+	.size	dss_voice, 28
 dss_voice:
 	.byte	69
 	.byte	6
 	.byte	0
-	.byte	0
+	.byte	35
 	.long	.LC15
 	.long	0
 	.long	dss_words
+	.long	dss_page2
+	.long	dss_p2def
+	.byte	2
+	.string	""
+	.string	""
+	.string	""
+	.globl	dss_page2
+	.text
+.LC16:
+	.string	"DSP SAMPLE 2"
+	.text
+	.align	2
+	.type	dss_page2, @object
+	.size	dss_page2, 40
+dss_page2:
+	.long	19
+	.long	.LC16
+	.long	__knobs
+	.long	__knobs+1
+	.long	0
+	.long	0
+	.long	0
+	.long	0
+	.long	0
+	.long	0
+	.type	dss_p2bip, @object
+	.size	dss_p2bip, 2
+dss_p2bip:
+	.string	"\001"
+	.text
+.LC17:
+	.string	"Fine Tune"
+.LC18:
+	.string	"Velocity"
+	.text
+	.align	2
+	.type	dss_p2name, @object
+	.size	dss_p2name, 8
+dss_p2name:
+	.long	.LC17
+	.long	.LC18
+	.text
+.LC19:
+	.string	"FIN"
+.LC20:
+	.string	"VEL"
+	.text
+	.align	2
+	.type	dss_p2lab, @object
+	.size	dss_p2lab, 8
+dss_p2lab:
+	.long	.LC19
+	.long	.LC20
+	.type	dss_p2def, @object
+	.size	dss_p2def, 2
+dss_p2def:
+	.string	"@"
 	.type	dss_words, @object
 	.size	dss_words, 6
 dss_words:

@@ -46,7 +46,15 @@ MODAL (Plaits engines 0, 1, 5..16, 18..20; the 6-OP FM, NOISE and the drums are 
   and the 4-character fit are to be confirmed on the emulator gate.
 - The note is the engine's pitch argument's integer part; on 1.74 its format is [I] (ext measured 16.16 on 1.73).
 - No release (0.13's latch reports trigs only); PLAITS rings out on its own decay and the voice's amp envelope.
-- Page 2 (ext's TMD MMD FM AUX / FIN VEL GLD VOL on SMPL) is not carried over.
+- Page 2 has no VOL (LEV is on SRC) and no p-locks yet.
+
+## Page 2
+
+Behind the SRC key (2026-11-10, Connor's pick): the companion's voice page (its page id 19, shared by every voice mod)
+shows "PLAITS PAGE 2" on the track that runs it (BD). Knobs: TMD MMD FM (bipolar, the internal envelope onto timbre, morph, pitch), AUX (Plaits' AUX output mixed in), FIN (cents), VEL (velocity onto level), GLD (glide), on this mod's own knob ids (core-ar2 0.13 `knobs = 7`). The values
+are the sound's (this mod's section 33 of the companion's sound record), 0..127, sent to the Pi as the block's params 8..14
+in every trig and when they change. No p-locks on page 2 yet [code]. Whether stock's SRC key steps to a listed page on
+1.74 is [I] (ext measured a second SRC press opening the machine list): the emulator gate checks it.
 
 ## Tests
 

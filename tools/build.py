@@ -14,6 +14,7 @@ checks that it comes back out of the rebuilt file unchanged.
 import argparse
 import hashlib
 import json
+import re
 import os
 import shutil
 import subprocess
@@ -281,7 +282,7 @@ SC_ID = "sidecar"
 # by `make setup` at the Makefile's SC_REV (build.py refuses another). mods/0032-sidecar/mod.toml stays as its entry
 # here (`external`): the registry's claims, its command for the overlap check, the clients' `requires`.
 SC_DIR = ROOT / "vendor" / "sidecar-core"
-SC_REV = "c6a9af4f18805eb40e24b4438754a12a531a8136"
+SC_REV = "c01d8026144217839b43e0d8c893f4c261aa23f9"
 SC_TABLE = "sc_cmds"
 SC_ENTRY = 12             # {first, last, flags, pad, magic, box}: sidecar.c struct sc_cmd
 SC_DIRECT = 1
@@ -657,7 +658,7 @@ def elek_build(img, stock_img, mods, enabled, elek_detours, tag, meta, syx_out, 
         mdir = work / "mods" / eid
         mdir.mkdir(parents=True)
         sites, sources, subscribe, defsym = [], [], [], {}
-        collections, contribute, storage = {}, [], []
+        collections, contribute, storage, knobs = {}, [], [], {}
         for mid in ms:
             sites += sites_of(mid)
             contribute += sc_contributions(mods[mid], stub_symbols.get(mid, {}))
@@ -667,6 +668,10 @@ def elek_build(img, stock_img, mods, enabled, elek_detours, tag, meta, syx_out, 
             subscribe += mods[mid].get("_elek", {}).get("subscribe", [])
             # core-ar2 fields ([elek] storage: sym, scope, bits), placed by elekloader from the build's lockfile
             storage += mods[mid].get("_elek", {}).get("storage", [])
+            # core-ar2 0.13 knob ids by count ([elek] knobs = n): the mod's own, from __knobs (CORE_KNOB(k))
+            knob_base = sum(knobs.values())
+            if int(mods[mid].get("_elek", {}).get("knobs", 0)):
+                knobs[mid] = int(mods[mid]["_elek"]["knobs"])
             # entries in core's tables ([elek] contribute: to, order, a symbol of the mod's): core_pages,
             # core_params, core_view_pages (core-ar2 0.4), as elekloader's own mods contribute them
             # (data / at: an entry longer than a pointer, e.g. the companion's sc_code: data its bytes in hex, at the
@@ -681,6 +686,9 @@ def elek_build(img, stock_img, mods, enabled, elek_detours, tag, meta, syx_out, 
                 # several stubs in one mod: each gets its own params as .set lines, as
                 # elekloader's defsym would give every source all of them
                 body = (work / f"{mid}.s").read_text()
+                if knob_base and mid in knobs:
+                    # one __knobs per elemod: each member's ids follow the members' before it
+                    body = re.sub(r"\b__knobs\b", f"(__knobs+{knob_base})", body)
                 pre = "".join(f"        .set    {k}, {v}\n" for k, v in sorted(prm.items()))
                 # each stub's .run padded to 4 with zeros, as the linker pads each mod's
                 # section: the members then sit where their own elemods would put them
@@ -726,6 +734,10 @@ def elek_build(img, stock_img, mods, enabled, elek_detours, tag, meta, syx_out, 
             modjson["contribute"] = contribute
         if storage:
             modjson["storage"] = storage
+        if len(knobs) > 1 and not bundle:
+            raise SystemExit(f"{eid}: knob ids ([elek] knobs) in more than one mod of one elemod: {sorted(knobs)}")
+        if knobs:
+            modjson["knobs"] = sum(knobs.values())
         (mdir / "mod.json").write_text(json.dumps(modjson, indent=1) + "\n")
         elek("elekloader.sdk.build", mdir, "--stock", STOCK_SYX, "--out", mdir / "out")
         built.append(next((mdir / "out").glob("*.elemod")))

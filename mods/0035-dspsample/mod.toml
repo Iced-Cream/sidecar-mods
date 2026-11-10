@@ -27,11 +27,18 @@ stub = "stub.s"                       # generated from dspsample.c by build.sh
 
 [elek]
 core = "core-ar2"
+# page 2's knob ids (core-ar2 0.13: n ids in a row from 555, CORE_KNOB(k))
+knobs = 2
 contribute = [
   # the machine (core-ar2 0.13: slots 34..52; elekloader names it as the resource machine:45)
   { to = "core_machines", order = 50, sym = "dss_machine" },
   # SMP's value text (record 417, SD TEST's sound index 10): the pool entry's file name
   { to = "core_params", order = 50, sym = "dss_params" },
+  # page 2 (the companion's page 19 behind SRC shows dss_page2): values, labels, dials
+  { to = "core_params", order = 50, sym = "dss_p2params" },
+  { to = "core_param_locks", order = 50, sym = "dss_p2names" },
+  { to = "core_knob_looks", order = 50, sym = "dss_look0" },
+  { to = "core_knob_looks", order = 50, sym = "dss_look1" },
 ]
 
 [requires]

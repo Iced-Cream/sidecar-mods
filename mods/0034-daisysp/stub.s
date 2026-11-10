@@ -27,6 +27,110 @@ ds_input:
 	rts
 	.size	ds_input, .-ds_input
 	.align	2
+	.type	ds_p2text, @function
+ds_p2text:
+	lea (-16,%sp),%sp
+	mov3q.l #2,%d1
+	move.l 20(%sp),%a0
+	movem.l #1036,(%sp)
+	move.l 4(%a0),%d0
+	sub.l #__knobs,%d0
+	cmp.l %d0,%d1
+	jcs .L13
+	move.l 8(%a0),%d1
+	asr.l #8,%d1
+	move.l 12(%a0),%a0
+	lea ds_p2bip,%a2
+	lea (1,%a0),%a1
+	tst.b (%a2,%d0.l)
+	jeq .L14
+	move.l %d1,%d0
+	add.l #-64,%d0
+	tst.l %d0
+	jge .L9
+	move.b #45,(%a0)
+	moveq #64,%d0
+	sub.l %d1,%d0
+.L23:
+	move.l %a1,%a0
+.L8:
+	lea (12,%sp),%a1
+	clr.l %d1
+	move.l %a1,%a2
+.L11:
+	moveq #10,%d3
+	addq.l #1,%d1
+	rems.l %d3,%d2:%d0
+	divs.l %d3,%d0
+	add.l #48,%d2
+	move.b %d2,(%a1)+
+	tst.l %d0
+	jeq .L10
+	mov3q.l #3,%d2
+	cmp.l %d1,%d2
+	jne .L11
+.L10:
+	move.l %a0,%a1
+	move.l %d1,%d0
+.L12:
+	subq.l #1,%d0
+	move.b (%a2,%d0.l),(%a1)+
+	tst.l %d0
+	jne .L12
+	clr.b %d3
+	mov3q.l #1,%d0
+	move.b %d3,(%a0,%d1.l)
+.L6:
+	movem.l (%sp),#1036
+	lea (16,%sp),%sp
+	rts
+.L9:
+	tst.l %d0
+	jeq .L8
+	move.b #43,(%a0)
+	jra .L23
+.L14:
+	move.l %d1,%d0
+	jra .L8
+.L13:
+	clr.l %d0
+	jra .L6
+	.size	ds_p2text, .-ds_p2text
+	.align	2
+	.type	ds_p2label, @function
+ds_p2label:
+	move.l 4(%sp),%d0
+	mov3q.l #2,%d1
+	sub.l #__knobs,%d0
+	cmp.l %d0,%d1
+	jcs .L26
+	lea ds_p2lab,%a0
+	move.l (%a0,%d0.l*4),%a0
+.L24:
+	move.l %a0,%d0
+	rts
+.L26:
+	sub.l %a0,%a0
+	jra .L24
+	.size	ds_p2label, .-ds_p2label
+	.align	2
+	.type	ds_p2long, @function
+ds_p2long:
+	move.l 4(%sp),%d0
+	mov3q.l #2,%d1
+	sub.l #__knobs,%d0
+	cmp.l %d0,%d1
+	jcs .L29
+	lea ds_p2name,%a0
+	move.l (%a0,%d0.l*4),%a0
+.L27:
+	move.l %a0,%d0
+	rts
+.L29:
+	sub.l %a0,%a0
+	jra .L27
+	.size	ds_p2long, .-ds_p2long
+	.align	2
 	.type	ds_engine, @function
 ds_engine:
 	move.l 16(%sp),-(%sp)
@@ -39,6 +143,26 @@ ds_engine:
 	rts
 	.size	ds_engine, .-ds_engine
 	.align	2
+	.type	ds_p2delta, @function
+ds_p2delta:
+	move.l #ds_voice,%d0
+	sub.l #__knobs,8(%sp)
+	move.l %d0,4(%sp)
+	jra sc_voice_p2_turn
+	.size	ds_p2delta, .-ds_p2delta
+	.align	2
+	.type	ds_p2get, @function
+ds_p2get:
+	move.l 8(%sp),-(%sp)
+	move.l 8(%sp),%d0
+	sub.l #__knobs,%d0
+	move.l %d0,-(%sp)
+	pea ds_voice
+	jsr sc_voice_p2_get
+	lea (12,%sp),%sp
+	rts
+	.size	ds_p2get, .-ds_p2get
+	.align	2
 	.type	ds_text, @function
 ds_text:
 	move.l 4(%sp),%a1
@@ -46,71 +170,127 @@ ds_text:
 	move.l 8(%a1),%d0
 	asr.l #8,%d0
 	cmp.l #450,%d1
-	jne .L8
+	jne .L34
 	move.l %d0,%d1
 	add.l %d1,%d1
 	add.l %d1,%d0
 	moveq #-127,%d1
 	cmp.l %d0,%d1
-	jgt .L17
+	jgt .L43
 	cmp.l #383,%d0
-	jgt .L18
+	jgt .L44
 	tst.l %d0
-	jge .L10
+	jge .L36
 	add.l #127,%d0
-.L10:
+.L36:
 	asr.l #7,%d0
-.L9:
+.L35:
 	lea ds_models,%a0
-.L22:
+.L48:
 	move.l (%a0,%d0.l*4),%a0
 	move.l 12(%a1),%a1
-.L15:
+.L41:
 	move.b (%a0)+,%d0
-	jne .L16
+	jne .L42
 	clr.b (%a1)
 	mov3q.l #1,%d0
-.L7:
+.L33:
 	rts
-.L17:
+.L43:
 	clr.l %d0
-	jra .L9
-.L18:
+	jra .L35
+.L44:
 	mov3q.l #2,%d0
-	jra .L9
-.L8:
+	jra .L35
+.L34:
 	cmp.l #454,%d1
-	jne .L19
+	jne .L45
 	moveq #11,%d1
 	muls.l %d1,%d0
 	moveq #-127,%d1
 	cmp.l %d0,%d1
-	jgt .L20
+	jgt .L46
 	cmp.l #1407,%d0
-	jgt .L21
+	jgt .L47
 	tst.l %d0
-	jge .L14
+	jge .L40
 	add.l #127,%d0
-.L14:
+.L40:
 	asr.l #7,%d0
-.L13:
+.L39:
 	lea ds_inputs,%a0
-	jra .L22
-.L20:
+	jra .L48
+.L46:
 	clr.l %d0
-	jra .L13
-.L21:
+	jra .L39
+.L47:
 	moveq #10,%d0
-	jra .L13
-.L16:
+	jra .L39
+.L42:
 	move.b %d0,(%a1)+
-	jra .L15
-.L19:
+	jra .L41
+.L45:
 	clr.l %d0
-	jra .L7
+	jra .L33
 	.size	ds_text, .-ds_text
-	.globl	ds_params
+	.globl	ds_look2
 	.text
+	.align	2
+	.type	ds_look2, @object
+	.size	ds_look2, 24
+ds_look2:
+	.long	__knobs+2
+	.long	__knobs+2
+	.long	408
+	.long	0
+	.long	0
+	.long	32512
+	.globl	ds_look1
+	.align	2
+	.type	ds_look1, @object
+	.size	ds_look1, 24
+ds_look1:
+	.long	__knobs+1
+	.long	__knobs+1
+	.long	40
+	.long	0
+	.long	0
+	.long	32512
+	.globl	ds_look0
+	.align	2
+	.type	ds_look0, @object
+	.size	ds_look0, 24
+ds_look0:
+	.long	__knobs
+	.long	__knobs
+	.long	408
+	.long	0
+	.long	0
+	.long	32512
+	.globl	ds_p2names
+	.align	2
+	.type	ds_p2names, @object
+	.size	ds_p2names, 32
+ds_p2names:
+	.long	__knobs
+	.long	__knobs+2
+	.long	0
+	.long	0
+	.long	0
+	.long	0
+	.long	ds_p2label
+	.long	ds_p2long
+	.globl	ds_p2params
+	.align	2
+	.type	ds_p2params, @object
+	.size	ds_p2params, 20
+ds_p2params:
+	.long	__knobs
+	.long	__knobs+2
+	.long	ds_p2get
+	.long	ds_p2delta
+	.long	ds_p2text
+	.globl	ds_params
 	.align	2
 	.type	ds_params, @object
 	.size	ds_params, 20
@@ -274,15 +454,79 @@ ds_machine:
 	.byte	1
 	.align	2
 	.type	ds_voice, @object
-	.size	ds_voice, 16
+	.size	ds_voice, 28
 ds_voice:
 	.byte	81
 	.byte	8
 	.byte	1
-	.byte	0
+	.byte	34
 	.long	.LC14
 	.long	ds_input
 	.long	0
+	.long	ds_page2
+	.long	ds_p2def
+	.byte	3
+	.string	""
+	.string	""
+	.string	""
+	.globl	ds_page2
+	.text
+.LC32:
+	.string	"EXCITER"
+	.text
+	.align	2
+	.type	ds_page2, @object
+	.size	ds_page2, 40
+ds_page2:
+	.long	19
+	.long	.LC32
+	.long	__knobs
+	.long	__knobs+1
+	.long	__knobs+2
+	.long	0
+	.long	0
+	.long	0
+	.long	0
+	.long	0
+	.type	ds_p2bip, @object
+	.size	ds_p2bip, 3
+ds_p2bip:
+	.string	""
+	.string	"\001"
+	.text
+.LC33:
+	.string	"Exc Tone"
+.LC34:
+	.string	"Exc Decay"
+.LC35:
+	.string	"Exc Mix"
+	.text
+	.align	2
+	.type	ds_p2name, @object
+	.size	ds_p2name, 12
+ds_p2name:
+	.long	.LC33
+	.long	.LC34
+	.long	.LC35
+	.text
+.LC36:
+	.string	"XTN"
+.LC37:
+	.string	"XDC"
+.LC38:
+	.string	"XMX"
+	.text
+	.align	2
+	.type	ds_p2lab, @object
+	.size	ds_p2lab, 12
+ds_p2lab:
+	.long	.LC36
+	.long	.LC37
+	.long	.LC38
+	.type	ds_p2def, @object
+	.size	ds_p2def, 3
+ds_p2def:
+	.string	"\177@"
 	.ident	"GCC: (Ubuntu 13.3.0-6ubuntu2~24.04) 13.3.0"
 | the blob, shipped by the companion's code service (sc_code entry in mod.toml)
 	.section .payload,"a"

@@ -29,11 +29,20 @@ payload = "blob/build/plaits.scx"     # built by blob/build.sh (never committed)
 
 [elek]
 core = "core-ar2"
+# page 2's knob ids (core-ar2 0.13: n ids in a row from 555, CORE_KNOB(k))
+knobs = 7
 contribute = [
   # the machine (core-ar2 0.13: slots 34..52; elekloader names it as the resource machine:44)
   { to = "core_machines", order = 50, sym = "pl_machine" },
   # ENG's value text: the model's name (record 409, BD TEST's ENG)
   { to = "core_params", order = 50, sym = "pl_params" },
+  # page 2 (the companion's page 19 behind SRC shows pl_page2): values, labels, dials
+  { to = "core_params", order = 50, sym = "pl_p2params" },
+  { to = "core_param_locks", order = 50, sym = "pl_p2names" },
+  { to = "core_knob_looks", order = 50, sym = "pl_look0" },
+  { to = "core_knob_looks", order = 50, sym = "pl_look1" },
+  { to = "core_knob_looks", order = 50, sym = "pl_look2" },
+  { to = "core_knob_looks", order = 50, sym = "pl_look3" },
   # the blob for the companion's code service: {owner 0x44, flags 0, pad, address, length 0 = its SCX header's}
   { to = "sc_code", order = 50, sym = "pl_scx", data = "440000000000000000000000", at = 4 },
 ]

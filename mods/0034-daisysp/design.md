@@ -66,6 +66,14 @@ of these Plaits classes, and ext's host ran DaisySP's.
 - Slot 51's records have no LFO, velocity or aftertouch destination (core-ar2 0.13 leaves +0x24 at 0 on TEST
   records); asked in the core-needs list (item 1 of elekloader-sidecar-core-needs-0.13.md).
 
+## Page 2
+
+Behind the SRC key (2026-11-10, Connor's pick): the companion's voice page (its page id 19, shared by every voice mod)
+shows "EXCITER" on the track that runs it (CY). Knobs: XTN (the outside exciter's tone, 127 open), XDC (the burst's decay, bipolar), XMX (the exciter mixed into the output); ext's OUT/FB (MAIN) and NAT's XLV XP4 XP5 wait on the stock-engine core gap, on this mod's own knob ids (core-ar2 0.13 `knobs = 3`). The values
+are the sound's (this mod's section 34 of the companion's sound record), 0..127, sent to the Pi as the block's params 8..10
+in every trig and when they change. No p-locks on page 2 yet [code]. Whether stock's SRC key steps to a listed page on
+1.74 is [I] (ext measured a second SRC press opening the machine list): the emulator gate checks it.
+
 ## Tests
 
 - Companion: `make -C companion/test` in sidecar-core (test_voice: the input point follows the knob, moves, is

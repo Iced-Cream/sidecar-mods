@@ -14,19 +14,34 @@
 #include "analog-rytm-mk2/pages.h"
 
 struct sc_voice {          /* sidecar-core companion/voice.c */
-  uint8_t owner, nknobs, ships, pad;
+  uint8_t owner, nknobs, ships, mod;
   const char *block;
   int32_t (*input)(const uint16_t *blk, int32_t voice);
-  const uint8_t *words;
+  const uint8_t *words;    /* none: param k = word k */
+  const struct core_page *page2;                          /* page 2 behind SRC (the companion's page id 19) */
+  const uint8_t *p2def;
+  uint8_t p2n, pad2[3];
 };
 void sc_voice_engine(const struct sc_voice *d, int32_t v, void *frame, uint16_t *blk, int32_t pitch);
+int32_t sc_voice_p2_get(const struct sc_voice *d, int32_t k, int32_t *value);
+int32_t sc_voice_p2_turn(const struct sc_voice *d, int32_t k, int32_t delta);
 const char *sc_sample_name(int32_t index);   /* sidecar-core companion/samples.c */
 int32_t sc_sample_state(int32_t index);
 
 #define DS_OWNER 0x45      /* the Pi ops' owner byte */
 
 static const uint8_t dss_words[6] = {0, 1, 2, 3, 6, 7};   /* LEV SMP TUN STA, END LOP */
-static const struct sc_voice dss_voice = {DS_OWNER, 6, 0, 0, "SAMPLE", 0, dss_words};
+/* Page 2 (2026-11-10, behind SRC): 2 values of the sound after the block's knob params, on this mod's own knob ids
+ * (core-ar2 0.13 "knobs": 2, mod.toml), through the companion's voice page (its page id 19). */
+CORE_KNOBS;
+#define DSS_P2N 2
+static const uint8_t dss_p2def[2] = {64, 0};
+static const char *const dss_p2lab[2] = {"FIN", "VEL"};
+static const char *const dss_p2name[2] = {"Fine Tune", "Velocity"};
+static const uint8_t dss_p2bip[2] = {1, 0};   /* shown from -64 */
+const struct core_page dss_page2 = {19, "DSP SAMPLE 2", {CORE_KNOB(0), CORE_KNOB(1), 0, 0, 0, 0, 0, 0}};
+
+static const struct sc_voice dss_voice = {DS_OWNER, 6, 0, 35, "SAMPLE", 0, dss_words, &dss_page2, dss_p2def, DSS_P2N, {0, 0, 0}};
 
 static void dss_engine(int32_t v, void *frame, uint16_t *blk, int32_t pitch) {
   sc_voice_engine(&dss_voice, v, frame, blk, pitch);
@@ -70,3 +85,38 @@ static int dss_text(struct core_text *t) {
 }
 
 const struct core_param dss_params = {DSS_SMP_ID, DSS_SMP_ID, 0, 0, dss_text};
+
+/* page 2's knobs: values through the companion (the current track's sound), labels, texts, dials */
+static int dss_p2get(int32_t id, int32_t *value) { return sc_voice_p2_get(&dss_voice, id - CORE_KNOB(0), value); }
+static int dss_p2delta(void *view, int32_t id, int32_t delta, int32_t func) {
+  (void)view;
+  (void)func;
+  return sc_voice_p2_turn(&dss_voice, id - CORE_KNOB(0), delta);
+}
+static int dss_p2text(struct core_text *t) {
+  int32_t k = t->id - CORE_KNOB(0), v = t->value >> 8, n = 0;
+  char d[4], *b = t->buf;
+  if (k < 0 || k >= DSS_P2N) return CORE_TEXT_PASS;
+  if (dss_p2bip[k]) {
+    v -= 64;
+    if (v < 0) *b++ = '-', v = -v;
+    else if (v > 0) *b++ = '+';
+  }
+  do d[n++] = (char)('0' + v % 10), v /= 10; while (v && n < 3);
+  while (n) *b++ = d[--n];
+  *b = 0;
+  return CORE_TEXT_DONE;
+}
+const struct core_param dss_p2params = {CORE_KNOB(0), CORE_KNOB(DSS_P2N - 1), dss_p2get, dss_p2delta, dss_p2text};
+static const char *dss_p2label(int32_t id) {
+  int32_t k = id - CORE_KNOB(0);
+  return k >= 0 && k < DSS_P2N ? dss_p2lab[k] : 0;
+}
+static const char *dss_p2long(int32_t id) {
+  int32_t k = id - CORE_KNOB(0);
+  return k >= 0 && k < DSS_P2N ? dss_p2name[k] : 0;
+}
+const struct core_param_lock dss_p2names = {CORE_KNOB(0), CORE_KNOB(DSS_P2N - 1), 0, 0, 0, 0, dss_p2label, dss_p2long};
+/* dials: stock's SMPL FIN (record 40, a centred dial) for the bipolar ones, BD TEST's LEV (408) for the rest; 0..127 */
+const struct core_knob_look dss_look0 = {CORE_KNOB(0), CORE_KNOB(0), 40, 0, 0, 127 << 8};
+const struct core_knob_look dss_look1 = {CORE_KNOB(1), CORE_KNOB(1), 408, 0, 0, 127 << 8};
