@@ -289,6 +289,9 @@ int32_t td_count(uint32_t id) {
    (sc_sample_result); DSP SAMPLE shows the pool by name. With the link closed or its queue full the reference holds
    only the id and the guard refuses it: nothing counted. 0: not a card file, stock's. */
 uint32_t td_adds TD_BSS, td_add_fails TD_BSS;   /* SADDB sent / not sent (link closed, queue full) */
+/* CREATE DIR diagnostics (T247: no ERROR box on the unit, ERROR on the emulator): guard calls, the folder path's
+   pointer and first 4 bytes, mkdir's result */
+uint32_t td_mk_calls TD_BSS, td_mk_ptr TD_BSS, td_mk_head TD_BSS, td_mk_ret TD_BSS;
 int32_t td_ref(uint32_t *out, const uint8_t *model, int32_t index) {
   const uint8_t *begin = *(const uint8_t *const *)(model + 260);
   const uint8_t *end = *(const uint8_t *const *)(model + 264);
@@ -471,16 +474,31 @@ __asm__(
        invoker's, its +4 the folder's path */
     "  .globl td_mkdir_guard\n"
     "td_mkdir_guard:\n"
+    "  addql #1,td_mk_calls\n"
+    "  clrl td_mk_head\n"
     "  movel %a4@(4),%d0\n"
+    "  movel %d0,td_mk_ptr\n"
     "  jeq 1f\n"
     "  moveal %d0,%a0\n"
-    "  tstb %a0@\n"
-    "  jne 2f\n"
+    "  lea td_mk_head,%a1\n"
+    "  moveb %a0@,%a1@\n"
+    "  jeq 1f\n"
+    "  moveb %a0@(1),%a1@(1)\n"
+    "  jeq 2f\n"
+    "  moveb %a0@(2),%a1@(2)\n"
+    "  jeq 2f\n"
+    "  moveb %a0@(3),%a1@(3)\n"
+    "  jra 2f\n"
     "1:\n"
     "  moveq #-1,%d0\n"
+    "  movel %d0,td_mk_ret\n"
     "  rts\n"
     "2:\n"
-    "  jmp 0x4007c1dc\n"
+    "  movel %sp@(4),%sp@-\n"
+    "  jsr 0x4007c1dc\n"
+    "  addql #4,%sp\n"
+    "  movel %d0,td_mk_ret\n"
+    "  rts\n"
     "  .popsection\n");
 
 __asm__(

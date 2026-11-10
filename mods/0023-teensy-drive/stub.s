@@ -147,16 +147,31 @@ td_check_entry:
   jmp 0x40080068
   .globl td_mkdir_guard
 td_mkdir_guard:
+  addql #1,td_mk_calls
+  clrl td_mk_head
   movel %a4@(4),%d0
+  movel %d0,td_mk_ptr
   jeq 1f
   moveal %d0,%a0
-  tstb %a0@
-  jne 2f
+  lea td_mk_head,%a1
+  moveb %a0@,%a1@
+  jeq 1f
+  moveb %a0@(1),%a1@(1)
+  jeq 2f
+  moveb %a0@(2),%a1@(2)
+  jeq 2f
+  moveb %a0@(3),%a1@(3)
+  jra 2f
 1:
   moveq #-1,%d0
+  movel %d0,td_mk_ret
   rts
 2:
-  jmp 0x4007c1dc
+  movel %sp@(4),%sp@-
+  jsr 0x4007c1dc
+  addql #4,%sp
+  movel %d0,td_mk_ret
+  rts
   .popsection
 
 	  .pushsection .td3,"ax"
@@ -835,8 +850,32 @@ td_ref:
 	clr.l %d0
 	jra .L92
 	.size	td_ref, .-td_ref
-	.globl	td_add_fails
+	.globl	td_mk_ret
 	.section	.bss,"aw",@nobits
+	.align	4
+	.type	td_mk_ret, @object
+	.size	td_mk_ret, 4
+td_mk_ret:
+	.zero	4
+	.globl	td_mk_head
+	.align	4
+	.type	td_mk_head, @object
+	.size	td_mk_head, 4
+td_mk_head:
+	.zero	4
+	.globl	td_mk_ptr
+	.align	4
+	.type	td_mk_ptr, @object
+	.size	td_mk_ptr, 4
+td_mk_ptr:
+	.zero	4
+	.globl	td_mk_calls
+	.align	4
+	.type	td_mk_calls, @object
+	.size	td_mk_calls, 4
+td_mk_calls:
+	.zero	4
+	.globl	td_add_fails
 	.align	4
 	.type	td_add_fails, @object
 	.size	td_add_fails, 4
