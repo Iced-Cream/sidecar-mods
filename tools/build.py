@@ -225,12 +225,9 @@ def check_param_excludes(mods, enabled):
 def check_linked_params(mods, enabled):
     """Refuse an image whose enabled mods disagree on a param they all list in `linked_params`.
 
-    One feature can span several mods: 0021's user slots need 0022's router to pass their SysEx
-    (1A..1D) and 0023's 12 B mailbox (td_pool_tab, which 0021 calls - with the 8 B mailbox that
-    word is 0023's code). Each mod gates its part on its own `slots`; this keeps them in step.
-    A linked param set (nonzero) also needs every mod that lists it in the image: 0021 slots=1
-    without 0023 would call into whatever sits at td_pool_tab's address, without 0022 its SysEx
-    would never arrive.
+    One feature can span several mods. Until 2026-11-10 0021's user slots needed 0023's 12 B mailbox
+    (td_pool_tab); 0023 is a companion client in the area since, with no pool and no `slots`, so today
+    only 0021 lists the param. A linked param set (nonzero) also needs every mod that lists it in the image.
     """
     seen: dict[str, tuple[str, int]] = {}
     for mid in sorted(enabled):

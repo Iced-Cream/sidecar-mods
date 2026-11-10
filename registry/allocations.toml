@@ -6002,82 +6002,9 @@ section = ".us8"
 note    = "cave7's rest (0010-kit-ab's; 0021 excludes 0010 since fix-1020): us_pend (moved from .us3), us_choose and us_untag."
 
 # ---- 0023-teensy-drive ----
-# The Teensy's card as a folder TEENSY in the Rytm's file browser (design.md).
+# The Sidecar's card as a folder SIDECAR in the Rytm's file browser (design.md). A companion client in
+# elekloader's area since 2026-11-10: no caves; its detours and patches are the area's jmp sites.
 # Five filesystem functions wrapped for ids 0x7E......; reads only.
-[[cave]]
-owner   = "0023-teensy-drive"
-addr    = 0x400b1e5c
-size    = 900
-section = ".td"
-note    = "cave16 after 0021's .ext8 (0020-dmach's cave; 0023 excludes 0020): the wrappers (readdir, resolve, exists, sizes) and the stock re-entries."
-
-[[cave]]
-owner   = "0023-teensy-drive"
-addr    = 0x400b21e0
-size    = 20
-section = ".tdd"
-note    = "cave16 after .td: the names \".\", \"..\", \"TEENSY\"."
-
-[[cave]]
-owner   = "0023-teensy-drive"
-addr    = 0x400b21f4
-size    = 64
-section = ".tds"
-note    = "cave16 after .tdd: the listing cache's state (its 16 KB of entries come from the firmware's allocator)."
-
-[[cave]]
-owner   = "0023-teensy-drive"
-addr    = 0x40028584
-size    = 256
-section = ".tdn"
-note    = "cave12 after 0021's last (0020-dmach's part; 0023 excludes 0020): the two fake nodes, 128 B each like the real ones."
-
-[[cave]]
-owner   = "0023-teensy-drive"
-addr    = 0x401361da
-size    = 120
-section = ".td3"
-note    = "cave19 after 0021's .extp (0020-dmach's part): the milestone 4 guards - id -> path, a reference's check, CREATE DIR."
-
-[[cave]]
-owner   = "0023-teensy-drive"
-addr    = 0x401bae7c
-size    = 152
-section = ".td4"
-note    = "cave24 after 0021's .exts: td_project (10 <name> to the Teensy before a pool add)."
-
-[[cave]]
-owner   = "0023-teensy-drive"
-gate    = "slots"
-addr    = 0x401b9d18
-size    = 12
-section = ".tdm"
-note    = "cave23 (0020-dmach's): the mailbox at a fixed address - magic 'TDRV', td_hook, td_pool_tab (for 0021's pool knobs) - which 0022's router calls with the Teensy's 0E listings and 14 tables. With slots=1 (0021's user slots); slots=0 is the 8 B mailbox below."
-
-[[cave]]
-owner   = "0023-teensy-drive"
-gate    = "slots"
-addr    = 0x401b9d24
-size    = 980
-section = ".td2"
-note    = "cave23 after .tdm: asking the Teensy (0D), waiting (sleep_us 0x40098c84), serving the cached listing, the 0E handler. With slots=1."
-
-[[cave]]
-owner   = "0023-teensy-drive"
-gate    = "!slots"
-addr    = 0x401b9d18
-size    = 8
-section = ".tdm"
-note    = "slots=0 (the pre-slot image, c127fe8 byte for byte): the 8 B mailbox - magic 'TDRV', td_hook."
-
-[[cave]]
-owner   = "0023-teensy-drive"
-gate    = "!slots"
-addr    = 0x401b9d20
-size    = 980
-section = ".td2"
-note    = "slots=0: cave23 after the 8 B .tdm (c127fe8's placement)."
-
 [[detour]]
 owner  = "0023-teensy-drive"
 addr   = 0x4007c0b4
@@ -6085,6 +6012,7 @@ size   = 6
 expect_len = 8
 expect_sha256 = "3df2a4fe58f85e06d5e747d7222e4f771af0e1b77b0543ac228c30636a57aecc"
 entry  = "td_readdir_entry"
+elek_size = 8   # the area build: the 6-byte jmp would end mid-instruction; the stub re-emits all 8 bytes
 # readdir(dir handle, record): Teensy folders served by the stub; TEENSY added
 # after the +Drive root's last entry. td_readdir_stock re-emits lea/moveml.
 
@@ -6095,6 +6023,7 @@ size   = 6
 expect_len = 8
 expect_sha256 = "9b78b6778f56449ca9429e734d2140df96316ae0e9eea0b9d6eea089f82ddbd0"
 entry  = "td_resolve_entry"
+elek_size = 8   # the area build: the 6-byte jmp would end mid-instruction; the stub re-emits all 8 bytes
 # node resolve(id): Teensy ids -> a fake node outside the cache (release ignores
 # it). td_resolve_stock re-emits lea/moveml.
 
@@ -6114,6 +6043,7 @@ size   = 6
 expect_len = 8
 expect_sha256 = "c4533982bf7c72bb812f4f41fee87a7d9252197b0aaa6c908063bcb12425d8b3"
 entry  = "td_size_entry"
+elek_size = 8   # the area build: the 6-byte jmp would end mid-instruction; the stub re-emits all 8 bytes
 # size(id) (walks the node's extents): Teensy files answer their size.
 
 [[detour]]
@@ -6123,13 +6053,14 @@ size   = 6
 expect_len = 10
 expect_sha256 = "eae56bbb82b819f07dcec48ade5498dc4ff35ae85ee2270b15a9737e95317202"
 entry  = "td_count_entry"
+elek_size = 10   # the area build: the 6-byte jmp would end mid-instruction; the stub re-emits all 10 bytes
 # the node's +4 value: Teensy files answer their size. td_count_stock re-emits
 # both pushes and the tstl.
 
 # LOAD TO PROJ's job only (the lambda at 0x400ea77c): its two calls are pointed
 # at 0023's wrappers. Not the functions themselves - the browser calls
 # 0x4007e698 for every visible row on each redraw [measured: a detour there
-# added all seven visible files to the pool, over and over].
+# added all seven visible files to the pool, over and over (the pool left 2026-11-10)].
 [[patch]]
 owner       = "0023-teensy-drive"
 addr        = 0x400ea822
@@ -6137,7 +6068,7 @@ size        = 4
 expect_len  = 4
 expect_sha256 = "9c63a1dfad0bc3f5a2cd8299c4b13e51111878bbb8f51d8aa1c377940db6c5ea"
 from_symbol = "td_ref_entry"
-note        = "the load job's jsr 0x4007e698 (entry -> file reference): Teensy files get a marked reference and a 0F pool add"
+note        = "the load job's jsr 0x4007e698 (entry -> file reference): card files get a reference holding only their id, which td_load_entry refuses (nothing loaded; the pool add 0F left 2026-11-10)"
 
 # Milestone 4 guards (design.md, "Safety"): the load function itself, id ->
 # path, a reference's check, and CREATE DIR inside TEENSY.
@@ -6148,9 +6079,10 @@ size   = 6
 expect_len = 8
 expect_sha256 = "ef357f93f8cca2f2e1a60a032d4132c96e6be1df4357eff41e0165d1845ea0e4"
 entry  = "td_load_entry"
-# load(manager, &ref, slot): a marked reference (the load job's, td_ref) counts
-# as loaded; another Teensy reference fails before the stock code copies it
-# into the slot. td_load_entry re-emits link/moveml.
+elek_size = 8   # the area build: the 6-byte jmp would end mid-instruction; the stub re-emits all 8 bytes
+# load(manager, &ref, slot): a card reference (the load job's, td_ref, or any
+# other) fails before the stock code copies it into the slot (since 2026-11-10 none
+# counts as loaded: the pool left). td_load_entry re-emits link/moveml.
 
 [[detour]]
 owner  = "0023-teensy-drive"
@@ -6159,6 +6091,7 @@ size   = 6
 expect_len = 8
 expect_sha256 = "3d2d3d9114a450a928247e265452d5e117807a133aba81804d4f1a9e7b2456c8"
 entry  = "td_path_entry"
+elek_size = 8   # the area build: the 6-byte jmp would end mid-instruction; the stub re-emits all 8 bytes
 # id -> path: Teensy ids have none (0) at once. Re-emits lea/moveml.
 
 [[detour]]
@@ -6168,6 +6101,7 @@ size   = 6
 expect_len = 8
 expect_sha256 = "784938370f9fb15c505636fe4e5a94b5efb1d9276ec09a27de55484f781bed1f"
 entry  = "td_check_entry"
+elek_size = 8   # the area build: the 6-byte jmp would end mid-instruction; the stub re-emits all 8 bytes
 # a reference's check (1..4 found, -1 not): Teensy ids are not found, so the
 # stock loaders pass them over. Re-emits lea/moveml.
 
@@ -6178,6 +6112,7 @@ size   = 6
 expect_len = 8
 expect_sha256 = "af4f568eeb9318ab8f13f58caf9a702396a3e356920226dfa75c2ccc8eaff2f5"
 entry  = "td_link_entry"
+elek_size = 8   # the area build: the 6-byte jmp would end mid-instruction; the stub re-emits all 8 bytes
 # add an entry to a folder (parent, name, node, ..) -> 0 / -1, under mkdir,
 # file create, rename, move, format and Transfer's FS requests [read
 # 2026-10-09: called from 0x4007b968, 0x4007b98e (mkdir 0x4007c1dc, create
@@ -6193,6 +6128,7 @@ size   = 6
 expect_len = 8
 expect_sha256 = "3b2f3af192e5eed76cdcd18c0e57437bb27c57b9176cd44a27abbc2aea49abc9"
 entry  = "td_mkdir_entry"
+elek_size = 8   # the area build: the 6-byte jmp would end mid-instruction; the stub re-emits all 8 bytes
 # mkdir(path) -> 0 / -1: refused for /TEENSY and below (any case). Transfer's
 # mkdir makes each level in turn and goes on when one fails; stock mkdir reads
 # the name at a stale stack offset when the parent is missing [measured
@@ -6209,76 +6145,6 @@ expect_sha256 = "67542ab4f7fefd38d69cd96d1078c5795c869e26cbdf2ff4771bd410378ff3f
 from_symbol = "td_mkdir_guard"
 note        = "CREATE DIR's jsr 0x4007c1dc (mkdir): refused when the folder's path is \"\" (inside TEENSY), else it made the folder in the +Drive's root"
 
-# 0023's pool in the stock slot list (2026-10-09; rytm-emu
-# docs/smpl-slot-list-research.md): on a DSP SAMPLE track the SMP list shows the
-# project's Teensy pool and FUNC+YES / YES on an empty slot assigns a TEENSY file.
-[[cave]]
-owner   = "0023-teensy-drive"
-addr    = 0x40026c8c
-size    = 1792
-section = ".td5"
-note    = "cave11 (0020-dmach's; freed by 0021's folder-walk names, 2026-10-09): the pool list's hooks, the 14 table handler, td_assign and the load entry (1320 B as built 2026-10-09)."
-
-[[cave]]
-owner   = "0023-teensy-drive"
-addr    = 0x400279c4
-size    = 64
-section = ".td6"
-note    = "cave12's start (freed by 0021's name mailbox, 2026-10-09): the pool table's state (pointer to 128 x 18 B from the allocator, valid, ask wait, project)."
-
-[[patch]]
-owner       = "0023-teensy-drive"
-addr        = 0x400e3cc2
-size        = 4
-expect_len  = 4
-expect_sha256 = "e08b9a694f8e0e254c577b9e09a3db56fc54deb77eba6f35c7561cfc80229d13"
-from_symbol = "td_empty"
-note        = "jsr operand: the slot list row label: slot empty? (pool slot on a DSP SAMPLE track)"
-
-[[patch]]
-owner       = "0023-teensy-drive"
-addr        = 0x400e3d1c
-size        = 4
-expect_len  = 4
-expect_sha256 = "14f8eb66ad1924e1179d606da9105e0341236adaf9545395c20cd69b18f9a07e"
-from_symbol = "td_name_entry"
-note        = "jsr operand: the slot list row label: slot name (the pool name on a DSP SAMPLE track)"
-
-[[patch]]
-owner       = "0023-teensy-drive"
-addr        = 0x400e4528
-size        = 4
-expect_len  = 4
-expect_sha256 = "e08b9a694f8e0e254c577b9e09a3db56fc54deb77eba6f35c7561cfc80229d13"
-from_symbol = "td_empty"
-note        = "jsr operand: the slot list YES: slot empty? (empty opens the browser)"
-
-[[patch]]
-owner       = "0023-teensy-drive"
-addr        = 0x400e4656
-size        = 4
-expect_len  = 4
-expect_sha256 = "d7273177a86e63349998f830a0bcdc3490ccd365f5bf6f971780d984f2731d14"
-from_symbol = "td_browse_entry"
-note        = "jsr operand: the slot list YES/FUNC+YES: new slot browser, slot | 0x1000 on a DSP SAMPLE track"
-
-[[patch]]
-owner       = "0023-teensy-drive"
-addr        = 0x400e3936
-size        = 4
-expect_len  = 4
-expect_sha256 = "cfe3cb5de8b697d3c183663875f7862895f9d12c93cf31920184b88f95204d42"
-from_symbol = "td_slotref_entry"
-note        = "jsr operand: the slot browser constructor: the slot's file reference, none for a pool slot (opens at the root)"
-
-[[patch]]
-owner       = "0023-teensy-drive"
-addr        = 0x400e611a
-size        = 4
-expect_len  = 4
-expect_sha256 = "83ceb14b1be62bdca1e209214e696b226ecf0c5e55f169c56a1f93c6b7ce2ff1"
-from_symbol = "td_mark_entry"
-note        = "jsr operand: the browser row drawer: a TEENSY file's >N pool slot mark"
 
 # ======================================================================
 # elekloader (vendor/elekloader, GPL-2.0-or-later, pinned in the Makefile): its core-ar2 (the boot

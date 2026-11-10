@@ -63,46 +63,24 @@ class ParamExcludes(unittest.TestCase):
 
 
 class LinkedParams(unittest.TestCase):
-    """0021's and 0023's `slots` go together (0021 calls 0023's td_pool_tab). Until the companion phase (2026-11-03)
-    0022 listed it too, for its router; the router is 0032-sidecar's now and each client registers its own commands."""
+    """`slots` once tied 0021's user slots to 0023's 12 B mailbox (td_pool_tab). Since 2026-11-10 0023 is a companion
+    client in the area with no pool and no `slots`: only 0021 lists the param, so the check has nothing to tie."""
     ALL = {"0014-hidden-machines", "0021-ext", "0022-looper", "0023-teensy-drive"}
 
-    def mods(self, **slots):
+    def test_0023_has_no_slots(self):
         mods = build.load_mods(self.ALL)
-        for who, v in slots.items():
-            mods[who.replace("_", "-")]["_params"]["slots"] = v
-        return mods, {m for m, d in mods.items() if d.get("enabled")}
-
-    def test_defaults_agree(self):
-        # every slots defaults to 0: the hardware builds stay the pre-slot image
-        mods, en = self.mods()
-        self.assertEqual({mods[m]["_params"]["slots"] for m in ("0021-ext", "0023-teensy-drive")}, {0})
+        self.assertNotIn("slots", mods["0023-teensy-drive"]["_params"])
+        self.assertNotIn("slots", mods["0023-teensy-drive"].get("linked_params", []))
         self.assertNotIn("slots", mods["0022-looper"]["_params"])
-        build.check_linked_params(mods, en)
 
-    def test_all_on_passes(self):
-        build.check_linked_params(*self.mods(**{"0021_ext": 1, "0023_teensy_drive": 1}))
+    def test_defaults_pass(self):
+        mods = build.load_mods(self.ALL)
+        build.check_linked_params(mods, {m for m, d in mods.items() if d.get("enabled")})
 
-    def test_0021_without_0023_refused(self):
-        # 0021 slots=1 reads td_pool_tab from the third mailbox word; 0023 slots=0 has 8 B there
-        with self.assertRaises(SystemExit) as cm:
-            build.check_linked_params(*self.mods(**{"0021_ext": 1}))
-        self.assertIn("linked param slots", str(cm.exception))
-
-    def test_a_disabled_mod_is_not_checked(self):
-        # 0023 (not in the image) has slots=1; 0021 has 0
-        mods = build.load_mods({"0021-ext", "0022-looper"})
-        mods["0023-teensy-drive"]["_params"]["slots"] = 1
-        build.check_linked_params(mods, {"0021-ext", "0022-looper"})
-
-    def test_0021_slots_without_0023_refused(self):
-        # review 2026-10-11: slots=1 needs every mod that lists slots in the image
-        for only in ({"0021-ext"}, {"0021-ext", "0022-looper"}):
-            mods = build.load_mods(only)
-            mods["0021-ext"]["_params"]["slots"] = 1
-            with self.assertRaises(SystemExit) as cm:
-                build.check_linked_params(mods, only)
-            self.assertIn("needs", str(cm.exception))
+    def test_0021_slots_alone_passes(self):
+        mods = build.load_mods({"0021-ext"})
+        mods["0021-ext"]["_params"]["slots"] = 1
+        build.check_linked_params(mods, {"0021-ext"})
 
     def test_0021_alone_slots_0_passes(self):
         build.check_linked_params(build.load_mods({"0021-ext"}), {"0021-ext"})
@@ -147,7 +125,9 @@ class SidecarCmds(unittest.TestCase):
     def test_entry_bytes(self):
         mods = build.load_mods(self.RUI)
         e = build.sc_contributions(mods["0023-teensy-drive"], {})[0]
-        self.assertEqual(e["data"], "0e0e0000" + b"TDRV".hex() + "401b9d18")
+        # an area client's handler: flags SC_DIRECT, the pointer a relocation to its symbol
+        self.assertEqual(e["data"], "0e0e0100" + "00000000" + "00000000")
+        self.assertEqual(e["relocs"], [[8, "abs32", "sym:td_sysex", 0]])
         mods["0022-looper"]["area"] = None
         e = build.sc_contributions(mods["0022-looper"], {"looper_host": 0x400a75ea})[0]
         self.assertEqual(e["data"], "07080100" + "00000000" + "400a75ea")
