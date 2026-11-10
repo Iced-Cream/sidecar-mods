@@ -695,6 +695,18 @@ static const char *sfx_name(int32_t id) {
 }
 const struct core_param_lock sfx_locks = {SFX_ID_SEND, SFX_ID_LAST, sfx_lock_get, sfx_lock_turn, sfx_lock_set, sfx_lock_clear,
                                           sfx_label, sfx_name};
+/* the knobs' look (core-ar2 0.13 core_knob_looks): without an entry stock drew every one as record 0's dial on record
+   0's range. Sends and P2..P5 take COMP MIX's dial (94, 0..127, the look fx-sends' knobs had on its hidden-machine
+   records), ROUTE CB TEST's switch (457), TYPE the same dial spanning 0..SFX_NTYPES-1 (core moves the value onto it) */
+#define SFX_DIAL   94
+#define SFX_SWITCH 457
+const struct core_knob_look sfx_look_send = {SFX_ID_SEND, SFX_ID_SEND + 1, SFX_DIAL, 0, 0, 0};
+const struct core_knob_look sfx_look_type1 = {SFX_ID_FX, SFX_ID_FX, SFX_DIAL, 0, 0, (SFX_NTYPES - 1) << 8};
+const struct core_knob_look sfx_look_type2 = {SFX_ID_FX + 6, SFX_ID_FX + 6, SFX_DIAL, 0, 0, (SFX_NTYPES - 1) << 8};
+const struct core_knob_look sfx_look_route1 = {SFX_ID_FX + 1, SFX_ID_FX + 1, SFX_SWITCH, 0, 0, 0};
+const struct core_knob_look sfx_look_route2 = {SFX_ID_FX + 7, SFX_ID_FX + 7, SFX_SWITCH, 0, 0, 0};
+const struct core_knob_look sfx_look_p1 = {SFX_ID_FX + 2, SFX_ID_FX + 5, SFX_DIAL, 0, 0, 0};
+const struct core_knob_look sfx_look_p2 = {SFX_ID_FX + 8, SFX_ID_FX + 11, SFX_DIAL, 0, 0, 0};
 static int32_t sfx_on_voice(void *view) { int32_t t = sfx_track(); (void)view; return t >= 0 && t < SFX_NTRACK; }
 const struct core_view_page sfx_view_amp2 = {CORE_VIEW_AMP, SFX_PAGE_AMP2, sfx_on_voice};
 const struct core_view_page sfx_view_fx1 = {CORE_VIEW_DELAY, SFX_PAGE_FX1, 0};
