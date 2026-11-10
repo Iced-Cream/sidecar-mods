@@ -1,0 +1,43 @@
+[mod]
+id      = "0034-daisysp"
+title   = "DAISYSP: a physical model as a Rytm machine, played by the Sidecar's Pi, struck by its own exciter or a voice"
+
+enabled = false
+
+# code in elekloader's DDR area, a client of the companion (0032-sidecar): its voice service and code service
+area    = "elek"
+
+# re-only | built | hardware-verified | retracted
+status  = "built"
+
+summary = """
+DAISYSP (2026-11-10): ext's DAISYSP voice as its own mod, on the Sidecar's generic engine. Machine slot 51 (CY TEST)
+through core-ar2 0.13's core_machines, on every voice; knobs ENG STR BRI DMP INP EXC TUN and LEV (stock's records,
+so stored, p-locked and slid as any machine's). Its sound is the DAISYSP blob (blob/: Mutable Instruments Plaits'
+modal voice, string voice and resonator, MIT), shipped by the companion's code service and placed by its voice
+service once per voice that runs the machine, routed onto that voice's Overbridge input. ENG picks MODAL, STRING or
+RESON; INP the exciter: the model's own (INT), a noise burst (NOISE), or another voice's Overbridge stem (BD..CY),
+which the voice service routes onto the block's input; NAT plays as INT for now. ENG and INP show names. design.md.
+"""
+
+[sources]
+stub = "stub.s"                       # generated from daisysp.c by build.sh
+payload = "blob/build/daisysp.scx"    # built by blob/build.sh (never committed); .incbin'd into the stub's .payload
+
+[params]
+
+[elek]
+core = "core-ar2"
+contribute = [
+  # the machine (core-ar2 0.13: slots 34..52; elekloader names it as the resource machine:51)
+  { to = "core_machines", order = 50, sym = "ds_machine" },
+  # ENG's and INP's value texts (records 450 and 454, CY TEST's ENG and INP)
+  { to = "core_params", order = 50, sym = "ds_params" },
+  # the blob for the companion's code service: {owner 0x51, flags 0, pad, address, length 0 = its SCX header's}
+  { to = "sc_code", order = 50, sym = "ds_scx", data = "510000000000000000000000", at = 4 },
+]
+
+[requires]
+shared = false
+symbols = []
+mods = ["0032-sidecar"]

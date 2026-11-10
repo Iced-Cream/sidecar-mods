@@ -15,12 +15,13 @@
 struct sc_voice {          /* sidecar-core companion/voice.c */
   uint8_t owner, nknobs, ships, pad;
   const char *block;
+  int32_t (*input)(const uint16_t *blk, int32_t voice);   /* none: PLAITS takes no input */
 };
 void sc_voice_engine(const struct sc_voice *d, int32_t v, void *frame, uint16_t *blk, int32_t pitch);
 
 #define PL_OWNER 0x44      /* the Pi ops' owner byte and the blob's sc_code owner */
 
-static const struct sc_voice pl_voice = {PL_OWNER, 8, 1, 0, "PLAITS"};
+static const struct sc_voice pl_voice = {PL_OWNER, 8, 1, 0, "PLAITS", 0};
 
 static void pl_engine(int32_t v, void *frame, uint16_t *blk, int32_t pitch) {
   sc_voice_engine(&pl_voice, v, frame, blk, pitch);

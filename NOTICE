@@ -63,6 +63,12 @@ vendor/ (git-ignored) at pinned commits, and the build executes it.
       into the PLAITS blob, which a build carries as 0033-plaits's payload:
       a built image with 0033 contains Plaits' code, under its MIT notice.
 
+  mods/0034-daisysp/blob/vendor/eurorack
+      The same eurorack sources (Plaits' physical models and stmlib), MIT, fetched
+      by mods/0034-daisysp/blob/build.sh at the same commits and compiled into
+      the DAISYSP blob, 0034-daisysp's payload: a built image with 0034 contains
+      that code, under its MIT notice.
+
 Facts, not code
 ---------------
   - mods/0020-dmach's phase-modulation and interpolated-sine cores follow
