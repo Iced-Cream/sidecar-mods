@@ -123,8 +123,10 @@ pl_engine:
 	.align	2
 	.type	pl_p2delta, @function
 pl_p2delta:
+	move.l 8(%sp),%d0
+	sub.l #__knobs,%d0
+	move.l %d0,8(%sp)
 	move.l #pl_voice,%d0
-	sub.l #__knobs,8(%sp)
 	move.l %d0,4(%sp)
 	jra sc_voice_p2_turn
 	.size	pl_p2delta, .-pl_p2delta

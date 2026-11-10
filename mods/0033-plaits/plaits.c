@@ -90,7 +90,11 @@ static int pl_p2get(int32_t id, int32_t *value) { return sc_voice_p2_get(&pl_voi
 static int pl_p2delta(void *view, int32_t id, int32_t delta, int32_t func) {
   (void)view;
   (void)func;
-  return sc_voice_p2_turn(&pl_voice, id - CORE_KNOB(0), delta);
+  int32_t k = id - CORE_KNOB(0);
+  /* in a register: GCC 13 -mcpu=5475 turns the sibling call's argument into sub.l #__knobs,8(%sp), which ColdFire
+     has no form of (the assembler refuses it) */
+  __asm__("" : "+d"(k));
+  return sc_voice_p2_turn(&pl_voice, k, delta);
 }
 static int pl_p2text(struct core_text *t) {
   int32_t k = t->id - CORE_KNOB(0), v = t->value >> 8, n = 0;

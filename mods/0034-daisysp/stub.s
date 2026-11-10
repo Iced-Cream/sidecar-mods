@@ -145,8 +145,10 @@ ds_engine:
 	.align	2
 	.type	ds_p2delta, @function
 ds_p2delta:
+	move.l 8(%sp),%d0
+	sub.l #__knobs,%d0
+	move.l %d0,8(%sp)
 	move.l #ds_voice,%d0
-	sub.l #__knobs,8(%sp)
 	move.l %d0,4(%sp)
 	jra sc_voice_p2_turn
 	.size	ds_p2delta, .-ds_p2delta

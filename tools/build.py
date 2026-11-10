@@ -390,7 +390,8 @@ def elek_source(mod, dst):
     objdir = BUILD / "obj"
     objdir.mkdir(parents=True, exist_ok=True)
     defs = [x for k, v in sorted(mod["_params"].items()) for x in ("--defsym", f"P_{k.upper()}={int(v)}")]
-    run(["m68k-elf-as", "-mcpu=5475", "-I", BUILD, "-I", ROOT, *defs, "-o",
+    inc = [x for f in payload_files(mod) for x in ("-I", str(Path(f).parent))]   # the payload's .incbin
+    run(["m68k-elf-as", "-mcpu=5475", "-I", BUILD, "-I", ROOT, *inc, *defs, "-o",
          objdir / f"{mod['id']}.elf", mod["_dir"] / mod["_sources"]["stub"]])
 
 

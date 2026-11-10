@@ -192,8 +192,10 @@ dss_text:
 	.align	2
 	.type	dss_p2delta, @function
 dss_p2delta:
+	move.l 8(%sp),%d0
+	sub.l #__knobs,%d0
+	move.l %d0,8(%sp)
 	move.l #dss_voice,%d0
-	sub.l #__knobs,8(%sp)
 	move.l %d0,4(%sp)
 	jra sc_voice_p2_turn
 	.size	dss_p2delta, .-dss_p2delta
