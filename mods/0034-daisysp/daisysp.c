@@ -17,6 +17,7 @@ struct sc_voice {          /* sidecar-core companion/voice.c */
   uint8_t owner, nknobs, ships, pad;
   const char *block;
   int32_t (*input)(const uint16_t *blk, int32_t voice);
+  const uint8_t *words;    /* none: param k = word k */
 };
 void sc_voice_engine(const struct sc_voice *d, int32_t v, void *frame, uint16_t *blk, int32_t pitch);
 
@@ -33,7 +34,7 @@ static int32_t ds_input(const uint16_t *blk, int32_t voice) {
   return z >= 3 ? z - 1 : -1;
 }
 
-static const struct sc_voice ds_voice = {DS_OWNER, 8, 1, 0, "DAISYSP", ds_input};
+static const struct sc_voice ds_voice = {DS_OWNER, 8, 1, 0, "DAISYSP", ds_input, 0};
 
 static void ds_engine(int32_t v, void *frame, uint16_t *blk, int32_t pitch) {
   sc_voice_engine(&ds_voice, v, frame, blk, pitch);

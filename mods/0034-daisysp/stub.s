@@ -274,7 +274,7 @@ ds_machine:
 	.byte	1
 	.align	2
 	.type	ds_voice, @object
-	.size	ds_voice, 12
+	.size	ds_voice, 16
 ds_voice:
 	.byte	81
 	.byte	8
@@ -282,6 +282,7 @@ ds_voice:
 	.byte	0
 	.long	.LC14
 	.long	ds_input
+	.long	0
 	.ident	"GCC: (Ubuntu 13.3.0-6ubuntu2~24.04) 13.3.0"
 | the blob, shipped by the companion's code service (sc_code entry in mod.toml)
 	.section .payload,"a"

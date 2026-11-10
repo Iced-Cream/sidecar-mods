@@ -1,0 +1,40 @@
+[mod]
+id      = "0035-dspsample"
+title   = "DSP SAMPLE: a sample player as a Rytm machine, played by the Sidecar's Pi from the project's sample pool"
+
+enabled = false
+
+# code in elekloader's DDR area, a client of the companion (0032-sidecar): its voice service and sample client
+area    = "elek"
+
+# re-only | built | hardware-verified | retracted
+status  = "built"
+
+summary = """
+DSP SAMPLE (2026-11-10): ext's DSP SAMPLE voice as its own mod, on the Sidecar's generic engine. Machine slot 45 (SD
+TEST) through core-ar2 0.13's core_machines, on every voice; knobs SMP TUN STA END LOP and LEV (stock's records, so
+stored, p-locked and slid as any machine's). Its sound is the Pi's DSP library block SAMPLE, placed by the companion's
+voice service once per voice that runs the machine and routed onto that voice's Overbridge input: it plays the
+project's sample pool entry SMP (the Pi's sample service, files from its card, loaded into RAM) at the trig's note,
+from STA to END (backwards when END is before STA), once or looped. SMP shows the file's name. Nothing shipped.
+design.md.
+"""
+
+[sources]
+stub = "stub.s"                       # generated from dspsample.c by build.sh
+
+[params]
+
+[elek]
+core = "core-ar2"
+contribute = [
+  # the machine (core-ar2 0.13: slots 34..52; elekloader names it as the resource machine:45)
+  { to = "core_machines", order = 50, sym = "dss_machine" },
+  # SMP's value text (record 417, SD TEST's sound index 10): the pool entry's file name
+  { to = "core_params", order = 50, sym = "dss_params" },
+]
+
+[requires]
+shared = false
+symbols = []
+mods = ["0032-sidecar"]

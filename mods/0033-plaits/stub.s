@@ -224,13 +224,14 @@ pl_machine:
 	.byte	1
 	.align	2
 	.type	pl_voice, @object
-	.size	pl_voice, 12
+	.size	pl_voice, 16
 pl_voice:
 	.byte	68
 	.byte	8
 	.byte	1
 	.byte	0
 	.long	.LC17
+	.long	0
 	.long	0
 	.ident	"GCC: (Ubuntu 13.3.0-6ubuntu2~24.04) 13.3.0"
 | the blob, shipped by the companion's code service (sc_code entry in mod.toml)

@@ -173,6 +173,7 @@ Each folder's `mod.toml` and `design.md` say more:
 | 0025 | sendfx | SEND FX 1 and 2 as graphs of the Pi's DSP library: a sidecar-core client |
 | 0033 | plaits | Mutable Instruments Plaits as machine slot 44, played by the Pi: ext's first voice as its own sidecar-core client (the companion's voice service; its Pi blob in blob/) |
 | 0034 | daisysp | A physical model (MODAL, STRING, RESON) as machine slot 51, played by the Pi and struck by its own exciter, noise or another Rytm voice: ext's second voice as its own sidecar-core client (the voice service with an input; its Pi blob in blob/) |
+| 0035 | dspsample | A sample player as machine slot 45, played by the Pi from the project's sample pool: ext's DSP SAMPLE as its own sidecar-core client (the voice service and sample client; the Pi's SAMPLE block, nothing shipped) |
 | 0032 | sidecar | the companion, built from its own repository sidecar-core (vendor/sidecar-core, pinned in the Makefile; mods/0032-sidecar/mod.toml is its entry here) |
 
 Left the tree on 2026-11-07 (in git history): shared (0000), lfo-rnd (0004), comp-preview (0006), filter-hz (0008),
