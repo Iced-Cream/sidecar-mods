@@ -41,7 +41,9 @@ MODAL (Plaits engines 0, 1, 5..16, 18..20; the 6-OP FM, NOISE and the drums are 
 
 - Slot 44's records have no LFO, velocity or aftertouch destination (core-ar2 0.13 leaves +0x24 at 0 on the TEST
   records) [code, core-ar2 README]: the LFO can't reach PLAITS's knobs.
-- ENG shows a number, not the model's name (a value text through core_params is a follow-up).
+- ENG shows the model's short name (VCF PHAS TERR SMCH CHIP VA SHAP FM2 GRAN HARM WTBL CHRD SPCH SWRM PART STRG MODL)
+  through a core_params text entry on record 409 (BD TEST's ENG, sound index 10); get and turn stay stock's. Record 409
+  and the 4-character fit are to be confirmed on the emulator gate.
 - The note is the engine's pitch argument's integer part; on 1.74 its format is [I] (ext measured 16.16 on 1.73).
 - No release (0.13's latch reports trigs only); PLAITS rings out on its own decay and the voice's amp envelope.
 - Page 2 (ext's TMD MMD FM AUX / FIN VEL GLD VOL on SMPL) is not carried over.

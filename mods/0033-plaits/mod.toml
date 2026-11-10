@@ -17,7 +17,7 @@ so stored, p-locked and slid as any machine's; slot 44's records take no LFO, ve
 Its sound is Mutable Instruments Plaits (MIT) on the Pi: the PLAITS blob (blob/), this mod's payload, shipped by
 the companion's code service and placed by its voice service once per voice that runs the machine, routed onto
 that voice's Overbridge input, which the voice plays through its own filter, overdrive and amp. Trigs and knob
-values go to the Pi from the audio interrupt (TRIG / PARAM). ENG picks one of 17 models (ext's curated set).
+values go to the Pi from the audio interrupt (TRIG / PARAM). ENG picks one of 17 models (ext's curated set) and shows its short name.
 design.md.
 """
 
@@ -32,6 +32,8 @@ core = "core-ar2"
 contribute = [
   # the machine (core-ar2 0.13: slots 34..52; elekloader names it as the resource machine:44)
   { to = "core_machines", order = 50, sym = "pl_machine" },
+  # ENG's value text: the model's name (record 409, BD TEST's ENG)
+  { to = "core_params", order = 50, sym = "pl_params" },
   # the blob for the companion's code service: {owner 0x44, flags 0, pad, address, length 0 = its SCX header's}
   { to = "sc_code", order = 50, sym = "pl_scx", data = "440000000000000000000000", at = 4 },
 ]

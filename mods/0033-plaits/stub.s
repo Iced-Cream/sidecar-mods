@@ -16,43 +16,151 @@ pl_engine:
 	lea (20,%sp),%sp
 	rts
 	.size	pl_engine, .-pl_engine
-	.globl	pl_machine
+	.align	2
+	.type	pl_text, @function
+pl_text:
+	mvz.w #409,%d0
+	move.l 4(%sp),%a1
+	cmp.l 4(%a1),%d0
+	jne .L8
+	move.l 8(%a1),%d0
+	move.l %d0,%d1
+	move.l 12(%a1),%a0
+	asr.l #8,%d1
+	cmp.l #32767,%d0
+	jle .L4
+	moveq #127,%d1
+.L5:
+	move.l %d1,%d0
+	lsl.l #4,%d0
+	lea pl_models,%a1
+	add.l %d1,%d0
+	asr.l #7,%d0
+	move.l (%a1,%d0.l*4),%a1
+.L6:
+	move.b (%a1)+,%d0
+	jne .L7
+	clr.b (%a0)
+	mov3q.l #1,%d0
+.L2:
+	rts
+.L4:
+	tst.l %d1
+	jge .L5
+	clr.l %d1
+	jra .L5
+.L7:
+	move.b %d0,(%a0)+
+	jra .L6
+.L8:
+	clr.l %d0
+	jra .L2
+	.size	pl_text, .-pl_text
+	.globl	pl_params
+	.text
+	.align	2
+	.type	pl_params, @object
+	.size	pl_params, 20
+pl_params:
+	.long	409
+	.long	409
+	.long	0
+	.long	0
+	.long	pl_text
 	.text
 .LC0:
-	.string	"PLAITS"
+	.string	"VCF"
 .LC1:
-	.string	"PLTS"
+	.string	"PHAS"
 .LC2:
-	.string	"Level"
+	.string	"TERR"
 .LC3:
-	.string	"LEV"
+	.string	"SMCH"
 .LC4:
-	.string	"Engine"
+	.string	"CHIP"
 .LC5:
-	.string	"ENG"
+	.string	"VA"
 .LC6:
-	.string	"Harmonics"
+	.string	"SHAP"
 .LC7:
-	.string	"HRM"
+	.string	"FM2"
 .LC8:
-	.string	"Timbre"
+	.string	"GRAN"
 .LC9:
-	.string	"TIM"
+	.string	"HARM"
 .LC10:
-	.string	"Morph"
+	.string	"WTBL"
 .LC11:
-	.string	"MOR"
+	.string	"CHRD"
 .LC12:
-	.string	"Decay"
+	.string	"SPCH"
 .LC13:
-	.string	"DEC"
+	.string	"SWRM"
 .LC14:
-	.string	"LPG Colour"
+	.string	"PART"
 .LC15:
-	.string	"LPG"
+	.string	"STRG"
 .LC16:
-	.string	"Tune"
+	.string	"MODL"
+	.text
+	.align	2
+	.type	pl_models, @object
+	.size	pl_models, 68
+pl_models:
+	.long	.LC0
+	.long	.LC1
+	.long	.LC2
+	.long	.LC3
+	.long	.LC4
+	.long	.LC5
+	.long	.LC6
+	.long	.LC7
+	.long	.LC8
+	.long	.LC9
+	.long	.LC10
+	.long	.LC11
+	.long	.LC12
+	.long	.LC13
+	.long	.LC14
+	.long	.LC15
+	.long	.LC16
+	.globl	pl_machine
+	.text
 .LC17:
+	.string	"PLAITS"
+.LC18:
+	.string	"PLTS"
+.LC19:
+	.string	"Level"
+.LC20:
+	.string	"LEV"
+.LC21:
+	.string	"Engine"
+.LC22:
+	.string	"ENG"
+.LC23:
+	.string	"Harmonics"
+.LC24:
+	.string	"HRM"
+.LC25:
+	.string	"Timbre"
+.LC26:
+	.string	"TIM"
+.LC27:
+	.string	"Morph"
+.LC28:
+	.string	"MOR"
+.LC29:
+	.string	"Decay"
+.LC30:
+	.string	"DEC"
+.LC31:
+	.string	"LPG Colour"
+.LC32:
+	.string	"LPG"
+.LC33:
+	.string	"Tune"
+.LC34:
 	.string	"TUN"
 	.text
 	.align	2
@@ -64,52 +172,52 @@ pl_machine:
 	.byte	-1
 	.byte	-1
 	.word	0
-	.long	.LC0
-	.long	.LC1
-	.long	.LC2
-	.long	.LC3
+	.long	.LC17
+	.long	.LC18
+	.long	.LC19
+	.long	.LC20
 	.byte	0
 	.byte	127
 	.byte	100
 	.byte	0
-	.long	.LC4
-	.long	.LC5
+	.long	.LC21
+	.long	.LC22
 	.byte	0
 	.byte	127
 	.byte	0
 	.byte	0
-	.long	.LC6
-	.long	.LC7
-	.byte	0
-	.byte	127
-	.byte	64
-	.byte	0
-	.long	.LC8
-	.long	.LC9
+	.long	.LC23
+	.long	.LC24
 	.byte	0
 	.byte	127
 	.byte	64
 	.byte	0
-	.long	.LC10
-	.long	.LC11
+	.long	.LC25
+	.long	.LC26
 	.byte	0
 	.byte	127
 	.byte	64
 	.byte	0
-	.long	.LC12
-	.long	.LC13
+	.long	.LC27
+	.long	.LC28
 	.byte	0
 	.byte	127
 	.byte	64
 	.byte	0
-	.long	.LC14
-	.long	.LC15
+	.long	.LC29
+	.long	.LC30
 	.byte	0
 	.byte	127
 	.byte	64
 	.byte	0
-	.long	.LC16
-	.long	.LC17
+	.long	.LC31
+	.long	.LC32
+	.byte	0
+	.byte	127
+	.byte	64
+	.byte	0
+	.long	.LC33
+	.long	.LC34
 	.byte	32
 	.byte	96
 	.byte	64
@@ -122,7 +230,7 @@ pl_voice:
 	.byte	8
 	.byte	1
 	.byte	0
-	.long	.LC0
+	.long	.LC17
 	.ident	"GCC: (Ubuntu 13.3.0-6ubuntu2~24.04) 13.3.0"
 | the blob, shipped by the companion's code service (sc_code entry in mod.toml)
 	.section .payload,"a"

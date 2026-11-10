@@ -10,6 +10,7 @@
 #include <stdint.h>
 
 #include "analog-rytm-mk2/machines.h"
+#include "analog-rytm-mk2/pages.h"
 
 struct sc_voice {          /* sidecar-core companion/voice.c */
   uint8_t owner, nknobs, ships, pad;
@@ -38,3 +39,27 @@ const struct core_machine pl_machine = {
     {"LPG Colour", "LPG", 0, 127, 64, 0},
     {"Tune", "TUN", 32, 96, 64, 1},
   }};
+
+/* ENG's value text: the model's name in place of stock's number. BD TEST's records are 408..415 (sound indices
+ * 9..16), so ENG (index 10) is 409. The blob maps value v to zone v * 17 / 128 (blob/plaits_blob.cc); get and delta
+ * stay stock's. */
+#define PL_ENG_ID 409
+/* at most 4 characters, as stock's own value texts (VA VCF, PHASE DIST, WAVE TERRAIN, STRING MACHINE, CHIPTUNE, VA,
+ * WAVESHAPER, 2-OP FM, GRANULAR, HARMONIC, WAVETABLE, CHORDS, SPEECH, SWARM, PARTICLE, STRING, MODAL) */
+static const char *const pl_models[17] = {
+  "VCF", "PHAS", "TERR", "SMCH", "CHIP", "VA", "SHAP", "FM2", "GRAN",
+  "HARM", "WTBL", "CHRD", "SPCH", "SWRM", "PART", "STRG", "MODL"};
+
+static int pl_text(struct core_text *t) {
+  if (t->id != PL_ENG_ID) return CORE_TEXT_PASS;
+  int32_t v = t->value >> 8;
+  if (v < 0) v = 0;
+  if (v > 127) v = 127;
+  const char *s = pl_models[v * 17 / 128];
+  char *b = t->buf;
+  while (*s) *b++ = *s++;
+  *b = 0;
+  return CORE_TEXT_DONE;
+}
+
+const struct core_param pl_params = {PL_ENG_ID, PL_ENG_ID, 0, 0, pl_text};
