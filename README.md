@@ -171,6 +171,7 @@ Each folder's `mod.toml` and `design.md` say more:
 | 0022 | looper | looper mode; to become a client on a generic loop block |
 | 0023 | teensy-drive | the Sidecar's SD card as the SIDECAR folder in the Rytm's sample browser (the name dates from Sidecar Mini); to become a client of the engine's browse service |
 | 0025 | sendfx | SEND FX 1 and 2 as graphs of the Pi's DSP library: a sidecar-core client |
+| 0033 | plaits | Mutable Instruments Plaits as machine slot 44, played by the Pi: ext's first voice as its own sidecar-core client (the companion's voice service; its Pi blob in blob/) |
 | 0032 | sidecar | the companion, built from its own repository sidecar-core (vendor/sidecar-core, pinned in the Makefile; mods/0032-sidecar/mod.toml is its entry here) |
 
 Left the tree on 2026-11-07 (in git history): shared (0000), lfo-rnd (0004), comp-preview (0006), filter-hz (0008),

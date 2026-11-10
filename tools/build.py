@@ -159,7 +159,9 @@ def assemble(mod, claims, params=None):
     # the firmware was built for. The earlier 5407 (ISA_A, the older MAC unit) happened
     # to assemble every mod written so far, because none reached past ISA_A; it rejects
     # EMAC outright. Switching produced a byte-identical image for 0000/0002/0003/0004.
-    run(["m68k-elf-as", "-mcpu=5475", "-I", BUILD, "-I", ROOT, *defs, "-o", obj, stub])
+    for f in payload_files(mod):         # an .incbin of a built file (sources.payload) next to the stub
+        shutil.copy(f, dst.parent / f.name)
+    run(["m68k-elf-as", "-mcpu=5475", "-I", BUILD, "-I", ROOT, "-I", dst.parent, *defs, "-o", obj, stub])
     placed = []
     for c in claims:
         placed += [f"--section-start={c.get('section', '.text')}=0x{c['addr']:08x}"]
@@ -279,7 +281,7 @@ SC_ID = "sidecar"
 # by `make setup` at the Makefile's SC_REV (build.py refuses another). mods/0032-sidecar/mod.toml stays as its entry
 # here (`external`): the registry's claims, its command for the overlap check, the clients' `requires`.
 SC_DIR = ROOT / "vendor" / "sidecar-core"
-SC_REV = "1b7244978f0f972f1f85ccd8c0a3a11aa4c89f57"
+SC_REV = "b0fd06fb71bff1d05238932dbaf793eec44d0a30"
 SC_TABLE = "sc_cmds"
 SC_ENTRY = 12             # {first, last, flags, pad, magic, box}: sidecar.c struct sc_cmd
 SC_DIRECT = 1
@@ -378,7 +380,8 @@ def elek_source(mod, dst):
     out = []
     for line in src.splitlines():
         m = re.match(r"^(\s*)(\.text\b.*|\.data\b.*|\.(?:push)?section\s+(\.[\w.]+).*)$", line)
-        if m and not (m.group(3) or "").startswith(".bss") and not line.strip().startswith(".bss"):
+        # .bss stays .bss; .payload (data the mod ships, core-ar2 0.11: a Pi voice's blob) stays .payload
+        if m and not (m.group(3) or "").startswith((".bss", ".payload")) and not line.strip().startswith(".bss"):
             push = ".pushsection" in line.split(",")[0]
             line = m.group(1) + ('.pushsection .run, "ax"' if push else '.section .run, "ax"')
         out.append(line)
@@ -388,6 +391,18 @@ def elek_source(mod, dst):
     defs = [x for k, v in sorted(mod["_params"].items()) for x in ("--defsym", f"P_{k.upper()}={int(v)}")]
     run(["m68k-elf-as", "-mcpu=5475", "-I", BUILD, "-I", ROOT, *defs, "-o",
          objdir / f"{mod['id']}.elf", mod["_dir"] / mod["_sources"]["stub"]])
+
+
+def payload_files(mod):
+    """The built files a mod's stub .incbins into its .payload ([sources] payload, relative to the mod's folder: a Pi
+    voice's blob, built by the mod's own blob/build.sh, never committed). -> [Path]; refused when one is missing."""
+    p = mod["_sources"].get("payload")
+    if not p:
+        return []
+    f = mod["_dir"] / p
+    if not f.is_file():
+        raise SystemExit(f"{mod['id']}: its payload {f} is not built (see its blob/build.sh)")
+    return [f]
 
 
 def read_version():
@@ -654,9 +669,13 @@ def elek_build(img, stock_img, mods, enabled, elek_detours, tag, meta, syx_out, 
             storage += mods[mid].get("_elek", {}).get("storage", [])
             # entries in core's tables ([elek] contribute: to, order, a symbol of the mod's): core_pages,
             # core_params, core_view_pages (core-ar2 0.4), as elekloader's own mods contribute them
-            contribute += [{"to": c["to"], "order": int(c.get("order", 50)), "data": "00000000",
-                            "relocs": [[0, "abs32", "sym:" + c["sym"], 0]]}
+            # (data / at: an entry longer than a pointer, e.g. the companion's sc_code: data its bytes in hex, at the
+            # offset of the symbol's address in it)
+            contribute += [{"to": c["to"], "order": int(c.get("order", 50)), "data": c.get("data", "00000000"),
+                            "relocs": [[int(c.get("at", 0)), "abs32", "sym:" + c["sym"], 0]]}
                            for c in mods[mid].get("_elek", {}).get("contribute", [])]
+            for f in payload_files(mods[mid]):
+                shutil.copy(f, mdir / f.name)
             prm = {f"P_{k.upper()}": int(v) for k, v in mods[mid]["_params"].items()}
             if bundle:
                 # several stubs in one mod: each gets its own params as .set lines, as

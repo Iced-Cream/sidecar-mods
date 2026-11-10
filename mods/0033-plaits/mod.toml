@@ -1,0 +1,42 @@
+[mod]
+id      = "0033-plaits"
+title   = "PLAITS: Mutable Instruments Plaits as a Rytm machine, played by the Sidecar's Pi"
+
+enabled = false
+
+# code in elekloader's DDR area, a client of the companion (0032-sidecar): its voice service and code service
+area    = "elek"
+
+# re-only | built | hardware-verified | retracted
+status  = "built"
+
+summary = """
+PLAITS (2026-11-10): ext's PLAITS voice as its own mod, on the Sidecar's generic engine. Machine slot 44 (BD TEST)
+through core-ar2 0.13's core_machines, on every voice; knobs ENG HRM TIM MOR DEC LPG TUN and LEV (stock's records,
+so stored, p-locked and slid as any machine's; slot 44's records take no LFO, velocity or aftertouch modulation).
+Its sound is Mutable Instruments Plaits (MIT) on the Pi: the PLAITS blob (blob/), this mod's payload, shipped by
+the companion's code service and placed by its voice service once per voice that runs the machine, routed onto
+that voice's Overbridge input, which the voice plays through its own filter, overdrive and amp. Trigs and knob
+values go to the Pi from the audio interrupt (TRIG / PARAM). ENG picks one of 17 models (ext's curated set).
+design.md.
+"""
+
+[sources]
+stub = "stub.s"                       # generated from plaits.c by build.sh
+payload = "blob/build/plaits.scx"     # built by blob/build.sh (never committed); .incbin'd into the stub's .payload
+
+[params]
+
+[elek]
+core = "core-ar2"
+contribute = [
+  # the machine (core-ar2 0.13: slots 34..52; elekloader names it as the resource machine:44)
+  { to = "core_machines", order = 50, sym = "pl_machine" },
+  # the blob for the companion's code service: {owner 0x44, flags 0, pad, address, length 0 = its SCX header's}
+  { to = "sc_code", order = 50, sym = "pl_scx", data = "440000000000000000000000", at = 4 },
+]
+
+[requires]
+shared = false
+symbols = []
+mods = ["0032-sidecar"]

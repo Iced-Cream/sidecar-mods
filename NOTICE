@@ -56,6 +56,13 @@ vendor/ (git-ignored) at pinned commits, and the build executes it.
       Bierling, MIT licence (its LICENSE). Unpacks and repacks the .syx
       container; our checks extract every image with it.
 
+  mods/0033-plaits/blob/vendor/eurorack
+      https://github.com/pichenettes/eurorack (Plaits and stmlib), (C) Emilie
+      Gillet, MIT licence (the notice in each source file). Fetched by
+      mods/0033-plaits/blob/build.sh at 08460a6 (stmlib e3bd7c9) and compiled
+      into the PLAITS blob, which a build carries as 0033-plaits's payload:
+      a built image with 0033 contains Plaits' code, under its MIT notice.
+
 Facts, not code
 ---------------
   - mods/0020-dmach's phase-modulation and interpolated-sine cores follow
