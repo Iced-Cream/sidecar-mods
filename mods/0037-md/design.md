@@ -27,6 +27,14 @@ like them, and only the code plays them exactly.
     into the Rytm mod.
 - The velocity is the hit's level; the note is ignored (PTCH is a control); a release does nothing, as upstream.
 
+## Payload room (2026-11-11)
+
+Packed with elekloader's aplib (the main OS's packer), the payloads are PLAITS 138 KB, DAISYSP 72 KB, JUNO 10 KB,
+6-OP FM 140 KB, MD 287 KB: 648 KB for the five, against the OS file's flash budget of about 1 MB with core alone
+(ADAPTING.md "Payloads"; the 5 MB DDR area is not the limit) [code: packed here, not linked]. A build with all of them,
+the companion and DSP SAMPLE is the real check; if it is short, 6-OP FM and PLAITS carry the same Plaits code twice
+(one blob could serve both) and MD -Os saves 28 KB.
+
 ## Not carried over (gaps)
 
 - Upstream's DIGIDRUM migration (old sounds with DIGIDRUM's page): no stored sounds exist on this machine yet.
