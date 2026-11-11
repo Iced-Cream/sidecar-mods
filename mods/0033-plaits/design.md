@@ -32,7 +32,9 @@ MODAL (Plaits engines 0, 1, 5..16, 18..20; the 6-OP FM, NOISE and the drums are 
   BD TEST's records (sound indices 9..16), so stock stores, p-locks and slides them: no core claim but the slot.
 - **Blob** (blob/plaits_blob.cc, built by blob/build.sh from Mutable's eurorack at 08460a6): one Plaits voice per
   slot, mono, written to both slot outputs. Params 0..7 = the knob words >> 2 (value x 64). A trig (src 0x7F, 0x90)
-  sets the note and fires Plaits' trigger on the next render. 200 KB; its writable part (stmlib's Random seed) on its
+  sets the note and fires Plaits' trigger on the next render. Only the 17 models' engines (decided 2026-11-11):
+  tools/plaits_curate.py makes the 6-OP FMs (0038's), NOISE and the drums (0037 MD's) NullEngines, so their code and
+  tables are dropped (151 KB of content, 178 KB before; the file stays 199 KB, its writable part aligned to 64 KB); its writable part (stmlib's Random seed) on its
   own 64 KB unit (SCX_F_DATA, `--writable`).
 - **Shipping**: the blob is this mod's `.payload` (core-ar2 0.11 payloads), contributed to the companion's `sc_code`
   with owner 0x44; the companion offers it at each link epoch, and the voice service PLACEs it once the Pi has it.

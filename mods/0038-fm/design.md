@@ -24,7 +24,9 @@ Upstream's voice is Plaits' six-op engine with its own wrapper; only the code it
 - Trigs: 0x90 note vel is NoteOn; 0x80 (TRIG kind 1) is the release.
 - Defaults: LEV 100, PAT 0, TIM MOR LPG TUN 64, DEC 127 (no LPG), LEN 64 (~0.5 s gate). Upstream's LEN default is
   127 (follow the note), which drones without the Rytm's note-offs (core ask 10); back to 127 once they exist.
-- 200 KB; the six-op hand-over pointers and stmlib's Random seed on their own 64 KB writable unit (SCX_F_DATA). One
+- Only the six-op engine (decided 2026-11-11: a blob carries only the code it needs): tools/plaits_curate.py makes
+  every other engine of plaits::Voice a NullEngine and --gc-sections drops their code and tables. 67 KB (200 KB with
+  every engine); the six-op hand-over pointers and stmlib's Random seed on their own 64 KB writable unit (SCX_F_DATA). One
   render thread runs every slot (core/proc), so those globals are not shared between cores.
 
 ## Not carried over (gaps)

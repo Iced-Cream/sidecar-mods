@@ -29,11 +29,13 @@ like them, and only the code plays them exactly.
 
 ## Payload room (2026-11-11)
 
-Packed with elekloader's aplib (the main OS's packer), the payloads are PLAITS 138 KB, DAISYSP 72 KB, JUNO 10 KB,
-6-OP FM 140 KB, MD 287 KB: 648 KB for the five, against the OS file's flash budget of about 1 MB with core alone
+Packed with elekloader's aplib (the main OS's packer), the payloads are PLAITS 120 KB, DAISYSP 72 KB, JUNO 10 KB,
+6-OP FM 27 KB, MD 287 KB: 516 KB for the five (648 KB before PLAITS and 6-OP FM dropped the engines they don't play), against the OS file's flash budget of about 1 MB with core alone
 (ADAPTING.md "Payloads"; the 5 MB DDR area is not the limit) [code: packed here, not linked]. A build with all of them,
-the companion and DSP SAMPLE is the real check; if it is short, 6-OP FM and PLAITS carry the same Plaits code twice
-(one blob could serve both) and MD -Os saves 28 KB.
+the companion and DSP SAMPLE is the real check; if it is short, MD -Os saves 28 KB. Mods loaded from the +Drive
+(elekloader main's Drive Loader, docs/DRIVE.md; not in the pinned 3a7e943) take none of the flash budget: they link
+into what the flashed build leaves of the 5 MB DDR area, but get no core_payloads entries, so a +Drive voice mod
+would carry its blob as data in its own sections [I].
 
 ## Not carried over (gaps)
 

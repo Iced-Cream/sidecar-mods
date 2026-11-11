@@ -17,14 +17,25 @@ if [ ! -d "$V/plaits" ]; then
   git -C "$V/stmlib" checkout --quiet e3bd7c9cc00e4364166f9905c0509b6ffd0535ec
 fi
 # -DTEST: stmlib's portable Sqrt (its ARM one is Cortex-M asm); Plaits' user data is shim/'s (none)
+# Plaits with only PLAITS's 17 models (decided 2026-11-11: a blob carries only the code it needs): the 6-OP FMs
+# (6-OP FM's own blob, 0038), NOISE and the drums (MD, 0037) as NullEngines, their code and tables dropped by
+# --gc-sections; the engines keep Plaits' numbers (plaits_blob.cc's kModels)
+S=build/src
+rm -rf "$S"; mkdir -p "$S"
+cp -R "$V/plaits" "$V/stmlib" "$S/"
+cp shim/plaits/user_data.h "$S/plaits/user_data.h"
+python3 ../../../tools/plaits_curate.py "$S/plaits/dsp/voice.h" virtual_analog_vcf_engine_ phase_distortion_engine_ \
+  wave_terrain_engine_ string_machine_engine_ chiptune_engine_ virtual_analog_engine_ waveshaping_engine_ fm_engine_ \
+  grain_engine_ additive_engine_ wavetable_engine_ chord_engine_ speech_engine_ swarm_engine_ particle_engine_ \
+  string_engine_ modal_engine_
 CXXF="--target=aarch64-linux-gnu -std=c++14 -O2 -fPIC -fno-plt -fno-exceptions -fno-rtti -fvisibility=hidden
- -fno-asynchronous-unwind-tables -fno-stack-protector -fno-threadsafe-statics -fno-math-errno -DTEST -Wno-everything
- -I$PWD/shim -I$V -I$FW/core/code"
+ -ffunction-sections -fdata-sections -fno-asynchronous-unwind-tables -fno-stack-protector -fno-threadsafe-statics
+ -fno-math-errno -DTEST -Wno-everything -I$PWD/$S -I$FW/core/code"
 mkdir -p build/obj
 objs=()
-for f in $(cd "$V" && find plaits/dsp -name '*.cc' | sort) plaits/resources.cc stmlib/dsp/units.cc stmlib/utils/random.cc; do
+for f in $(cd "$S" && find plaits/dsp -name '*.cc' | sort) plaits/resources.cc stmlib/dsp/units.cc stmlib/utils/random.cc; do
   o=build/obj/$(echo "$f" | tr / _).o
-  [ "$o" -nt "$V/$f" ] || clang++ $CXXF -c "$V/$f" -o "$o"
+  clang++ $CXXF -c "$S/$f" -o "$o"
   objs+=("$o")
 done
 clang++ $CXXF -c plaits_blob.cc -o build/obj/plaits_blob.o

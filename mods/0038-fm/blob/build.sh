@@ -38,9 +38,11 @@ perl -0pi -e 's|void RenderOperators\(\n|void RenderOperatorsC(\n|; s|\};\s*\n\}
 perl -pi -e 's|^(#include <algorithm>)$|$1\n#if defined(__ARM_NEON) \&\& defined(__aarch64__)\n#include <arm_neon.h>\n#endif|' "$O"
 grep -q 'arm_neon.h' "$O" && grep -q 'operator_neon.h' "$O" || { echo "operator.h: NEON patch failed"; exit 1; }
 cp "$UP/sim/plaits/fm_machine.h" "$S/fm_machine.h"
+# only the six-op engine: every other Plaits engine a NullEngine, its code and tables dropped by --gc-sections
+python3 ../../../tools/plaits_curate.py "$S/plaits/dsp/voice.h" six_op_engine_
 # -DTEST: stmlib's portable Sqrt (its ARM one is Cortex-M asm)
 CXXF="--target=aarch64-linux-gnu -std=c++14 -O2 -fPIC -fno-plt -fno-exceptions -fno-rtti -fvisibility=hidden
- -fno-asynchronous-unwind-tables -fno-stack-protector -fno-threadsafe-statics -fno-math-errno -DTEST -Wno-everything
+ -ffunction-sections -fdata-sections -fno-asynchronous-unwind-tables -fno-stack-protector -fno-threadsafe-statics -fno-math-errno -DTEST -Wno-everything
  -I$PWD/$S -I$FW/core/code"
 mkdir -p build/obj
 objs=()
