@@ -68,7 +68,7 @@ void a4_remote_service(void);                           /* the pages' messages, 
 
 /* The selected track, through a page view, and the live kit's sounds: core-a4's own layout. */
 typedef int32_t (*a4_track_fn)(void *selection);
-typedef char *(*a4_model_fn)(void);
+typedef uint32_t (*a4_model_fn)(void);                      /* stock answers pointers in d0: typed as a number, since core-a4mk2 0.8's toolchain (m68k-linux-gnu) reads a pointer answer from a0 */
 #define UI_SELECTION ((void *)(((a4_model_fn)0x401494DEu)() + 48))  /* the selection object every page view holds at +116: the UI model's [read: 0x40025274] */
 #define SELECTION_TRACK ((a4_track_fn)0x400ADBD2u)                  /* its track, 0..3 the synth tracks */
 #define KIT_INDEX       (*(const volatile uint32_t *)0x405F5CA4u)
@@ -83,9 +83,9 @@ typedef char *(*a4_model_fn)(void);
 #define PARAM_MAX(id) (*(volatile int32_t *)(0x40186AF4u + 56u * (id) + 12u))
 #define KNOB_DESC(id) ((volatile uint32_t *)(0x41856C44u + 84u * (id)))
 #define KNOB_WORDS  21
-typedef void *(*a4_model_of_fn)(void *view, int32_t lock);
+typedef uint32_t (*a4_model_of_fn)(void *view, int32_t lock);    /* d0, as a4_model_fn */
 typedef void (*a4_model_set_fn)(void *model, int32_t id, int32_t value, int32_t a, int32_t b, int32_t c);
-#define VIEW_MODEL(view) ((*(a4_model_of_fn *)(*(char **)(view) + 168))((view), -1))
+#define VIEW_MODEL(view) ((void *)(*(a4_model_of_fn *)(*(char **)(view) + 168))((view), -1))
 #define MODEL_SET(model, id, value) ((*(a4_model_set_fn *)(*(char **)(model) + 48))((model), (id), (value), 0, 0, 0))
 
 /* A trig's notes as stock's preview gets them, a deque of bytes [read: 0x400b9e16]; what is here is what it reads. */
