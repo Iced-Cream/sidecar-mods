@@ -53,6 +53,8 @@ static volatile uint8_t qh, qt;                         /* the UI task adds, and
 static volatile int8_t turned[NENC];
 static uint8_t turned_func;
 
+int a4_remote_open(void) { return open; }       /* a4_seq.c: the page is on the screen */
+
 /* ---- the MIDI task ---- */
 
 static void rect(const uint8_t *b, int32_t n)
