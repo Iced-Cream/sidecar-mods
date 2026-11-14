@@ -4,7 +4,7 @@
  "title": "Sidecar",
  "category": "Sidecar",
  "license": "GPL-2.0-or-later",
- "description": "The Sidecar on an Analog Four MKII: knob D of the NOISE page picks a machine for a track's sound, and that track's trigs and parameters go to a Sidecar over USB MIDI under the A4 device profile. Its audio comes back through stock's Overbridge track inputs, into the voice's analog path. Every sound starts OFF. A track with a machine has OSC1's page as its own, and OSC2's by a setting, with plain dials and its names, and the Sidecar's pages can open on the A4's screen. Runs on a unit on Overbridge.",
+ "description": "The Sidecar on an Analog Four MKII: knob D of the NOISE page picks a machine for a track's sound, and that track's trigs and parameters go to a Sidecar over USB MIDI under the A4 device profile. Its audio comes back through stock's Overbridge track inputs, into the voice's analog path. Every sound starts OFF. A track with a machine has OSC1's page as its own, and OSC2's by a setting, with plain dials and its names, and the Sidecar's pages can open on the A4's screen. Runs on a unit on Overbridge. Needs the A4 companion (mod sidecar), which carries the host link.",
  "device": "analog-four-mk2",
  "os": "1.56",
  "sources": ["a4_report.c", "a4_page.c", "a4_label.s", "a4_remote.c"],
