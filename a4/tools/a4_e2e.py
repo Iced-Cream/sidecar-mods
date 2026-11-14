@@ -9,6 +9,7 @@ Sidecar into /.a4), trigs and params and note-offs through the real profile, the
 A4's output (compared with the same run with the Sidecar's voice silent), and the A4's channels back on IN. Firmware-derived outputs stay in --out."""
 import argparse, json, math, os, shutil, struct, subprocess, sys, time, wave
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import hostenv
 
 PORT = 7344
 
@@ -111,7 +112,7 @@ def run(a, name, detents, lev0, trig=None, extra=(), chord=None, poly=False, ste
     card = out + "/card"
     os.makedirs(card)
     img = out + "/a4.img"
-    subprocess.run(["cp", "-c", a.card, img], check=True)
+    hostenv.copy(a.card, img)
     env = dict(os.environ, DTBOOT_QUIET_USB="1", DTBOOT_USB_OUT=out + "/usb.bin", DTEMU_STRICT="1", DTEMU_NO_JIT="1") if False else dict(os.environ, DTBOOT_QUIET_USB="1", DTBOOT_USB_OUT=out + "/usb.bin")
     env["DTBOOT_END_PNG"] = out + "/end.png"
     if peek:
@@ -143,14 +144,14 @@ def run(a, name, detents, lev0, trig=None, extra=(), chord=None, poly=False, ste
         args += ["--midi", f"90{a.note:02x}64@{M(at)}", "--midi", f"80{a.note:02x}00@{M(off)}"]
         notes.append((at, off))
     t += 400 * a.notes + 200 + getattr(a, "tail", 0)
-    cmd = [dtboot, a.syx, "--card", img, "--usb-host", "--usb-midi-real", "--ob-link", f"127.0.0.1:{PORT}", "--analog-wav", out + "/a4_out.wav", "--instr", M(t), "--every", "100M" if peek else "1G", *args]
+    cmd = [dtboot, a.syx, "--card", img, "--usb-host", "--usb-midi-real", "--ob-link", f"{hostenv.LISTEN}:{PORT}", "--analog-wav", out + "/a4_out.wav", "--instr", M(t), "--every", "100M" if peek else "1G", *args]
     emu = subprocess.Popen(cmd, stdout=emu_log, stderr=subprocess.STDOUT, env=env)
     time.sleep(1)
-    sc = [os.path.join(a.engine, "core/build/sidecar_emu"), "--link", f"127.0.0.1:{PORT}", "--card", card, "--out-wav", out + "/to_a4.wav", "--in-wav", out + "/from_a4.wav", "--frame-out", out + "/frame.bin"]
+    sc = ["--link", f"{hostenv.CONNECT}:{PORT}", "--card", card, "--out-wav", out + "/to_a4.wav", "--in-wav", out + "/from_a4.wav", "--frame-out", out + "/frame.bin"]
     for tr in (trig.split(",") if trig else ()):
         sc += ["--trig", tr]
     sc += list(extra)
-    side = subprocess.Popen(sc, stdout=sc_log, stderr=subprocess.STDOUT)
+    side = subprocess.Popen(hostenv.engine_cmd(a.engine, sc), stdout=sc_log, stderr=subprocess.STDOUT)
     emu.wait()
     time.sleep(1)
     if side.poll() is None:

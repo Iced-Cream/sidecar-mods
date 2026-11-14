@@ -7,6 +7,7 @@ Firmware-derived outputs stay in --out. Exit 0 when every test passes."""
 import argparse, hashlib, os, re, shutil, subprocess, sys, time, wave, struct, zlib
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from decode import messages
+import hostenv
 
 RESULTS = []
 PORT = 7345
@@ -29,7 +30,7 @@ class Run:
         self.card = os.path.join(self.dir, "card.img")
         if os.path.exists(self.card):
             os.remove(self.card)
-        subprocess.run(["cp", "-c", card or a.card, self.card], check=True)
+        hostenv.copy(card or a.card, self.card)
         self.args, self.t, self.usb, self.strict = [], 4000, usb, strict
         self.env = env or {}
         self.usb_file = os.path.join(self.dir, "usb.bin")
@@ -96,10 +97,10 @@ class Run:
         else:
             shutil.rmtree(self.dir + "/sc", ignore_errors=True)
             os.makedirs(self.dir + "/sc")
-            emu = subprocess.Popen(cmd + ["--ob-link", f"127.0.0.1:{self.port}"], stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True, errors="replace", env=env)
+            emu = subprocess.Popen(cmd + ["--ob-link", f"{hostenv.LISTEN}:{self.port}"], stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True, errors="replace", env=env)
             time.sleep(1)
             with open(self.dir + "/sidecar.log", "w") as f:
-                side = subprocess.Popen([os.path.join(self.old or self.a.engine, "core/build/sidecar_emu"), "--link", f"127.0.0.1:{self.port}", "--card", self.dir + "/sc", *([] if self.old else ["--frame-out", self.dir + "/frame.bin"]), *self.host], stdout=f, stderr=subprocess.STDOUT)
+                side = subprocess.Popen(hostenv.engine_cmd(self.old or self.a.engine, ["--link", f"{hostenv.CONNECT}:{self.port}", "--card", self.dir + "/sc", *([] if self.old else ["--frame-out", self.dir + "/frame.bin"]), *self.host]), stdout=f, stderr=subprocess.STDOUT)
                 self.log = emu.communicate()[0]
                 self.rc = emu.returncode
                 time.sleep(1)
