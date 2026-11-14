@@ -2,12 +2,14 @@
 /* a4_remote.c - the Sidecar's pages on the A4's screen: the Rytm's remote UI (mods/0026-remote-ui, its messages and rules) cut to what a 128 x 64 terminal needs.
  * The way in and out: UP held, then YES, as on the Rytm, while a Sidecar answers: stock tests no held UP anywhere [read: 0x400647a2's callers], and with none answering YES is
  * stock's. UP stays stock's, but for the octave: while a Sidecar answers, UP and DOWN no longer step the keyboard's octave (a4_kbd_key); OCT+ and OCT- do. The way out: NO, a stock page key, 1 s with no host message, the USB port going. Nothing is saved: a power cut leaves stock's screen. Closed, a key and a turn cost one flag test and the frame one more.
- *   host -> A4  38 a tile rectangle into staging, 39 commit, 3A 0 close, 3C alive, 37 the catch mask, 36 the last frame as a splash for ticks x 50 ms, 4F the hello's answer
- *   A4 -> host  30 opened or closed, 31 a key, 32 a turn, 36 hello: never the Rytm's 35, which asks a Sidecar for /.rytm: an engine with no pages restarts on it, and drops a 36
+ *   host -> A4  38 a tile rectangle into staging, 39 commit, 3A 0 close, 3C alive, 37 the catch mask, 36 the last frame as a splash for ticks x 50 ms: the A4
+ *               companion's router passes 36..3C here (this mod's entry in sc_cmds); the box hello's answer, 4F, is the companion's (sc_box_ok)
+ *   A4 -> host  30 opened or closed, 31 a key, 32 a turn, 36 hello, after the companion's box hello has its kOk: never the Rytm's 35, which asks a Sidecar
+ *               for /.rytm: an engine with no pages restarts on it, and drops a 36
  * The engine draws text into the frame for a box (core/ui/remote.cpp), so no font lives here. Its 34, 3D, 3E and 3F are filtered by the profile, never sent.
  * Tasks: a4_rx runs in the MIDI task (priority 7) and alone writes staging, the shadow and the mask: it copies a message's bytes and returns, it never waits, and the
- * audio interrupt never comes here. The UI task owns the rest and queues what goes out, the mod's task (14) sends it through a4_usb_send, after the trigs. Nothing here runs
- * in the render. */
+ * audio interrupt never comes here. The UI task owns the rest: it queues what goes out and sends it at the end of its tick through core's never-waiting sender. Nothing
+ * here runs in the render. */
 #include "a4.h"
 
 #define BARRIER() __asm__ volatile("" ::: "memory")  /* a compiler barrier: the A4's ColdFire is one core */
@@ -36,7 +38,7 @@ static uint8_t staging[BYTES] __attribute__((aligned(4)));
 static uint8_t shadow[BYTES] __attribute__((aligned(4)));
 static volatile uint32_t sh_seq, committed;             /* MIDI task: odd while it copies; frames committed */
 static uint8_t mask[MASK_E + MASK_K];
-static volatile uint8_t mask_valid, link_ok, host_seen, want_close, splash_new;
+static volatile uint8_t mask_valid, host_seen, want_close, splash_new;
 static volatile uint8_t splash_ticks;
 static volatile uint32_t rx_at;                         /* a4_now of the last host message */
 volatile uint32_t a4_rx_msgs, a4_rx_bad, a4_rui_torn, a4_rui_drop;   /* to look at in the emulator */
@@ -47,7 +49,7 @@ static uint32_t splash_until, hello_at, seen_frame, opened_frame, up_at;
 static void *ui_ctrl;
 static uint8_t owner[32];                               /* a key's press was the host's: its release too */
 static struct { uint8_t cmd, a, b, c; } q[NQ];
-static volatile uint8_t qh, qt;                         /* the UI task adds, the mod's task takes */
+static volatile uint8_t qh, qt;                         /* the UI task adds, and takes at the end of its tick */
 static volatile int8_t turned[NENC];
 static uint8_t turned_func;
 
@@ -89,21 +91,13 @@ static void commit(void)
     ++committed;
 }
 
-/* The router's entry (a4_rx.s), every SysEx in: 1 ours, stock never sees it. A stock message costs the first compare. */
-int32_t a4_rx(const uint8_t *d, int32_t len, int32_t iface)
+/* The companion's router (sc_cmds, 36..3C, direct): F0 7D 52 54 <cmd> ..., len 7 or more, taken whatever this answers. */
+int a4_rx(const uint8_t *d, int32_t len);
+int a4_rx(const uint8_t *d, int32_t len)
 {
     const uint8_t *b = d + 6;
     int32_t n = len - 7, i;
-    if (d[1] != 0x7D)
-        return 0;
-    if (len < 7 || d[2] != 0x52 || d[3] != 0x54 || !(iface & 6))
-        return 1;
-    if (d[4] == 0x4F) {                                 /* 4F 1 <id> <status>: the hello's answer: only now the 36 goes */
-        if (len >= 10 && d[6] == 0 && d[7] == 3 && d[8] == 1)
-            link_ok = 1;
-        return 1;
-    }
-    if (d[5] != 1 || d[4] < 0x36 || d[4] > 0x3C) {
+    if (len < 7 || d[5] != 1 || d[4] < 0x36 || d[4] > 0x3C) {
         ++a4_rx_bad;
         return 1;
     }
@@ -145,7 +139,6 @@ static void put(uint32_t cmd, uint32_t a, uint32_t b, uint32_t c)
     }
     q[h % NQ].cmd = (uint8_t)cmd, q[h % NQ].a = (uint8_t)a, q[h % NQ].b = (uint8_t)b, q[h % NQ].c = (uint8_t)c;
     qh = (uint8_t)(h + 1);
-    a4_wake();
 }
 
 #define REDRAW() (*((uint8_t *)ui_ctrl + 0x20) = 1)     /* the view controller's dirty byte */
@@ -174,7 +167,7 @@ void a4_ui_tick(void *ctrl)
     ui_ctrl = ctrl;
     if (!up) {
         if (was_up) {
-            was_up = 0, link_ok = 0, host_seen = 0, hellos = 0, splash_until = 0, open_req = 0;
+            was_up = 0, host_seen = 0, hellos = 0, splash_until = 0, open_req = 0;
             if (open)
                 leave(R_TIMEOUT, 0);
             qt = qh;
@@ -183,7 +176,7 @@ void a4_ui_tick(void *ctrl)
         return;
     }
     was_up = 1;
-    if (link_ok && !host_seen && hellos < HELLOS36 && (!hellos || a4_now - hello_at >= SEC))
+    if (sc_box_ok() && !host_seen && hellos < HELLOS36 && (!hellos || a4_now - hello_at >= SEC))
         hello();
     if (open_req && !open && host_seen) {
         open = 1, open_req = 0, shown = 0, opened_frame = c, splash_until = 0, rx_at = a4_now;
@@ -214,6 +207,7 @@ void a4_ui_tick(void *ctrl)
         if (shown || splash_until)
             REDRAW();
     }
+    a4_remote_service();                                /* what this tick and the keys since the last one queued */
 }
 
 /* On top of stock's frame: stock has drawn under it and keeps nothing of this, so a draw always puts a whole frame there. The shadow is copied into the
@@ -348,11 +342,10 @@ int32_t a4_ui_enc(void *brain, void *ev)
     turned[e] = (int8_t)(t < -63 ? -63 : t > 63 ? 63 : t);
     turned_func = *((uint8_t *)ev + 20) != 0;
     IRQ_ON(sr);
-    a4_wake();
     return 1;
 }
 
-/* ---- the mod's task ---- */
+/* ---- the UI task, at the end of its tick ---- */
 
 static int send(uint32_t cmd, uint32_t a, uint32_t b, uint32_t c)
 {

@@ -11,16 +11,15 @@
  *   - at most MAX_PASS messages a pass, trigs first, and one message every RATE blocks in all with a burst of CREDIT_MAX
  *   - a note's end 11 from the OS's own note-off event (a key, MIDI), or when the voice's amp has closed (the sequencer's LEN), never ahead of its trig;
  *     on a poly track when the last key is up, or when every analog voice the track owns has closed
- * The render only reads and posts. The OS's sender runs on the mod's task. A track with no machine costs one byte test a block
- * and sends nothing. The hello: when the USB port comes up and HELLOS more times, and on while a track has a machine, so a
- * computer with no Sidecar on it sees a few short SysEx at connect and nothing after; a Sidecar that boots later resets the port
- * and is greeted again. The reports do not read its answer: a4_rx does, for the pages' own hello (a4_remote.c). */
+ * The render reads, and sends when there is work, through core's never-waiting sender (core_midi_try_send: from an interrupt it
+ * sends at once or into core's ring, which core's next tick sends). A track with no machine costs one byte test a block and
+ * sends nothing. The hello (4F) is the A4 companion's (mod `sidecar`): it greets at each USB port-up and owns the answer. The
+ * reports wait for neither: the engine drops them until its kOk, and at the kOk (sc_box_ok) every voice with a machine and the
+ * kit are said again, as at a port-up. */
 #include "a4.h"
 
 #define REPORT_GAP 16u          /* blocks of 32 frames: 10.7 ms */
 #define RESEND     188u         /* blocks: each of 4 voices every 0.5 s */
-#define HELLO_GAP  3000u        /* blocks: 2 s */
-#define HELLOS     5
 #define MAX_PASS   4
 #define RATE       5u           /* blocks a message: 300/s */
 #define CREDIT_MAX 32
@@ -28,7 +27,6 @@
 #define VCA_SHUT   0x7F00
 #define GATE_MIN   32u          /* blocks after a trig before a closed amp means the note ended: its attack has started */
 #define GATE_SHUT  8u           /* blocks closed in a row */
-#define DEVICE_ID  3            /* core/device/a4.h */
 #define CHORD      A4_CHORD
 #define PREVIEW_GAP 30u         /* blocks, 20 ms: a preview's own note comes a block or two after its notes [measured] */
 #define CHORD_GAP  30u          /* blocks, 20 ms: core/device/device.h kChordMs. A mono track's two events closer than it get an 11 between them, or the Sidecar would take a chord */
@@ -71,12 +69,13 @@ static struct a4_voice vo[A4_VOICES];
 static struct { uint32_t at; uint8_t n, base, note[CHORD]; } extra[A4_VOICES];  /* a note preview's notes the OS will not play: the next trig brings them, shifted as it is */
 volatile uint8_t a4_machine_now[A4_VOICES], a4_os2_now[A4_VOICES];
 volatile uint32_t a4_now;
-static uint32_t hello_at, resend_at;
+static uint32_t resend_at;
 #define now a4_now
 static int16_t kit_said = -1;
-static uint8_t was_up, hellos, scan, resend_v, turn, rate_tick;
+static uint8_t was_up, box_was, scan, resend_v, turn, rate_tick;
+static volatile uint8_t due;            /* the tick asks for a pass */
 static volatile int32_t credit = CREDIT_MAX;
-volatile uint32_t a4_trigs, a4_reports, a4_offs, a4_hellos, a4_deferred;    /* to look at in the emulator */
+volatile uint32_t a4_trigs, a4_reports, a4_offs, a4_resyncs, a4_deferred;    /* to look at in the emulator */
 
 #define TRIGS(x) ((uint8_t)((x)->qt - (x)->qh))
 #define POLY(v)  (POLY_MASK >> (v) & 1)
@@ -225,8 +224,15 @@ void a4_render(void)
             wake = 1;
     }
     scan = (scan + 1) & (A4_VOICES - 1);
-    if (wake)
-        a4_wake();
+    if (wake || due) {
+        due = 0;
+        a4_service();
+    }
+}
+
+void a4_wake(void)
+{
+    due = 1;
 }
 
 static int send(const uint8_t *m, uint32_t n)
@@ -324,7 +330,7 @@ static int any_machine(void)
     return 0;
 }
 
-/* The kit in use, as the Rytm's 3B (1 <kit>, core/ui/remote.cpp), on a change and at each hello: the Sidecar's LFOs and inserts are per kit. */
+/* The kit in use, as the Rytm's 3B (1 <kit>, core/ui/remote.cpp), on a change and at each resync: the Sidecar's LFOs and inserts are per kit. */
 static int report_kit(void)
 {
     uint32_t k = KIT_INDEX;
@@ -335,29 +341,29 @@ static int report_kit(void)
     return 1;
 }
 
+/* A new Sidecar has no values yet: at a port-up and at the engine's kOk to the companion's hello. */
+static void resync(void)
+{
+    uint32_t v;
+    for (v = 0; v < A4_VOICES; ++v)
+        if (vo[v].machine)
+            vo[v].pend_params = 1;
+    kit_said = -1;
+    ++a4_resyncs;
+}
+
+/* The render's, when there is work: nothing else sends the reports. */
 void a4_service(void)
 {
-    static const uint8_t hi[] = {0xf0, 0x7d, 0x52, 0x54, 0x4f, 1, DEVICE_ID >> 7, DEVICE_ID & 0x7f, 1, 'A', '4', 0xf7};
-    uint32_t v, left = MAX_PASS, at = now;
+    uint32_t v, left = MAX_PASS, at = now, box;
     if (!a4_usb_up()) {
-        was_up = 0;
+        was_up = 0, box_was = 0;
         return;
     }
-    if (!was_up) {
-        was_up = 1, hellos = 0, hello_at = at - HELLO_GAP;
-    }
-    if ((hellos <= HELLOS || any_machine()) && at - hello_at >= HELLO_GAP) {
-        if (send(hi, sizeof hi)) {
-            hello_at = at, ++a4_hellos;
-            if (hellos <= HELLOS)
-                ++hellos;
-            for (v = 0; v < A4_VOICES; ++v)     /* a new Sidecar has no values yet */
-                if (vo[v].machine)
-                    vo[v].pend_params = 1;
-            kit_said = -1;
-        }
-        return;
-    }
+    box = sc_box_ok() ? 1u : 0u;
+    if (!was_up || box > box_was)
+        resync();
+    was_up = 1, box_was = (uint8_t)box;
     if (any_machine() && kit_said != (int16_t)KIT_INDEX && credit > CREDIT_FLOOR && report_kit())
         --left;
     for (v = 0; v < A4_VOICES; ++v) {           /* the trigs first; a voice's note-off goes ahead of its trig: it is older */
@@ -399,13 +405,11 @@ void a4_service(void)
     }
 }
 
-extern void a4_start(void);
 extern void a4_machines_read(void);
 
 void a4_tick(void *ctrl)
 {
     (void)ctrl;
-    a4_start();
     a4_machines_read();
     a4_wake();
 }
