@@ -21,6 +21,7 @@
 #include "analog-four-mk2/ui.h"
 #include "analog-four-mk2/leds.h"
 #include "analog-four-mk2/keys.h"
+#include "analog-four-mk2/moments.h"
 
 #define K_TRIGS   16
 #define K_PAGE    0x84          /* the Rytm's PAGE code: the same on the A4 (a4_remote.c) */
@@ -101,8 +102,8 @@ static void put(const uint8_t *a, uint32_t n)           /* F0 7D 52 54 a[0..n-1]
 
 static void key31(uint32_t c, uint32_t down)
 {
-    uint8_t a[4] = {0x31, (uint8_t)(c >> 7), (uint8_t)(c & 0x7F), (uint8_t)down};
-    put(a, 4);
+    uint8_t a[5] = {0x31, 1, (uint8_t)(c >> 7), (uint8_t)(c & 0x7F), (uint8_t)down};
+    put(a, 5);
 }
 
 /* seq mode: the reports on, the current track a seq track, GRID REC armed */
@@ -215,13 +216,13 @@ int32_t a4_seq_enc(void *brain, void *ev)
 {
     uint32_t e = *(uint32_t *)((uint8_t *)ev + 12);
     int32_t d = *(int32_t *)((uint8_t *)ev + 16), t;
-    uint8_t a[4];
+    uint8_t a[5];
     (void)brain;
     if (!held || e >= 8 || a4_remote_open() || !seqmode(&t))
         return 0;
     d = d < -63 ? -63 : d > 63 ? 63 : d;
-    a[0] = 0x32, a[1] = (uint8_t)e, a[2] = (uint8_t)(d + 64), a[3] = (uint8_t)(func ? 1 : 0);
-    put(a, 4);
+    a[0] = 0x32, a[1] = 1, a[2] = (uint8_t)e, a[3] = (uint8_t)(d + 64), a[4] = (uint8_t)(func ? 1 : 0);
+    put(a, 5);
     return 1;
 }
 
