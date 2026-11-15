@@ -10,7 +10,7 @@
  *               2D 01 0A <op> <pattern> <track | 7F> <ok> <src> <a0> <a1> <a2>   EDIT (the Rytm's ops: 1..3 pattern
  *                                                         copy / paste / clear, 5..7 track, 9..11 page, 13..15 trigs;
  *                                                         src 0 stock's, after it ran; src 1 seq mode's own gesture, which
- *                                                         stock never sees; a0..a2 the held trigs, 21 bits)
+ *                                                         stock never sees; a0..a2 the held trigs, 21 bits, a0 the low 7)
  *               31 <hi> <lo> <down> / 32 <enc> <d + 64> <func>   in seq mode with the Sidecar's page closed: T1..T16 and
  *                                                         PAGE the host's (stock never sees them), FUNC both sides', the
  *                                                         encoders A..H while a host trig is held. Key codes are the
@@ -118,7 +118,7 @@ static void edit(uint32_t op, int32_t track, uint32_t ok, uint32_t src, uint32_t
 {
     int32_t p = core_current_pattern();
     uint8_t a[11] = {0x2D, 1, 0x0A, (uint8_t)op, (uint8_t)(p >= 0 && p < 128 ? p : 0), (uint8_t)(track >= 0 && track < TRACKS ? track : 0x7F),
-                     (uint8_t)ok, (uint8_t)src, (uint8_t)(arg >> 14), (uint8_t)(arg >> 7), (uint8_t)arg};
+                     (uint8_t)ok, (uint8_t)src, (uint8_t)arg, (uint8_t)(arg >> 7), (uint8_t)(arg >> 14)};
     put(a, 11);
 }
 
