@@ -34,6 +34,10 @@ int a4_remote_open(void);       /* a4_remote.c: the Sidecar's page is on the scr
 static volatile uint32_t sq_mask, sq_on, sq_resync, sq_led_mode, sq_led_new, sq_pled_new;
 static volatile uint8_t sq_led[K_TRIGS], sq_pled[4];
 volatile uint32_t a4_seq_msgs, a4_seq_bad, a4_seq_drop, a4_seq_refused;   /* to look at in the emulator */
+/* diagnostics for a unit run's dumps (one block): every ev_enc and ev_live_rec call this mod sees, those it took, the
+   last encoder / track / kind, the std_mode events and GRID REC's last value, the 32s and 31s queued */
+volatile struct { uint32_t enc_calls, enc_taken, enc_last, live_calls, live_last_track, live_last_what, mode_events, grid,
+                           sent32, sent31; } a4_seq_diag;
 
 /* the UI task's */
 static uint32_t grid, func, held, page_held, mode_sent = 0xff, mode_trk = 0xff, was_up;
@@ -104,6 +108,7 @@ static void key31(uint32_t c, uint32_t down)
 {
     uint8_t a[5] = {0x31, 1, (uint8_t)(c >> 7), (uint8_t)(c & 0x7F), (uint8_t)down};
     put(a, 5);
+    a4_seq_diag.sent31++;
 }
 
 /* seq mode: the reports on, the current track a seq track, GRID REC armed */
@@ -155,8 +160,9 @@ void a4_seq_mode(int mode, int old, int now);
 void a4_seq_mode(int mode, int old, int now)
 {
     (void)old;
+    a4_seq_diag.mode_events++;
     if (mode == MODE_GRID_REC)
-        grid = now != 0;
+        grid = now != 0, a4_seq_diag.grid = grid;
 }
 
 /* ev_key, before a4_remote's (order 49): in seq mode with the page closed, T1..T16 and PAGE the host's, FUNC both
@@ -218,11 +224,13 @@ int32_t a4_seq_enc(void *brain, void *ev)
     int32_t d = *(int32_t *)((uint8_t *)ev + 16), t;
     uint8_t a[5];
     (void)brain;
+    a4_seq_diag.enc_calls++, a4_seq_diag.enc_last = e;
     if (!held || e >= 8 || a4_remote_open() || !seqmode(&t))
         return 0;
     d = d < -63 ? -63 : d > 63 ? 63 : d;
     a[0] = 0x32, a[1] = 1, a[2] = (uint8_t)e, a[3] = (uint8_t)(d + 64), a[4] = (uint8_t)(func ? 1 : 0);
     put(a, 5);
+    a4_seq_diag.enc_taken++, a4_seq_diag.sent32++;
     return 1;
 }
 
@@ -270,7 +278,7 @@ int a4_seq_clip(unsigned pre, const struct core_clip *c)
 int a4_seq_live(unsigned track, unsigned what);
 int a4_seq_live(unsigned track, unsigned what)
 {
-    (void)what;
+    a4_seq_diag.live_calls++, a4_seq_diag.live_last_track = track, a4_seq_diag.live_last_what = what;
     if (sq_on && track < 4 && (sq_mask >> track & 1)) {
         ++a4_seq_refused;
         return 1;
