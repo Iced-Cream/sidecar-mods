@@ -191,6 +191,12 @@ int32_t a4_seq_key(void *brain, void *ev)
             key31(c, 0);
         return 0;
     }
+    /* a held key's repeats (bit 0 still set while it stays down): one 31 down per press. T376 (SQ5): the engine took
+       each repeat of a held trig as a new press, reset its "used" mark and toggled the step off at the release */
+    if (c < K_TRIGS && (owner[c / 8] >> (c & 7) & 1))
+        return 1;
+    if (c == K_PAGE && page_owner)
+        return 1;
     if (a4_remote_open() || !seqmode(&t))
         return 0;
     if (c < K_TRIGS) {
