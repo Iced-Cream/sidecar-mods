@@ -85,12 +85,12 @@ jobs:
           python -c "import json; [json.load(open(f)) for f in ('a4/mod/mod.json', 'a4/a4156.lock.json')]"
       - name: The release check's tests
         run: python a4/tools/test_release_assets.py
-      - name: The mod's C sources compile (elekloader's headers, the core-a4mk2 0.8 commit it builds on)
+      - name: The mod's C sources compile (elekloader's headers, the core-a4mk2 commit it builds on)
         run: |
           sudo apt-get update -qq && sudo apt-get install -y -qq gcc-m68k-linux-gnu
           git init -q elekloader
-          # core-a4mk2 0.8 with ev_live_rec / core_mutes (ui.h, moments.h): Iced-Cream/elekloader#53 until it is upstream
-          git -C elekloader fetch -q --depth 1 https://github.com/Iced-Cream/elekloader 0f18c3aad517b8ecfa56a808c48e105dc993dada
+          # core-a4mk2 (upstream 0.8 plus the fork's core-a4mk2-sc: ev_live_rec / core_mutes, ui.h, moments.h) until it is upstream
+          git -C elekloader fetch -q --depth 1 https://github.com/Iced-Cream/elekloader 76c296d23a9eb8e727ab3613010798986bb4fc99
           git -C elekloader checkout -q FETCH_HEAD
           for f in a4/mod/*.c; do
             m68k-linux-gnu-gcc -mcpu=54455 -O2 -ffreestanding -fno-builtin -nostdlib -fsyntax-only \
