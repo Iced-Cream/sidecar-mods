@@ -1,13 +1,13 @@
 {
  "id": "sidecar-a4",
- "version": "0.13",
+ "version": "0.14",
  "title": "Sidecar",
  "category": "Sidecar",
  "license": "GPL-2.0-or-later",
- "description": "The Sidecar on an Analog Four MKII: knob D of the NOISE page picks a machine for a track's sound, and that track's trigs and parameters go to a Sidecar over USB MIDI under the A4 device profile. Its audio comes back through stock's Overbridge track inputs, into the voice's analog path. Every sound starts OFF. A track with a machine has OSC1's page as its own, and OSC2's by a setting, with plain dials and its names, and the Sidecar's pages can open on the A4's screen. Runs on a unit on Overbridge. Needs the A4 companion (mod sidecar), which carries the host link.",
+ "description": "The Sidecar on an Analog Four MKII: knob D of the NOISE page picks a machine for a track's sound, and that track's trigs and parameters go to a Sidecar over USB MIDI under the A4 device profile. Its audio comes back through stock's Overbridge track inputs, into the voice's analog path. Every sound starts OFF. A track with a machine has OSC1's page as its own, and OSC2's by a setting, with plain dials and its names, and the Sidecar's pages can open on the A4's screen. Runs on a unit on Overbridge. Needs the A4 companion (mod sidecar), which carries the host link. From 0.14 the A4's half of the Sidecar sequencer's edit route (a4_seq.c): seq mode on a seq track in GRID REC, its trig keys, PAGE and encoders to the Sidecar, the Sidecar's trig and PAGE LEDs, copy / paste / clear reports, and no live recording on a seq track.",
  "device": "analog-four-mk2",
  "os": "1.56",
- "sources": ["a4_report.c", "a4_page.c", "a4_label.s", "a4_remote.c"],
+ "sources": ["a4_report.c", "a4_page.c", "a4_label.s", "a4_remote.c", "a4_seq.c"],
  "sites": [
   {"addr": "0x40023678", "stock": "206800684e90", "op": "jsr", "target": "a4_label_call"},
   {"addr": "0x40025c26", "stock": "2068006c4e90", "op": "jsr", "target": "a4_title_call"},
@@ -24,7 +24,14 @@
   {"event": "ev_tick", "fn": "a4_ui_tick", "order": 50},
   {"event": "ev_draw", "fn": "a4_ui_draw", "order": 50},
   {"event": "ev_key", "fn": "a4_ui_key", "order": 50},
-  {"event": "ev_enc", "fn": "a4_ui_enc", "order": 50}
+  {"event": "ev_enc", "fn": "a4_ui_enc", "order": 50},
+  {"event": "ev_tick", "fn": "a4_seq_tick", "order": 51},
+  {"event": "ev_key", "fn": "a4_seq_key", "order": 49},
+  {"event": "ev_enc", "fn": "a4_seq_enc", "order": 49},
+  {"event": "std_mode", "fn": "a4_seq_mode", "order": 50},
+  {"event": "std_key_leds", "fn": "a4_seq_leds", "order": 50},
+  {"event": "std_clip", "fn": "a4_seq_clip", "order": 50},
+  {"event": "ev_live_rec", "fn": "a4_seq_live", "order": 50}
  ],
  "contribute": [
   {"to": "core_params", "order": 50, "data": "00000000", "relocs": [[0, "abs32", "sym:a4_params", 0]]},
@@ -33,7 +40,9 @@
   {"to": "core_page_fns", "order": 50, "data": "00000000", "relocs": [[0, "abs32", "sym:a4_page_osc1", 0]]},
   {"to": "core_page_fns", "order": 51, "data": "00000000", "relocs": [[0, "abs32", "sym:a4_page_noise", 0]]},
   {"to": "core_page_fns", "order": 52, "data": "00000000", "relocs": [[0, "abs32", "sym:a4_page_osc2", 0]]},
-  {"to": "sc_cmds", "order": 60, "data": "363c01000000000000000000", "relocs": [[8, "abs32", "sym:a4_rx", 0]]}
+  {"to": "sc_cmds", "order": 60, "data": "363c01000000000000000000", "relocs": [[8, "abs32", "sym:a4_rx", 0]]},
+  {"to": "sc_cmds", "order": 61, "data": "2e2f01000000000000000000", "relocs": [[8, "abs32", "sym:a4_seq_rx", 0]]},
+  {"to": "sc_cmds", "order": 62, "data": "343401000000000000000000", "relocs": [[8, "abs32", "sym:a4_seq_rx", 0]]}
  ],
  "requires": ["core", "sidecar"],
  "resources": {"core": "0.8"}
