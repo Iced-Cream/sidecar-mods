@@ -160,7 +160,7 @@ class SidecarCmds(unittest.TestCase):
         mods = build.load_mods({"0021-ext"})
         self.assertEqual([(c["first"], c["last"]) for c in build.sc_cmds_of(mods["0021-ext"])], [(0x15, 0x17)])
         mods["0021-ext"]["_params"]["slots"] = 1
-        self.assertEqual([(c["first"], c["last"]) for c in build.sc_cmds_of(mods["0021-ext"])], [(0x15, 0x1d)])
+        self.assertEqual([(c["first"], c["last"]) for c in build.sc_cmds_of(mods["0021-ext"])], [(0x15, 0x1d), (0x5b, 0x5b)])   # (with the track reports' 5B, 2026-11-21)
 
     def test_companion_takes_fx_in(self):
         """The companion's own command, called directly: the store link's 51 (the Storage phase; the FX return's 26
