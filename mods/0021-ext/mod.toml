@@ -98,3 +98,12 @@ last   = 0x17
 magic  = "JUNO"
 box    = 0x40027a04
 gate   = "!slots"
+
+# Track reports (2026-11-21, sidecar-firmware sim/protocol.py "Track reports"): the host's 5B 01 <flags> turns the track
+# byte on 03 / 04 / 43 / 44 / 11 on or off (ext.c ext_trk_on). The same mailbox; slots=1 (the area image) only.
+[[sidecar.cmds]]
+first = 0x5b
+last  = 0x5b
+magic = "JUNO"
+box   = 0x40027a04
+gate  = "slots"

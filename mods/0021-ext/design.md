@@ -1030,3 +1030,24 @@ rytm-teensy core/midim/midim.h.
 rytm-teensy core/arp/arp.h reads 10 opaque bits. **Stored:** slot 46 (+0x78 / +0x79). **Live:** +0x6d and the two bits above the tag (+0x6e bits 6, 7): the last spare bits of a live sound, which is what raw copies carry
 (sound-tag-research.md). `us_tag_load_c` / `us_tag_save_c` carry them for every machine; the three writers of the live tag keep the two bits. An old sound's slot is 0, OFF; a stock save zeroes it. `us_snd_init`, a new detour in
 `sound_init_defaults` (0x400122e6): a fresh sound's spare bytes are the allocator's, so all three are cleared there. 0026 writes and reports the code (below in its design). Tests: tools/emu/ar_emu.py.
+
+## Track reports (2026-11-21; code only: not built into a release, no emulator or unit run)
+
+The Sidecar gives the Rytm 12 voices, one per track (sidecar-firmware `twelve-voices`, sim/protocol.py "Track
+reports"). The voice byte has no spare bit, so with the slots=1 (area) image the reports can carry the owner track:
+
+- Host -> Rytm `5B 01 <flags>`, flags bit 0 on. Through the companion's table to the JUNO mailbox (mod.toml, gate
+  `slots`); `jn_sysex` sets `ext_trk_on` and owes an answer, which `ext_render` sends (`5B 01 <flags now>`) from the
+  audio path, where the sender is safe. The host asks after each hello and at the first report of a link.
+- On: 03 / 04 / 43 / 44 end with `OWNER(voice)` before F7 (42 / 44 bytes), 11 with it too (8 bytes). The voice byte is
+  unchanged.
+- A shared voice taken by its other track while the first track's note is still held (CP's trig over a held RS):
+  `ext_trk_v[voice]` keeps the displaced track, and `ext_gate` sends `11 <voice> <that track>` when its own gate closes,
+  so the host's voice for it does not hang (JUNO and 6-OP FM with LEN 127 hold until 11).
+- Off (the default after boot, or `5B 01 00`): every byte as before. There is no port-up hook here: a host restarted
+  without a hello still gets track reports until it asks; hosts from `twelve-voices` on read both forms, an older host
+  would read a 44-byte 04 without its tag (named gap: a downgraded Pi needs a Rytm restart).
+- slots=0: untouched. GCC 13 (m68k-linux-gnu) output for EXT_SLOTS=0 is identical apart from one `.loc`-style line
+  comment. stub.s is NOT regenerated in this change (`build.sh` on the PC with the usual m68k-elf-gcc does it).
+- Not yet: the parameter reports of a displaced track stop with its voice (the Rytm runs one engine per physical voice);
+  JUNO's knob sync (15) still names the physical voice, so it reaches whichever track owns the voice.

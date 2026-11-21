@@ -175,6 +175,20 @@ __attribute__((section(".ext9"), noinline)) static int ext_try_send(const uint8_
   return 1;
 }
 
+#if EXT_SLOTS
+/* Track reports (2026-11-21; sidecar-firmware sim/protocol.py "Track reports", core/device/device.h kCmdTracks): once the
+   host asks (5B 01 01, the companion's table through the JUNO mailbox), 03 / 04 / 43 / 44 / 11 end with the owner track
+   (0..11) before F7, so the host plays a shared voice's two tracks (RS/CP, MT/HT, CH/OH, CY/CB) on Sidecar voices of their
+   own. 5B 01 00 stops them; the flag is answered once (5B 01 <flags>) from the audio path, which owns the sender. A
+   voice another track took while the first one's note was still held: that note's 11 goes with the first track's number
+   when its gate closes (ext_gate), so the host's voice for it is not left hanging. Only in the slots=1 (area) image. */
+volatile uint8_t ext_trk_on __attribute__((section(".usr")));   /* bit 0 on, bit 1 the answer owed */
+struct ext_trk { uint8_t trk1, otrk, ogate; };                   /* the track last reported + 1 (0 none yet), a displaced track held open */
+struct ext_trk ext_trk_v[8] __attribute__((section(".usr")));
+#endif
+#define GATES(t) ((const volatile int32_t *)(0x8000fe58u + 12u * (t)))   /* (ext_gate's, below) */
+#define PLAYING (*(volatile int32_t *)0x405c8c90u)
+
 /* ---------------------------------------------------------------------------
  * How the knobs look and read. Each parameter record has a descriptor at
  * 0x419a4888 + 84 x record, built at boot [measured, OS 1.73]: +0..+19 flags
@@ -458,6 +472,12 @@ __attribute__((noinline)) void ext_render_body(int32_t voice, uint8_t *frame, co
     x->pend_params = 1;
   }
   if (x->hold) --x->hold;
+#if EXT_SLOTS
+  if (ext_trk_on & 2) {   /* track reports: the answer to 5B 01 (the flag as it now is) */
+    uint8_t a[8] = {0xf0, 0x7d, 0x52, 0x54, 0x5b, 0x01, (uint8_t)(ext_trk_on & 1), 0xf7};
+    if (ext_try_send(a, 8)) ext_trk_on &= 1;
+  }
+#endif
   if (!x->pend_params || (!x->pend_trig && x->hold)) return;
 #if EXT_SLOTS
   {   /* md_store is rewriting this track's sound: no report, a trig's included, with half the words or the old tag */
@@ -487,7 +507,11 @@ __attribute__((noinline)) void ext_render_body(int32_t voice, uint8_t *frame, co
     }
   }
 #endif
+#if EXT_SLOTS
+  uint8_t m[45];   /* the trig message is 43 bytes (41 and the sound tag), 44 with the track */
+#else
   uint8_t m[44];   /* the trig message is 43 bytes (41 and the sound tag) */
+#endif
   int n = 0;
   m[n++] = 0xf0; m[n++] = 0x7d; m[n++] = 0x52; m[n++] = 0x54;
   if (x->pend_trig) {
@@ -505,6 +529,17 @@ __attribute__((noinline)) void ext_render_body(int32_t voice, uint8_t *frame, co
     uint16_t tag = us_tag[OWNER(voice)];
     m[n++] = (uint8_t)(tag >> 7) & 0x7f;
     m[n++] = (uint8_t)tag & 0x7f;
+  }
+  if (ext_trk_on & 1) {   /* the owner track; a trig of another track than the last one on this voice: a still-held
+                             note of that one gets its own 11 later (ext_gate) */
+    struct ext_trk *k = &ext_trk_v[voice & 7];
+    uint8_t t = OWNER(voice);
+    if (x->pend_trig && k->trk1 && k->trk1 - 1 != t && k->trk1 <= 12) {
+      const volatile int32_t *g = GATES(k->trk1 - 1);
+      if (g[0] != -1 || g[2] != -1 || (g[1] != -1 && PLAYING)) k->otrk = (uint8_t)(k->trk1 - 1), k->ogate = 1;
+    }
+    k->trk1 = (uint8_t)(t + 1);
+    m[n++] = t & 0x7f;
   }
 #endif
   m[n++] = 0xf7;
@@ -665,8 +700,7 @@ EXTL void jn_descriptors(void) {
  * block of these machines, before the project check; in cave12 (.exto:
  * ext_render's .text is full). */
 #define EXTQ __attribute__((section(".exto"), noinline))
-#define GATES(t) ((const volatile int32_t *)(0x8000fe58u + 12u * (t)))
-#define PLAYING (*(volatile int32_t *)0x405c8c90u)
+/* GATES(t), PLAYING: above (the track reports use them too) */
 
 EXTQ void ext_gate(int32_t voice) {
   struct ext_voice *x = &ext_state[voice & 7];
@@ -674,9 +708,27 @@ EXTQ void ext_gate(int32_t voice) {
   if (g[0] != -1 || g[2] != -1 || (g[1] != -1 && PLAYING)) {
     x->gate = 1;
   } else if (x->gate && !x->pend_trig) {   /* never ahead of its trig */
+#if EXT_SLOTS
+    uint8_t m[8] = {0xf0, 0x7d, 0x52, 0x54, 0x11, (uint8_t)(voice & 7), OWNER(voice), 0xf7};
+    if (!(ext_trk_on & 1)) m[6] = 0xf7;   /* 7 bytes: the classic note-off */
+    if (ext_try_send(m, ext_trk_on & 1 ? 8 : 7)) x->gate = 0;
+#else
     uint8_t m[7] = {0xf0, 0x7d, 0x52, 0x54, 0x11, (uint8_t)(voice & 7), 0xf7};
     if (ext_try_send(m, 7)) x->gate = 0;
+#endif
   }
+#if EXT_SLOTS
+  {   /* track reports: a displaced track's held note ends when its own gate closes */
+    struct ext_trk *k = &ext_trk_v[voice & 7];
+    if ((ext_trk_on & 1) && k->ogate && k->otrk < 12) {
+      const volatile int32_t *o = GATES(k->otrk);
+      if (o[0] == -1 && o[2] == -1 && !(o[1] != -1 && PLAYING)) {
+        uint8_t m[8] = {0xf0, 0x7d, 0x52, 0x54, 0x11, (uint8_t)(voice & 7), k->otrk, 0xf7};
+        if (ext_try_send(m, 8)) k->ogate = 0;
+      }
+    }
+  }
+#endif
   ext_project();
 }
 
@@ -962,6 +1014,13 @@ struct jn_mailbox jn_mailbox __attribute__((section(".usr"), aligned(4)));
 EXTU int jn_sysex(const uint8_t *d, int32_t len) {
   struct jn_mailbox *q = &jn_mailbox;
   int32_t p, j;
+  if (d[4] == 0x5b) {   /* track reports: 5B 01 <flags>, answered from the audio path (ext_render) */
+    if (len >= 8 && d[5] == 1) {
+      if (!(d[6] & 1)) for (j = 0; j < 8; ++j) ext_trk_v[j].ogate = 0;
+      ext_trk_on = (uint8_t)((d[6] & 1) | 2);
+    }
+    return 1;
+  }
   if (d[4] == 0x15) {
     uint8_t t, s;
     if (len < 13) return 1;
